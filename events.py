@@ -3,9 +3,9 @@ from aws import TableItem
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-import regex
+import re
 
-guid_finder = regex.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
+guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
 
 class MeetupEvent(TableItem):
 	title: str
@@ -13,6 +13,7 @@ class MeetupEvent(TableItem):
 	link: str
 	datetime: datetime
 	location: str
+	snowflake_id: int = 0
 
 	def __init__(self, meetup_id: int) -> None:
 		self.id = "event"
@@ -56,9 +57,12 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 		event = MeetupEvent(int(guid_finder.match(item['guid']).group(1)))
 		event.link = item['link']
 		event.title = item['title']
-		event.description = item['description']
+		event.description: str = item['description']
+		if len(event.description) > 999:
+			append = f"... [full event]({event.link})"
+			event.description = event.description[0:(999 - len(append))] + append
 		response = requests.get(event.link)
-		soup = BeautifulSoup(response.text)
+		soup = BeautifulSoup(response.text, features="lxml")
 		event.datetime = datetime.fromisoformat(soup.select_one("time.block")['datetime'])
 		event.location = soup.select_one('[data-testid="location-info"]').text
 		ret.append(event)
