@@ -38,6 +38,8 @@ async def update_events():
 		if table_item.snowflake_id:
 			print(f"reading in snowflake id: {table_item.snowflake_id}")
 			discord_event = await guild.fetch_scheduled_event(table_item.snowflake_id)
+			e.snowflake_id = table_item.snowflake_id
+			table_item = e
 		if discord_event:
 			# check if the event needs updating
 			updates = {}
