@@ -61,8 +61,8 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	for item in rss_content['rss']['channel']['item']:
 		event = MeetupEvent(int(guid_finder.match(item['guid']).group(1)))
 		event.link = item['link']
-		event.title = item['title']
-		event.description = item['description']
+		event.title = item['title'].strip()
+		event.description = item['description'].strip()
 		event.category = ai_categorize(event.description)
 		if len(event.description) > 999:
 			append = f"... [full event]({event.link})"
@@ -70,7 +70,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 		response = requests.get(event.link)
 		soup = BeautifulSoup(response.text, features="lxml")
 		event.datetime = datetime.fromisoformat(soup.select_one("time.block")['datetime'])
-		event.location = soup.select_one('[data-testid="location-info"]').text
+		event.location = soup.select_one('[data-testid="location-info"]').text.strip()
 		ret.append(event)
 	return ret
 
