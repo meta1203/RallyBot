@@ -20,7 +20,7 @@ guild: discord.Guild = None
 loop: asyncio.AbstractEventLoop = None
 scheduler: AsyncIOScheduler = None
 
-channels: dict[str, discord.guild.GuildChannel] = {}
+channels: dict[str, discord.guild.TextChannel] = {}
 
 async def set_globals():
 	global ddb, loop, guild, scheduler
