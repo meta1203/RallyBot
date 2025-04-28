@@ -47,16 +47,21 @@ async def update_events():
 			# check if the event needs updating
 			updates = {}
 			if discord_event.name != table_item.title:
+				print(f"{discord_event.name} -> {table_item.title}")
 				updates['name'] = table_item.title
 			if discord_event.description != table_item.description:
+				print(f"{discord_event.description} -> {table_item.description}")
 				updates['description'] = table_item.description
 			if discord_event.start_time != table_item.datetime:
+				print(f"{discord_event.start_time} -> {table_item.datetime}")
 				updates['start_time'] = table_item.datetime
 				updates['end_time'] = table_item.datetime + datetime.timedelta(hours=1)
 			if discord_event.location != table_item.location:
+				print(f"{discord_event.location} -> {table_item.location}")
 				updates['location'] = table_item.location
 			if updates:
 				await discord_event.edit(**updates)
+				ddb.write_item(table_item)
 				category = get_channel_for_ddb_event(table_item)
 				target_role = 'online-events' if table_item.online else 'in-person-events'
 				await message_channel(category, f"@{target_role} {table_item.title} has been updated.")
