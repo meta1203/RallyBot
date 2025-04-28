@@ -12,12 +12,15 @@ import datetime
 intents = discord.Intents.default()
 # required intents for the bot to function
 intents.guild_scheduled_events = True
+intents.guild_messages = True
 
 ddb: aws.DynamoDBClient = None
 client = discord.Client(intents=intents)
 guild: discord.Guild = None
 loop: asyncio.AbstractEventLoop = None
 scheduler: AsyncIOScheduler = None
+
+channels: dict[str, discord.guild.GuildChannel] = {}
 
 async def set_globals():
 	global ddb, loop, guild, scheduler
@@ -72,6 +75,62 @@ async def update_events():
 			ddb.write_item(table_item)
 			print(f"Created new event w/ snowflake id: {table_item.snowflake_id}")
 
+def ddb_event_from_discord_event(event: discord.ScheduledEvent) -> events.MeetupEvent:
+	ddb_event = events.MeetupEvent(
+		id=event.id,
+		title=event.name,
+		description=event.description,
+		datetime=event.start_time,
+		location=event.location,
+		snowflake_id=event.id,
+		online=(event.entity_type == discord.EntityType.external)
+	)
+	ddb.write_item(ddb_event)
+	return ddb_event
+
+async def notify_events():
+	discord_events = await guild.fetch_scheduled_events()
+	now = datetime.datetime.now()
+	for de in discord_events:
+		category = 'other'
+		ddb_event: events.MeetupEvent = ddb.scan_item("snowflake_id", de.id)
+		if not ddb_event:
+			ddb_event = ddb_event_from_discord_event(de)
+		
+		# handle categories
+		category = ddb_event.category
+		if category not in events.categories:
+			category = 'other'
+		if category == 'other':
+			category = 'events-general'
+		
+		# event is in-person and starts sometime between 4 and 5 hours from now
+		if not ddb_event.online and de.start_time > (now+datetime.timedelta(hours=4)) and de.start_time < (now+datetime.timedelta(hours=5)):
+			message_channel(category, f"@in-person-events {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
+		# event is online and starts sometime between 1 and 2 hours from now
+		elif ddb_event.online and de.start_time > (now+datetime.timedelta(hours=1)) and de.start_time < (now+datetime.timedelta(hours=2)):
+			message_channel(category, f"@online-events {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
+	
+async def message_channel(channel_name: str, message: str):
+	channel = await get_channel_by_name(channel_name)
+	if not channel:
+		print(f"ERROR: invalid channel name {channel_name}")
+		return None
+	print(f"sending message -> {channel_name}: {message}")
+	# return await channel.send(message)
+
+async def get_channel_by_name(name: str):
+	name = name.replace(" ", "-")
+	if name not in channels:
+		discord_channels = await guild.fetch_channels()
+		for d_c in discord_channels:
+			if d_c.name == name:
+				channels[name] = d_c
+				return d_c
+		return None
+	else:
+		return channels[name]
+
 @client.event
 async def on_ready():
 	await set_globals()
@@ -80,8 +139,9 @@ async def on_ready():
 	# Run update_events once at startup
 	await update_events()
 	
-	# Schedule update_events to run daily at midnight
-	scheduler.add_job(update_events, CronTrigger(hour=0, minute=0))
+	# Schedule update_events to run daily at 12:30 PM
+	scheduler.add_job(update_events, CronTrigger(hour=12, minute=30))
+	scheduler.add_job(notify_events, CronTrigger(minute=0))
 	scheduler.start()
 	print("Scheduled daily update_events job at midnight")
 
