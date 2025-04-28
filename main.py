@@ -143,6 +143,6 @@ async def on_ready():
 	scheduler.add_job(update_events, CronTrigger(hour=12, minute=30))
 	scheduler.add_job(notify_events, CronTrigger(minute=0))
 	scheduler.start()
-	print("Scheduled daily update_events job at midnight")
+	print("Successfully scheduled jobs.")
 
 client.run(os.getenv('DISCORD_TOKEN'))
