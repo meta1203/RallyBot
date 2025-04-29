@@ -1,6 +1,9 @@
-import xml.etree.ElementTree as ET
 from aws import TableItem
+from shared import shared
+
+import discord
 import requests
+import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from datetime import datetime
 import re
@@ -17,12 +20,27 @@ class MeetupEvent(TableItem):
 	datetime: datetime
 	location: str
 	snowflake_id: int = 0
-	category: str = "other"
-	online: bool = False
+	category: str
+	online: bool
 
 	def __init__(self, meetup_id: int) -> None:
 		self.id = "event"
 		self.sort = meetup_id
+		self.online = False
+		self.category = None
+	
+	def from_discord_event(event: discord.ScheduledEvent):
+		print(f"snowflake {event.id} ({event.name}) not found in ddb, creating...")
+		ddb_event = MeetupEvent(event.id)
+		ddb_event.title = event.name
+		ddb_event.description = event.description
+		ddb_event.category = ai_categorize(event.description)
+		ddb_event.datetime = event.start_time
+		ddb_event.location = event.location
+		ddb_event.snowflake_id = event.id
+		ddb_event.online = (event.entity_type == discord.EntityType.external)
+		shared.ddb.write_item(ddb_event)
+		return ddb_event
 
 def xml_to_dict(xml_string):
 	"""
@@ -59,11 +77,16 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	response.raise_for_status()  # Raise an exception for HTTP errors
 	rss_content = xml_to_dict(response.text)
 	for item in rss_content['rss']['channel']['item']:
-		event = MeetupEvent(int(guid_finder.match(item['guid']).group(1)))
+		guid = int(guid_finder.match(item['guid']).group(1))
+		event: MeetupEvent = shared.ddb.read_item('event', guid)
+		if not event:
+			event = MeetupEvent(guid)
+		if not hasattr(event, 'category') or not event.category:
+			event.category = ai_categorize(item['description'].strip())
+		event.online = False
 		event.link = item['link']
 		event.title = item['title'].strip()
 		event.description = item['description'].strip()
-		event.category = ai_categorize(event.description)
 		if len(event.description) > 999:
 			append = f"... [full event]({event.link})"
 			event.description = event.description[0:(999 - len(append))] + append
@@ -71,6 +94,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 		soup = BeautifulSoup(response.text, features="lxml")
 		event.datetime = datetime.fromisoformat(soup.select_one("time.block")['datetime'])
 		event.location = soup.select_one('[data-testid="location-info"]').text.strip()
+		shared.ddb.write_item(event)
 		ret.append(event)
 	return ret
 

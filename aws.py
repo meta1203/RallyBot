@@ -54,9 +54,8 @@ class DynamoDBClient:
 			return None
 		return self.unpickler.restore(self.table.get_item(Key={'id': id, 'sort': sort})['Item'])
 	
-	def scan_item(self, key, value, limit=1):
+	def scan_item(self, key, value):
 		resp = self.table.scan(
-			Limit=limit,
 			FilterExpression=conditions.Attr(key).eq(value)
 		)
 		if 'Items' in resp:
@@ -64,6 +63,7 @@ class DynamoDBClient:
 				return self.unpickler.restore(resp['Items'][0])
 			else:
 				return self.unpickler.restore(resp['Items'])
+		print(f"could not find {key}={value}\n{resp}")
 		return None
 	
 	def delete_item(self, id, sort):
