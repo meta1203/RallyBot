@@ -65,7 +65,7 @@ async def update_events():
 			event.snowflake_id = discord_event.id
 			shared.ddb.write_item(event)
 			print(f"Created new event w/ snowflake id: {event.snowflake_id}")
-			notify_new_event(event)
+			await notify_new_event(event)
 
 def get_channel_for_ddb_event(event: events.MeetupEvent):
 	if not event:
