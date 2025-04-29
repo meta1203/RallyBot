@@ -85,15 +85,14 @@ async def update_events():
 			notify_new_event(table_item)
 
 def ddb_event_from_discord_event(event: discord.ScheduledEvent) -> events.MeetupEvent:
-	ddb_event = events.MeetupEvent(
-		id=event.id,
-		title=event.name,
-		description=event.description,
-		datetime=event.start_time,
-		location=event.location,
-		snowflake_id=event.id,
-		online=(event.entity_type == discord.EntityType.external)
-	)
+	print(f"snowflake {event.id} ({event.name}) not found in ddb, creating...")
+	ddb_event = events.MeetupEvent(event.id)
+	ddb_event.title = event.name
+	ddb_event.description = event.description
+	ddb_event.datetime = event.start_time
+	ddb_event.location = event.location
+	ddb_event.snowflake_id = event.id
+	ddb_event.online = (event.entity_type == discord.EntityType.external)
 	ddb.write_item(ddb_event)
 	return ddb_event
 
