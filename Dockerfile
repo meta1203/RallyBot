@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy application code
-COPY main.py events.py aws.py ./
+COPY main.py shared.py events.py aws.py ./
 
 # Switch to non-root user
 USER appuser
