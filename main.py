@@ -13,6 +13,8 @@ intents.guild_scheduled_events = True
 intents.guild_messages = True
 
 client = discord.Client(intents=intents)
+IN_PERSON_MENTION = "<@&1366086187906895923>"
+ONLINE_MENTION = "<@&1366085997917638826>"
 
 async def set_globals():
 	print("setting globals...")
@@ -79,8 +81,8 @@ def get_channel_for_ddb_event(event: events.MeetupEvent):
 
 async def notify_new_event(event: events.MeetupEvent):
 	category = get_channel_for_ddb_event(event)
-	target_role = 'online-events' if event.online else 'in-person-events'
-	await shared.message_channel(category, f"@{target_role} {event.title} has been scheduled for <t:{round(event.datetime.timestamp())}>.")
+	target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
+	await shared.message_channel(category, f"{target_role} {event.title} has been scheduled for <t:{round(event.datetime.timestamp())}>.")
 
 async def notify_events():
 	discord_events = await shared.guild.fetch_scheduled_events()
@@ -97,10 +99,10 @@ async def notify_events():
 		
 		# event is in-person and starts sometime between 24 and 25 hours from now
 		if not ddb_event.online and de.start_time > (now+datetime.timedelta(hours=24)) and de.start_time < (now+datetime.timedelta(hours=25)):
-			await shared.message_channel(category, f"@in-person-events {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
+			await shared.message_channel(category, f"{IN_PERSON_MENTION} {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
 		# event is online and starts sometime between 1 and 2 hours from now
 		elif ddb_event.online and de.start_time > (now+datetime.timedelta(hours=1)) and de.start_time < (now+datetime.timedelta(hours=2)):
-			await shared.message_channel(category, f"@online-events {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
+			await shared.message_channel(category, f"{ONLINE_MENTION} {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
 
 @client.event
 async def on_ready():
