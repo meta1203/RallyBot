@@ -38,7 +38,7 @@ class MeetupEvent(TableItem):
 		ddb_event.datetime = event.start_time
 		ddb_event.location = event.location
 		ddb_event.snowflake_id = event.id
-		ddb_event.online = (event.entity_type == discord.EntityType.external)
+		ddb_event.online = (event.entity_type != discord.EntityType.external)
 		shared.ddb.write_item(ddb_event)
 		return ddb_event
 

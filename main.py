@@ -99,7 +99,7 @@ async def notify_events():
 		
 		# event is in-person and starts sometime between 24 and 25 hours from now
 		if not ddb_event.online and de.start_time > (now+datetime.timedelta(hours=24)) and de.start_time < (now+datetime.timedelta(hours=25)):
-			await shared.message_channel(category, f"{IN_PERSON_MENTION} {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
+			await shared.message_channel(category, f"{IN_PERSON_MENTION} {de.name} is tomorrow! (<t:{round(de.start_time.timestamp())}>)")
 		# event is online and starts sometime between 1 and 2 hours from now
 		elif ddb_event.online and de.start_time > (now+datetime.timedelta(hours=1)) and de.start_time < (now+datetime.timedelta(hours=2)):
 			await shared.message_channel(category, f"{ONLINE_MENTION} {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
