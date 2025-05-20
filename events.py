@@ -11,7 +11,7 @@ import os
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
 
-categories = ["book club", "conventions", "food", "gaming", "karaoke", "outdoor", "watch party", "other"]
+categories = ["book club", "conventions", "food", "gaming", "karaoke", "outdoor", "watch party", "volunteering", "other"]
 
 class MeetupEvent(TableItem):
 	title: str
