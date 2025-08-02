@@ -48,8 +48,8 @@ async def update_events():
 				await discord_event.edit(**updates)
 				shared.ddb.write_item(event)
 				category = get_channel_for_ddb_event(event)
-				target_role = 'online-events' if event.online else 'in-person-events'
-				await shared.message_channel(category, f"@{target_role} {event.title} has been updated.")
+				target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
+				await shared.message_channel(category, f"{target_role} {event.title} has been updated.")
 				print(f"Updated {event.title}!")
 			else:
 				print(f"{event.title} already exists.")
@@ -113,7 +113,7 @@ async def on_ready():
 	await update_events()
 
 	# Schedule update_events to run daily at 12:30 PM
-	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30))
+	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30, timezone="America/Chicago"))
 	shared.scheduler.add_job(notify_events, CronTrigger(minute=0))
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
