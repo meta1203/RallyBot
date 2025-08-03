@@ -5,7 +5,7 @@ import discord
 import requests
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime as dt
 import re
 import os
 
@@ -17,11 +17,21 @@ class MeetupEvent(TableItem):
 	title: str
 	description: str
 	link: str
-	datetime: datetime
+	timestamp: int # unix timestamp in milliseconds
 	location: str
 	snowflake_id: int = 0
 	category: str
 	online: bool
+
+	# actually, lets just automatically translate the datetime object from a given timestamp
+	# datetime: dt
+	@property
+	def datetime(self):
+		return dt.fromtimestamp(self.timestamp / 1000)
+	@datetime.setter
+	def datetime(self, value: dt):
+		print(f"value? {value} {type(value)}")
+		self.timestamp = int(value.timestamp() * 1000)
 
 	def __init__(self, meetup_id: int) -> None:
 		self.id = "event"
@@ -92,7 +102,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 			event.description = event.description[0:(999 - len(append))] + append
 		response = requests.get(event.link)
 		soup = BeautifulSoup(response.text, features="lxml")
-		event.datetime = datetime.fromisoformat(soup.select_one("time.block")['datetime'])
+		event.datetime = dt.fromisoformat(soup.select_one("time.block")['datetime'])
 		event.location = soup.select_one('[data-testid="location-info"]').text.strip()
 		shared.ddb.write_item(event)
 		ret.append(event)
