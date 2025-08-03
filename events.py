@@ -5,7 +5,8 @@ import discord
 import requests
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
-from datetime import datetime as dt
+import datetime as dt
+from apscheduler.util import astimezone
 import re
 import os
 from traceback import format_exc as get_stacktrace
@@ -28,9 +29,10 @@ class MeetupEvent(TableItem):
 	# datetime: dt
 	@property
 	def datetime(self):
-		return dt.fromtimestamp(self.timestamp / 1000)
+		# i mean, of course we're in chicago
+		return dt.datetime.fromtimestamp(self.timestamp / 1000, tz=astimezone("America/Chicago"))
 	@datetime.setter
-	def datetime(self, value: dt):
+	def datetime(self, value: dt.datetime):
 		# print(f"value? {value} {type(value)}")
 		self.timestamp = int(value.timestamp() * 1000)
 
@@ -104,7 +106,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 				event.description = event.description[0:(999 - len(append))] + append
 			response = requests.get(event.link)
 			soup = BeautifulSoup(response.text, features="lxml")
-			event.datetime = dt.fromisoformat(soup.select_one("time.block")['datetime'])
+			event.datetime = dt.datetime.fromisoformat(soup.select_one("time.block")['datetime'])
 			event.location = soup.select_one('[data-testid="location-info"]').text.strip()
 			shared.ddb.write_item(event)
 			ret.append(event)

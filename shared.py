@@ -1,7 +1,6 @@
 import aws
 import discord
 import asyncio
-import traceback
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from zoneinfo import ZoneInfo
 
