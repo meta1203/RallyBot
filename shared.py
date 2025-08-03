@@ -10,7 +10,7 @@ class Singleton:
 	guild: discord.Guild = None
 	est = ZoneInfo('America/Chicago')
 	_channels: dict[str, discord.guild.TextChannel] = None
-	get_stacktrace = traceback.format_exc()
+	get_stacktrace = traceback.format_exc
 
 	def __init__(self):
 		self._ddb: aws.DynamoDBClient = None
