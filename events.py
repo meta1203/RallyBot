@@ -30,7 +30,7 @@ class MeetupEvent(TableItem):
 		return dt.fromtimestamp(self.timestamp / 1000)
 	@datetime.setter
 	def datetime(self, value: dt):
-		print(f"value? {value} {type(value)}")
+		# print(f"value? {value} {type(value)}")
 		self.timestamp = int(value.timestamp() * 1000)
 
 	def __init__(self, meetup_id: int) -> None:
@@ -87,25 +87,28 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	response.raise_for_status()  # Raise an exception for HTTP errors
 	rss_content = xml_to_dict(response.text)
 	for item in rss_content['rss']['channel']['item']:
-		guid = int(guid_finder.match(item['guid']).group(1))
-		event: MeetupEvent = shared.ddb.read_item('event', guid)
-		if not event:
-			event = MeetupEvent(guid)
-		if not hasattr(event, 'category') or not event.category:
-			event.category = ai_categorize(item['description'].strip())
-		event.online = False
-		event.link = item['link']
-		event.title = item['title'].strip()
-		event.description = item['description'].strip()
-		if len(event.description) > 999:
-			append = f"... [full event]({event.link})"
-			event.description = event.description[0:(999 - len(append))] + append
-		response = requests.get(event.link)
-		soup = BeautifulSoup(response.text, features="lxml")
-		event.datetime = dt.fromisoformat(soup.select_one("time.block")['datetime'])
-		event.location = soup.select_one('[data-testid="location-info"]').text.strip()
-		shared.ddb.write_item(event)
-		ret.append(event)
+		try:
+			guid = int(guid_finder.match(item['guid']).group(1))
+			event: MeetupEvent = shared.ddb.read_item('event', guid)
+			if not event:
+				event = MeetupEvent(guid)
+			if not hasattr(event, 'category') or not event.category:
+				event.category = ai_categorize(item['description'].strip())
+			event.online = False
+			event.link = item['link']
+			event.title = item['title'].strip()
+			event.description = item['description'].strip()
+			if len(event.description) > 999:
+				append = f"... [full event]({event.link})"
+				event.description = event.description[0:(999 - len(append))] + append
+			response = requests.get(event.link)
+			soup = BeautifulSoup(response.text, features="lxml")
+			event.datetime = dt.fromisoformat(soup.select_one("time.block")['datetime'])
+			event.location = soup.select_one('[data-testid="location-info"]').text.strip()
+			shared.ddb.write_item(event)
+			ret.append(event)
+		except Exception as e:
+			print(f"Exception occured while processing {item}:\n{shared.get_stacktrace()}")
 	return ret
 
 DO_AI_ENDPOINT = os.getenv('DO_AI_ENDPOINT')
