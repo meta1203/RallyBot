@@ -47,7 +47,7 @@ class MeetupEvent(TableItem):
 		ddb_event = MeetupEvent(event.id)
 		ddb_event.title = event.name
 		ddb_event.description = event.description
-		ddb_event.category = ai_categorize(event.description)
+		ddb_event.category = ai_categorize(f"{event.name}\n\n{event.description}")
 		ddb_event.datetime = event.start_time
 		ddb_event.location = event.location
 		ddb_event.snowflake_id = event.id
@@ -96,7 +96,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 			if not event:
 				event = MeetupEvent(guid)
 			if not hasattr(event, 'category') or not event.category:
-				event.category = ai_categorize(item['description'].strip())
+				event.category = ai_categorize(f"{item['title'].strip()}\n\n{item['description'].strip()}")
 			event.online = False
 			event.link = item['link']
 			event.title = item['title'].strip()
@@ -129,7 +129,7 @@ def ai_categorize(description: str) -> str:
 		"messages": [
       {
         "role": "user",
-        "content": f"{description}\n\n{', '.join(categories)}?"
+        "content": f"{description}\n\nCategories: {', '.join(categories)}"
       }
     ],
     "stream": False,
