@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime as dt
 import re
 import os
+from traceback import format_exc as get_stacktrace
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
 
@@ -108,7 +109,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 			shared.ddb.write_item(event)
 			ret.append(event)
 		except Exception as e:
-			print(f"Exception occured while processing {item}:\n{shared.get_stacktrace()}")
+			print(f"Exception occured while processing {item}:\n{get_stacktrace()}")
 	return ret
 
 DO_AI_ENDPOINT = os.getenv('DO_AI_ENDPOINT')
