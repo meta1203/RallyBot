@@ -113,8 +113,8 @@ async def on_ready():
 	await update_events()
 
 	# Schedule update_events to run daily at 12:30 PM
-	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30, timezone="America/Chicago"))
-	shared.scheduler.add_job(notify_events, CronTrigger(minute=0))
+	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30, timezone="America/Chicago"), max_instances=1)
+	shared.scheduler.add_job(notify_events, CronTrigger(minute=0), max_instances=1)
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
 

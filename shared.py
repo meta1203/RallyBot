@@ -1,6 +1,7 @@
 import aws
 import discord
 import asyncio
+from collections import deque
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from zoneinfo import ZoneInfo
 
@@ -9,6 +10,7 @@ class Singleton:
 	guild: discord.Guild = None
 	est = ZoneInfo('America/Chicago')
 	_channels: dict[str, discord.guild.TextChannel] = None
+	recent_messages = deque(maxlen=5)
 
 	def __init__(self):
 		self._ddb: aws.DynamoDBClient = None
@@ -38,7 +40,13 @@ class Singleton:
 		if not channel:
 			print(f"ERROR: invalid channel name {channel_name}")
 			return None
-		print(f"sending message -> {channel_name}: {message}")
+		# prevent accidentally spamming channels with the same message
+		msg_key = f"{channel_name}: {message}"
+		if msg_key in self.recent_messages:
+			print(f"Not sending message to prevent spam | {msg_key}")
+			return None
+		self.recent_messages.append(msg_key)
+		print(f"sending message -> {msg_key}")
 		return await channel.send(message)
 
 	async def get_channel_by_name(self, name: str):
