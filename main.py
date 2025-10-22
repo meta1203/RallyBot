@@ -40,8 +40,9 @@ async def update_events():
 			if discord_event.start_time != event.datetime:
 				print(f"{discord_event.start_time} -> {event.datetime}")
 				updates['start_time'] = event.datetime
-				# use the explicit endtime if it exists and is set, otherwise its implicitly an hour long
-				updates['end_time'] = event.endtime if hasattr(event, 'endtime') and event.endtime else (event.datetime + datetime.timedelta(hours=1))
+			# use the explicit endtime if it exists and is set, otherwise its implicitly an hour long
+			if hasattr(event, 'endtime') and event.endtime and discord_event.end_time != event.endtime:
+				updates['end_time'] = event.endtime
 			if discord_event.location != event.location:
 				print(f"{discord_event.location} -> {event.location}")
 				updates['location'] = event.location
@@ -60,7 +61,7 @@ async def update_events():
 				name=event.title,
 				description=event.description,
 				start_time=event.datetime,
-				end_time=event.datetime + datetime.timedelta(hours=1),
+				end_time=event.endtime if hasattr(event, 'endtime') and event.endtime else (event.datetime + datetime.timedelta(hours=1)),
 				location=event.location,
 				entity_type=discord.EntityType.external,
 				privacy_level=discord.PrivacyLevel.guild_only
