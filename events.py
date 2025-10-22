@@ -106,8 +106,8 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 				event.description = event.description[0:(999 - len(append))] + append
 			response = requests.get(event.link)
 			soup = BeautifulSoup(response.text, features="lxml")
-			event.datetime = dt.datetime.fromisoformat(soup.select_one("time.block")['datetime'])
-			event.location = soup.select_one('[data-testid="location-info"]').text.strip()
+			event.datetime = dt.datetime.fromisoformat(soup.select_one('time.block')['datetime'])
+			event.location = soup.select_one('[class="ds2-r16 text-ds2-text-fill-tertiary-enabled"]').text.strip()
 			shared.ddb.write_item(event)
 			ret.append(event)
 		except Exception as e:
