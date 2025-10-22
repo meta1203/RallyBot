@@ -4,11 +4,12 @@ from shared import shared
 import discord
 import requests
 import xml.etree.ElementTree as ET
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import datetime as dt
 from apscheduler.util import astimezone
 import re
 import os
+import json
 from traceback import format_exc as get_stacktrace
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
@@ -20,6 +21,7 @@ class MeetupEvent(TableItem):
 	description: str
 	link: str
 	timestamp: int # unix timestamp in milliseconds
+	timestamp_end: int
 	location: str
 	snowflake_id: int = 0
 	category: str
@@ -35,6 +37,15 @@ class MeetupEvent(TableItem):
 	def datetime(self, value: dt.datetime):
 		# print(f"value? {value} {type(value)}")
 		self.timestamp = int(value.timestamp() * 1000)
+	@property
+	def endtime(self):
+		if not hasattr(self, "timestamp_end") or not self.timestamp_end:
+			return None
+		# i mean, of course we're in chicago
+		return dt.datetime.fromtimestamp(self.timestamp_end / 1000, tz=astimezone("America/Chicago"))
+	@datetime.setter
+	def endtime(self, value: dt.datetime):
+		self.timestamp_end = int(value.timestamp() * 1000)
 
 	def __init__(self, meetup_id: int) -> None:
 		self.id = "event"
@@ -89,29 +100,39 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	response = requests.get(url)
 	response.raise_for_status()  # Raise an exception for HTTP errors
 	rss_content = xml_to_dict(response.text)
-	for item in rss_content['rss']['channel']['item']:
+	for rss_item in rss_content['rss']['channel']['item']:
 		try:
-			guid = int(guid_finder.match(item['guid']).group(1))
+			guid = int(guid_finder.match(rss_item['guid']).group(1))
 			event: MeetupEvent = shared.ddb.read_item('event', guid)
 			if not event:
 				event = MeetupEvent(guid)
 			if not hasattr(event, 'category') or not event.category:
-				event.category = ai_categorize(f"{item['title'].strip()}\n\n{item['description'].strip()}")
-			event.online = False
-			event.link = item['link']
-			event.title = item['title'].strip()
-			event.description = item['description'].strip()
+				event.category = ai_categorize(f"{rss_item['title'].strip()}\n\n{rss_item['description'].strip()}")
+			event.link = rss_item['link']
+			event.title = rss_item['title'].strip()
+			event.description = rss_item['description'].strip()
 			if len(event.description) > 999:
 				append = f"... [full event]({event.link})"
 				event.description = event.description[0:(999 - len(append))] + append
+			
 			response = requests.get(event.link)
 			soup = BeautifulSoup(response.text, features="lxml")
-			event.datetime = dt.datetime.fromisoformat(soup.select_one('time.block')['datetime'])
-			event.location = soup.select_one('[class="ds2-r16 text-ds2-text-fill-tertiary-enabled"]').text.strip()
+			j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
+			j_item = j_item['props']['pageProps']['event']
+
+			event.online = j_item['eventType'] == "ONLINE"
+			event.datetime = dt.datetime.fromisoformat(j_item['dateTime'])
+			event.endtime = dt.datetime.fromisoformat(j_item['endTime'])
+			if not event.online:
+				event.location = f"{j_item['venue']['address']}, {j_item['venue']['city']} | {j_item['venue']['name']}"
+				if len(event.location) > 99:
+					event.location = event.location[0:96]+"..."
+			else:
+				event.location = "Online"
 			shared.ddb.write_item(event)
 			ret.append(event)
 		except Exception as e:
-			print(f"Exception occured while processing {item}:\n{get_stacktrace()}")
+			print(f"Exception occured while processing {rss_item}:\n{get_stacktrace()}")
 	return ret
 
 DO_AI_ENDPOINT = os.getenv('DO_AI_ENDPOINT')
