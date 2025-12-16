@@ -6,6 +6,7 @@ import events
 from apscheduler.triggers.cron import CronTrigger
 import os
 import datetime
+from traceback import format_exc as get_stacktrace
 
 intents = discord.Intents.default()
 # required intents for the bot to function
@@ -27,7 +28,14 @@ async def update_events():
 		discord_event: (discord.ScheduledEvent | None) = None
 		if event.snowflake_id:
 			print(f"reading in snowflake id: {event.snowflake_id}")
-			discord_event = await shared.guild.fetch_scheduled_event(event.snowflake_id)
+			discord_event = None
+			try:
+				discord_event = await shared.guild.fetch_scheduled_event(event.snowflake_id)
+			except discord.errors.NotFound as e:
+				print(f"Invalid snowflake value for {event.title}, this has likely been deleted from discord, recreating...")
+			except Exception as e:
+				print(f"Exception occured while processing {event.title} ({event.id} | {event.snowflake_id}):\n{get_stacktrace()}")
+				continue
 		if discord_event:
 			# check if the event needs updating
 			updates = {}
