@@ -54,9 +54,13 @@ async def update_events():
 			if discord_event.location != event.location:
 				print(f"{discord_event.location} -> {event.location}")
 				updates['location'] = event.location
-			if updates:
-				await discord_event.edit(**updates)
-				shared.ddb.write_item(event)
+			if len(updates) > 0:
+				try:
+					await discord_event.edit(**updates)
+					shared.ddb.write_item(event)
+				except Exception as e:
+					print(f"Exception occured while updating {event} <- {updates}:\n{get_stacktrace()}")
+					continue
 				category = get_channel_for_ddb_event(event)
 				target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
 				await shared.message_channel(category, f"{target_role} {event.title} has been updated.")
