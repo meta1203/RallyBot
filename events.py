@@ -10,6 +10,7 @@ from apscheduler.util import astimezone
 import re
 import os
 import json
+from decimal import Decimal
 from traceback import format_exc as get_stacktrace
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
@@ -35,9 +36,12 @@ class MeetupEvent(TableItem):
 			return None
 		return int(self.datetime.timestamp() * 1000)
 	@timestamp.setter
-	def timestamp(self, value: int):
+	def timestamp(self, value):
 		# convert from milliseconds to datetime
+		# Handle Decimal values from DynamoDB
 		if value:
+			if isinstance(value, Decimal):
+				value = int(value)
 			self.datetime = dt.datetime.fromtimestamp(value / 1000, tz=astimezone("America/Chicago"))
 		else:
 			self.datetime = None
@@ -49,9 +53,12 @@ class MeetupEvent(TableItem):
 			return None
 		return int(self.endtime.timestamp() * 1000)
 	@timestamp_end.setter
-	def timestamp_end(self, value: int):
+	def timestamp_end(self, value):
 		# convert from milliseconds to datetime
+		# Handle Decimal values from DynamoDB
 		if value:
+			if isinstance(value, Decimal):
+				value = int(value)
 			self.endtime = dt.datetime.fromtimestamp(value / 1000, tz=astimezone("America/Chicago"))
 		else:
 			self.endtime = None
@@ -77,10 +84,18 @@ class MeetupEvent(TableItem):
 		# If we have timestamp but no datetime, convert it
 		if 'timestamp' in state and ('datetime' not in state or state.get('datetime') is None):
 			if state['timestamp']:
-				state['datetime'] = dt.datetime.fromtimestamp(state['timestamp'] / 1000, tz=astimezone("America/Chicago"))
+				# Handle Decimal values from DynamoDB
+				timestamp_val = state['timestamp']
+				if isinstance(timestamp_val, Decimal):
+					timestamp_val = int(timestamp_val)
+				state['datetime'] = dt.datetime.fromtimestamp(timestamp_val / 1000, tz=astimezone("America/Chicago"))
 		if 'timestamp_end' in state and ('endtime' not in state or state.get('endtime') is None):
 			if state['timestamp_end']:
-				state['endtime'] = dt.datetime.fromtimestamp(state['timestamp_end'] / 1000, tz=astimezone("America/Chicago"))
+				# Handle Decimal values from DynamoDB
+				timestamp_end_val = state['timestamp_end']
+				if isinstance(timestamp_end_val, Decimal):
+					timestamp_end_val = int(timestamp_end_val)
+				state['endtime'] = dt.datetime.fromtimestamp(timestamp_end_val / 1000, tz=astimezone("America/Chicago"))
 		# Remove timestamp from state since they're now properties
 		state.pop('timestamp', None)
 		state.pop('timestamp_end', None)
