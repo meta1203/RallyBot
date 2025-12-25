@@ -1,3 +1,4 @@
+import os
 import aws
 import discord
 import asyncio
@@ -16,6 +17,7 @@ class Singleton:
 		self._ddb: aws.DynamoDBClient = None
 		self._loop: asyncio.AbstractEventLoop = None
 		self._scheduler: AsyncIOScheduler = None
+		self._quiet = not not os.getenv('QUIET_RALLY')
 	
 	@property
 	def ddb(self):
@@ -47,7 +49,10 @@ class Singleton:
 			return None
 		self.recent_messages.append(msg_key)
 		print(f"sending message -> {msg_key}")
-		return await channel.send(message)
+		if self._quiet:
+			return None
+		else:
+			return await channel.send(message)
 
 	async def get_channel_by_name(self, name: str):
 		if not self._channels:
