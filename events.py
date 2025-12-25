@@ -18,7 +18,6 @@ guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/(
 categories = ["book club", "conventions", "food", "gaming", "karaoke", "outdoor", "watch party", "volunteering", "other"]
 
 class MeetupEvent(TableItem):
-	id: str = "event"
 	title: str
 	description: str
 	link: str
@@ -73,6 +72,11 @@ class MeetupEvent(TableItem):
 	def __getstate__(self):
 		"""Custom serialization to ensure both datetime and timestamp are saved to DynamoDB"""
 		state = self.__dict__.copy()
+		# Ensure critical DynamoDB keys are present
+		if 'id' not in state:
+			state['id'] = 'event'
+		if 'sort' not in state and hasattr(self, 'sort'):
+			state['sort'] = self.sort
 		# Add computed timestamp fields for backward compatibility
 		if hasattr(self, 'datetime') and self.datetime is not None:
 			state['timestamp'] = int(self.datetime.timestamp() * 1000)
@@ -82,25 +86,28 @@ class MeetupEvent(TableItem):
 	
 	def __setstate__(self, state):
 		"""Custom deserialization to handle both old (timestamp) and new (datetime) formats"""
+		# First update __dict__ with all the state to ensure base fields are set
+		self.__dict__.update(state)
+		
 		# If we have timestamp but no datetime, convert it
-		if 'timestamp' in state and ('datetime' not in state or state.get('datetime') is None):
+		if 'timestamp' in state and not hasattr(self, 'datetime'):
 			if state['timestamp']:
 				# Handle Decimal values from DynamoDB
 				timestamp_val = state['timestamp']
 				if isinstance(timestamp_val, Decimal):
 					timestamp_val = int(timestamp_val)
-				state['datetime'] = dt.datetime.fromtimestamp(timestamp_val / 1000, tz=astimezone("America/Chicago"))
-		if 'timestamp_end' in state and ('endtime' not in state or state.get('endtime') is None):
+				self.datetime = dt.datetime.fromtimestamp(timestamp_val / 1000, tz=astimezone("America/Chicago"))
+		if 'timestamp_end' in state and not hasattr(self, 'endtime'):
 			if state['timestamp_end']:
 				# Handle Decimal values from DynamoDB
 				timestamp_end_val = state['timestamp_end']
 				if isinstance(timestamp_end_val, Decimal):
 					timestamp_end_val = int(timestamp_end_val)
-				state['endtime'] = dt.datetime.fromtimestamp(timestamp_end_val / 1000, tz=astimezone("America/Chicago"))
-		# Remove timestamp from state since they're now properties
-		state.pop('timestamp', None)
-		state.pop('timestamp_end', None)
-		self.__dict__.update(state)
+				self.endtime = dt.datetime.fromtimestamp(timestamp_end_val / 1000, tz=astimezone("America/Chicago"))
+		
+		# Remove timestamp properties from __dict__ since they're computed properties now
+		self.__dict__.pop('timestamp', None)
+		self.__dict__.pop('timestamp_end', None)
 	
 	def __str__(self) -> str:
 		date_str = self.datetime.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'datetime') and self.datetime else "No date set"
