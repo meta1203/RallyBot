@@ -63,7 +63,7 @@ async def update_events():
 					await discord_event.edit(**updates)
 					shared.ddb.write_item(event)
 				except Exception as e:
-					print(f"Exception occured while updating {event} <- {updates}:\n{get_stacktrace()}")
+					print(f"Exception occured while updating \n{event} \n{discord_event}\n<- {updates} :\n{get_stacktrace()}")
 					continue
 				category = get_channel_for_ddb_event(event)
 				target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION

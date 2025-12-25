@@ -20,32 +20,41 @@ class MeetupEvent(TableItem):
 	title: str
 	description: str
 	link: str
-	timestamp: int # unix timestamp in milliseconds
-	timestamp_end: int
+	datetime: dt.datetime # primary storage as datetime object
+	endtime: dt.datetime
 	location: str
 	snowflake_id: int = 0
 	category: str
 	online: bool
 
-	# actually, lets just automatically translate the datetime object from a given timestamp
-	# datetime: dt
+	# timestamp properties for backward compatibility
 	@property
-	def datetime(self):
-		# i mean, of course we're in chicago
-		return dt.datetime.fromtimestamp(self.timestamp / 1000, tz=astimezone("America/Chicago"))
-	@datetime.setter
-	def datetime(self, value: dt.datetime):
-		# print(f"value? {value} {type(value)}")
-		self.timestamp = int(value.timestamp() * 1000)
-	@property
-	def endtime(self):
-		if not hasattr(self, "timestamp_end") or not self.timestamp_end:
+	def timestamp(self):
+		# unix timestamp in milliseconds
+		if not hasattr(self, 'datetime') or self.datetime is None:
 			return None
-		# i mean, of course we're in chicago
-		return dt.datetime.fromtimestamp(self.timestamp_end / 1000, tz=astimezone("America/Chicago"))
-	@datetime.setter
-	def endtime(self, value: dt.datetime):
-		self.timestamp_end = int(value.timestamp() * 1000)
+		return int(self.datetime.timestamp() * 1000)
+	@timestamp.setter
+	def timestamp(self, value: int):
+		# convert from milliseconds to datetime
+		if value:
+			self.datetime = dt.datetime.fromtimestamp(value / 1000, tz=astimezone("America/Chicago"))
+		else:
+			self.datetime = None
+	
+	@property
+	def timestamp_end(self):
+		# unix timestamp in milliseconds
+		if not hasattr(self, 'endtime') or self.endtime is None:
+			return None
+		return int(self.endtime.timestamp() * 1000)
+	@timestamp_end.setter
+	def timestamp_end(self, value: int):
+		# convert from milliseconds to datetime
+		if value:
+			self.endtime = dt.datetime.fromtimestamp(value / 1000, tz=astimezone("America/Chicago"))
+		else:
+			self.endtime = None
 
 	def __init__(self, meetup_id: int) -> None:
 		self.id = "event"
@@ -53,8 +62,32 @@ class MeetupEvent(TableItem):
 		self.online = False
 		self.category = None
 	
+	def __getstate__(self):
+		"""Custom serialization to ensure both datetime and timestamp are saved to DynamoDB"""
+		state = self.__dict__.copy()
+		# Add computed timestamp fields for backward compatibility
+		if hasattr(self, 'datetime') and self.datetime is not None:
+			state['timestamp'] = int(self.datetime.timestamp() * 1000)
+		if hasattr(self, 'endtime') and self.endtime is not None:
+			state['timestamp_end'] = int(self.endtime.timestamp() * 1000)
+		return state
+	
+	def __setstate__(self, state):
+		"""Custom deserialization to handle both old (timestamp) and new (datetime) formats"""
+		# If we have timestamp but no datetime, convert it
+		if 'timestamp' in state and ('datetime' not in state or state.get('datetime') is None):
+			if state['timestamp']:
+				state['datetime'] = dt.datetime.fromtimestamp(state['timestamp'] / 1000, tz=astimezone("America/Chicago"))
+		if 'timestamp_end' in state and ('endtime' not in state or state.get('endtime') is None):
+			if state['timestamp_end']:
+				state['endtime'] = dt.datetime.fromtimestamp(state['timestamp_end'] / 1000, tz=astimezone("America/Chicago"))
+		# Remove timestamp from state since they're now properties
+		state.pop('timestamp', None)
+		state.pop('timestamp_end', None)
+		self.__dict__.update(state)
+	
 	def __str__(self) -> str:
-		date_str = self.datetime.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'timestamp') and self.timestamp else "No date set"
+		date_str = self.datetime.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'datetime') and self.datetime else "No date set"
 		location_str = getattr(self, 'location', 'No location')
 		title_str = getattr(self, 'title', 'Untitled Event')
 		return f"MeetupEvent: {title_str} at {location_str} on {date_str}"
