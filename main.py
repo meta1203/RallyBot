@@ -51,6 +51,10 @@ async def update_events():
 			# use the explicit endtime if it exists and is set, otherwise its implicitly an hour long
 			if hasattr(event, 'endtime') and event.endtime and discord_event.end_time != event.endtime:
 				updates['end_time'] = event.endtime
+				if discord_event.start_time > updates['end_time']:
+					# this is weird, the end time is after the start time???
+					print(f"this is weird, this is weird, the end time is after the start time???\n{discord_event.start_time} -> {updates['end_time']}\n{event.datetime} -> {event.endtime}")
+					updates['start_time'] = event.datetime
 			if discord_event.location != event.location:
 				print(f"{discord_event.location} -> {event.location}")
 				updates['location'] = event.location
