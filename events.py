@@ -18,6 +18,7 @@ guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/(
 categories = ["book club", "conventions", "food", "gaming", "karaoke", "outdoor", "watch party", "volunteering", "other"]
 
 class MeetupEvent(TableItem):
+	id: str = "event"
 	title: str
 	description: str
 	link: str
