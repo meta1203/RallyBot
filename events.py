@@ -68,46 +68,8 @@ class MeetupEvent(TableItem):
 		self.sort = meetup_id
 		self.online = False
 		self.category = None
-	
-	def __getstate__(self):
-		"""Custom serialization to ensure both datetime and timestamp are saved to DynamoDB"""
-		state = self.__dict__.copy()
-		# Ensure critical DynamoDB keys are present
-		if 'id' not in state:
-			state['id'] = 'event'
-		if 'sort' not in state and hasattr(self, 'sort'):
-			state['sort'] = self.sort
-		# Add computed timestamp fields for backward compatibility
-		if hasattr(self, 'datetime') and self.datetime is not None:
-			state['timestamp'] = int(self.datetime.timestamp() * 1000)
-		if hasattr(self, 'endtime') and self.endtime is not None:
-			state['timestamp_end'] = int(self.endtime.timestamp() * 1000)
-		return state
-	
-	def __setstate__(self, state):
-		"""Custom deserialization to handle both old (timestamp) and new (datetime) formats"""
-		# First update __dict__ with all the state to ensure base fields are set
-		self.__dict__.update(state)
-		
-		# If we have timestamp but no datetime, convert it
-		if 'timestamp' in state and not hasattr(self, 'datetime'):
-			if state['timestamp']:
-				# Handle Decimal values from DynamoDB
-				timestamp_val = state['timestamp']
-				if isinstance(timestamp_val, Decimal):
-					timestamp_val = int(timestamp_val)
-				self.datetime = dt.datetime.fromtimestamp(timestamp_val / 1000, tz=astimezone("America/Chicago"))
-		if 'timestamp_end' in state and not hasattr(self, 'endtime'):
-			if state['timestamp_end']:
-				# Handle Decimal values from DynamoDB
-				timestamp_end_val = state['timestamp_end']
-				if isinstance(timestamp_end_val, Decimal):
-					timestamp_end_val = int(timestamp_end_val)
-				self.endtime = dt.datetime.fromtimestamp(timestamp_end_val / 1000, tz=astimezone("America/Chicago"))
-		
-		# Remove timestamp properties from __dict__ since they're computed properties now
-		self.__dict__.pop('timestamp', None)
-		self.__dict__.pop('timestamp_end', None)
+		self.datetime = None
+		self.endtime = None
 	
 	def __str__(self) -> str:
 		date_str = self.datetime.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'datetime') and self.datetime else "No date set"
