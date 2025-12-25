@@ -18,6 +18,8 @@ class Singleton:
 		self._loop: asyncio.AbstractEventLoop = None
 		self._scheduler: AsyncIOScheduler = None
 		self._quiet = not not os.getenv('QUIET_RALLY')
+		if self._quiet:
+			print("ALERT: running Rally in silent mode")
 	
 	@property
 	def ddb(self):

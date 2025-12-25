@@ -53,6 +53,12 @@ class MeetupEvent(TableItem):
 		self.online = False
 		self.category = None
 	
+	def __str__(self) -> str:
+		date_str = self.datetime.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'timestamp') and self.timestamp else "No date set"
+		location_str = getattr(self, 'location', 'No location')
+		title_str = getattr(self, 'title', 'Untitled Event')
+		return f"MeetupEvent: {title_str} at {location_str} on {date_str}"
+	
 	def from_discord_event(event: discord.ScheduledEvent):
 		print(f"snowflake {event.id} ({event.name}) not found in ddb, creating...")
 		ddb_event = MeetupEvent(event.id)
