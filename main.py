@@ -45,16 +45,16 @@ async def update_events():
 			if discord_event.description != event.description:
 				print(f"{discord_event.description} -> {event.description}")
 				updates['description'] = event.description
-			if discord_event.start_time != event.datetime:
-				print(f"{discord_event.start_time} -> {event.datetime}")
-				updates['start_time'] = event.datetime
+			if discord_event.start_time != event.start_time:
+				print(f"{discord_event.start_time} -> {event.start_time}")
+				updates['start_time'] = event.start_time
 			# use the explicit endtime if it exists and is set, otherwise its implicitly an hour long
 			if hasattr(event, 'endtime') and event.endtime and discord_event.end_time != event.endtime:
 				updates['end_time'] = event.endtime
 				if discord_event.start_time > updates['end_time']:
 					# this is weird, the end time is after the start time???
-					print(f"this is weird, this is weird, the end time is after the start time???\n{discord_event.start_time} -> {updates['end_time']}\n{event.datetime} -> {event.endtime}")
-					updates['start_time'] = event.datetime
+					print(f"this is weird, this is weird, the end time is after the start time???\n{discord_event.start_time} -> {updates['end_time']}\n{event.start_time} -> {event.endtime}")
+					updates['start_time'] = event.start_time
 			if discord_event.location != event.location:
 				print(f"{discord_event.location} -> {event.location}")
 				updates['location'] = event.location
@@ -76,8 +76,8 @@ async def update_events():
 			discord_event = await shared.guild.create_scheduled_event(
 				name=event.title,
 				description=event.description,
-				start_time=event.datetime,
-				end_time=event.endtime if hasattr(event, 'endtime') and event.endtime else (event.datetime + datetime.timedelta(hours=1)),
+				start_time=event.start_time,
+				end_time=event.endtime if hasattr(event, 'endtime') and event.endtime else (event.start_time + datetime.timedelta(hours=1)),
 				location=event.location,
 				entity_type=discord.EntityType.external,
 				privacy_level=discord.PrivacyLevel.guild_only
@@ -100,7 +100,7 @@ def get_channel_for_ddb_event(event: events.MeetupEvent):
 async def notify_new_event(event: events.MeetupEvent):
 	category = get_channel_for_ddb_event(event)
 	target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
-	await shared.message_channel(category, f"{target_role} {event.title} has been scheduled for <t:{round(event.datetime.timestamp())}>.")
+	await shared.message_channel(category, f"{target_role} {event.title} has been scheduled for <t:{round(event.start_time.timestamp())}>.")
 
 async def notify_events():
 	discord_events = await shared.guild.fetch_scheduled_events()

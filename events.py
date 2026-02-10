@@ -22,6 +22,7 @@ class MeetupEvent(TableItem):
 	description: str
 	link: str
 	datetime: dt.datetime # primary storage as datetime object
+	timestamp: int
 	endtime: dt.datetime
 	location: str
 	snowflake_id: int = 0
@@ -30,38 +31,38 @@ class MeetupEvent(TableItem):
 
 	# timestamp properties for backward compatibility
 	@property
-	def timestamp(self):
+	def timestamp_start(self):
 		# unix timestamp in milliseconds
 		if not hasattr(self, 'datetime') or self.datetime is None:
 			return None
-		return int(self.datetime.timestamp() * 1000)
-	@timestamp.setter
-	def timestamp(self, value):
+		self.timestamp = int(self.datetime.timestamp() * 1000)
+		return self.timestamp
+	@timestamp_start.setter
+	def timestamp_start(self, value):
 		# convert from milliseconds to datetime
 		# Handle Decimal values from DynamoDB
 		if value:
 			if isinstance(value, Decimal):
 				value = int(value)
 			self.datetime = dt.datetime.fromtimestamp(value / 1000, tz=astimezone("America/Chicago"))
+			self.timestamp = value
 		else:
 			self.datetime = None
+			self.timestamp = None
 	
 	@property
-	def timestamp_end(self):
+	def start_time(self) -> dt.datetime:
 		# unix timestamp in milliseconds
-		if not hasattr(self, 'endtime') or self.endtime is None:
-			return None
-		return int(self.endtime.timestamp() * 1000)
-	@timestamp_end.setter
-	def timestamp_end(self, value):
-		# convert from milliseconds to datetime
-		# Handle Decimal values from DynamoDB
-		if value:
-			if isinstance(value, Decimal):
-				value = int(value)
-			self.endtime = dt.datetime.fromtimestamp(value / 1000, tz=astimezone("America/Chicago"))
+		if self.datetime is None:
+			self.datetime = dt.datetime.fromtimestamp(self.timestamp / 1000, tz=astimezone("America/Chicago"))
+		return self.datetime
+	@start_time.setter
+	def start_time(self, value: dt.datetime):
+		self.datetime = value
+		if value is None:
+			self.timestamp = None
 		else:
-			self.endtime = None
+			self.timestamp = int(value.timestamp() * 1000)
 
 	def __init__(self, meetup_id: int) -> None:
 		self.id = "event"
@@ -72,7 +73,7 @@ class MeetupEvent(TableItem):
 		self.endtime = None
 	
 	def __str__(self) -> str:
-		date_str = self.datetime.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'datetime') and self.datetime else "No date set"
+		date_str = self.start_time.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'datetime') and self.start_time else "No date set"
 		location_str = getattr(self, 'location', 'No location')
 		title_str = getattr(self, 'title', 'Untitled Event')
 		return f"MeetupEvent: {title_str} at {location_str} on {date_str}"
@@ -83,7 +84,7 @@ class MeetupEvent(TableItem):
 		ddb_event.title = event.name
 		ddb_event.description = event.description
 		ddb_event.category = ai_categorize(f"{event.name}\n\n{event.description}")
-		ddb_event.datetime = event.start_time
+		ddb_event.start_time = event.start_time
 		ddb_event.location = event.location
 		ddb_event.snowflake_id = event.id
 		ddb_event.online = (event.entity_type != discord.EntityType.external)
