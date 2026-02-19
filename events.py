@@ -53,7 +53,7 @@ class MeetupEvent(TableItem):
 	@property
 	def start_time(self) -> dt.datetime:
 		# unix timestamp in milliseconds
-		if self.datetime is None:
+		if self.datetime is None and self.timestamp is not None:
 			self.datetime = dt.datetime.fromtimestamp(self.timestamp / 1000, tz=astimezone("America/Chicago"))
 		return self.datetime
 	@start_time.setter
@@ -146,7 +146,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 			j_item = j_item['props']['pageProps']['event']
 
 			event.online = j_item['eventType'] == "ONLINE"
-			event.datetime = dt.datetime.fromisoformat(j_item['dateTime'])
+			event.start_time = dt.datetime.fromisoformat(j_item['dateTime'])
 			event.endtime = dt.datetime.fromisoformat(j_item['endTime'])
 			if not event.online:
 				event.location = f"{j_item['venue']['address']}, {j_item['venue']['city']} | {j_item['venue']['name']}"
