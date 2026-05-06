@@ -61,7 +61,7 @@ async def update_events():
 			if len(updates) > 0:
 				try:
 					await discord_event.edit(**updates)
-					shared.ddb.write_item(event)
+					event.save()
 				except Exception as e:
 					print(f"Exception occured while updating \n{event} \n{discord_event}\n<- {updates} :\n{get_stacktrace()}")
 					continue
@@ -88,7 +88,7 @@ async def update_events():
 			await notify_new_event(event)
 	# check for cancelled events and remove them from ddb
 	hashed_ids: set[int] = set(map(lambda event: event.sort, on_meetup))
-	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp < int(datetime.datetime.now(shared.est).timestamp() * 1000)):
+	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.est).timestamp() * 1000)):
 		if event.sort not in hashed_ids:
 			events.check_existing_event(event)
 

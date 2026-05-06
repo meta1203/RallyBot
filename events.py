@@ -157,10 +157,18 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 			except MeetupEvent.DoesNotExist:
 				event = MeetupEvent(sort=guid)
 			except AttributeDeserializationError:
-				# this can happen if the data in ddb is corrupted or in an unexpected format, delete the item and start fresh
-				print(f"data for event with guid {guid} is corrupted, deleting and starting fresh...")
-				MeetupEvent.delete('event', guid)
+				# this can happen if the data in ddb is corrupted or in an unexpected format
+				print(f"data for event with guid {guid} is attempting to mitigate...")
+				raw_item = shared.ddb.read_raw('event', guid)
 				event = MeetupEvent(sort=guid)
+				if not raw_item:
+					print(f"no raw data found for event with guid {guid}, deleting and recreating...")
+				else:
+					if raw_item['snowflake_id']:
+						event.snowflake_id = int(raw_item['snowflake_id'])
+					if raw_item['category']:
+						event.category = raw_item['category']
+					shared.ddb.delete_raw('event', guid)
 			
 			update_event_from_json(event, j_item)
 			
@@ -173,7 +181,9 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 def check_existing_event(event: MeetupEvent):
 	response = requests.get(f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/")
 	if response.status_code == 404:
-		event.delete()
+		if int(event.sort) != int(event.snowflake_id):
+			print(f"{response.url} returned 404, deleting event with guid {event.sort} from ddb...")
+			event.delete()
 		return False
 	soup = BeautifulSoup(response.text, features="lxml")
 	j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)['props']['pageProps']['event']
@@ -227,3 +237,25 @@ def ai_categorize(description: str) -> str:
 			# failed again, just use the "other" category
 			cat = "other"
 	return cat
+
+if __name__ == "__main__":
+	on_meetup = fetch_meetup_events()
+	for event in on_meetup:
+		print(event)
+	
+	hashed_ids: set[int] = set(map(lambda event: event.sort, on_meetup))
+	import boto3.dynamodb.conditions as conditions
+	fexpr = conditions.Attr('timestamp').gt(int(dt.datetime.now(shared.est).timestamp() * 1000))
+
+	for raw_item in shared.ddb._table.scan(IndexName="timestamp-index", FilterExpression=fexpr)['Items']:
+		try:
+			event = MeetupEvent.get(raw_item['id'], int(raw_item['sort']))
+			if check_existing_event(event):
+				print(f"got event {event.title}")
+			else:
+				print(f"deleted event {event.title}")
+			continue
+		except AttributeDeserializationError:
+			print(f"data for event with id {raw_item['id']} and sort {raw_item['sort']} is attempting to mitigate...")
+			event = MeetupEvent(sort=int(raw_item['sort']))
+			check_existing_event(event)

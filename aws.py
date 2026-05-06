@@ -6,7 +6,10 @@ from pynamodb.expressions.condition import Condition
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, NumberAttribute
 
-boto3.setup_default_session(region_name="us-east-2")
+TABLE_NAME = "RallyBot"
+REGION = "us-east-2"
+
+boto3.setup_default_session(region_name=REGION)
 
 # encode datetime objects as an ISO 8601 format string
 @jsonpickle.register(datetime.datetime)
@@ -42,8 +45,8 @@ class DecimalHandler(jsonpickle.handlers.BaseHandler):
 
 class RallyBotModel(Model):
 	class Meta:
-		table_name = "RallyBot"
-		region = "us-east-2"
+		table_name = TABLE_NAME
+		region = REGION
 
 	id = UnicodeAttribute(hash_key=True)
 	sort = NumberAttribute(range_key=True)
@@ -53,6 +56,8 @@ class DynamoDBClient:
 	def __init__(self):
 		self.pickler = jsonpickle.pickler.Pickler()
 		self.unpickler = jsonpickle.unpickler.Unpickler()
+		self._dynamodb = boto3.resource('dynamodb')
+		self._table = self._dynamodb.Table(TABLE_NAME)
 
 	def write_item(self, item):
 		if isinstance(item, Model):
@@ -66,15 +71,23 @@ class DynamoDBClient:
 		model_item.save()
 		return True
 	
-	def read_item(self, id, sort):
+	def read_item(self, id, sort) -> RallyBotModel | None:
 		try:
 			item = RallyBotModel.get(id, sort)
 			return jsonpickle.decode(item.data)
 		except RallyBotModel.DoesNotExist:
 			return None
-
-if __name__ == "__main__":
-	ddb = DynamoDBClient()
-	test = ddb.read_item("event", 305964611)
-	print(f"test result: {test.datetime}")
-	print(jsonpickle.encode(test))
+	
+	def read_raw(self, id, sort) -> dict | None:
+		raw_value = self._table.get_item(Key={'id': id, 'sort': sort})
+		if 'Item' not in raw_value:
+			return None
+		return raw_value['Item']
+	
+	def delete_raw(self, id, sort) -> bool:
+		try:
+			self._table.delete_item(Key={'id': id, 'sort': sort})
+			return True
+		except Exception as e:
+			print(f"Error deleting item with id {id} and sort {sort}: {e}")
+			return False
