@@ -1,0 +1,335 @@
+{
+	"__typename": "Event",
+	"id": "313646790",
+	"token": "dbrswtyjchbjb",
+	"title": "Board Games (Dice Dojo) (Edgewater)",
+	"description": "board game meetup for chicago anime hangouts! hope to play some board games and have conversations about anime, and manga and more. just show up :D\n\ndice dojo has 1000+ games in their demo library. please support them if there\u2019s a game you like and want to purchase.\n\n**feel free to bring what you'd like to play!**\n\nschedule:\n6:00 pm: show up / checkin and get started with board games. their board game night starts at 5:00 and ends at 10:00 pm.\n\nname tags will be brought to indicate who's apart of the meetup.\n\n\\-\\-\\-\n\nhope to see you there!\n\\-\\-\\-\n\nThank you to the '[Chicagoland 20\u2019s and 30\u2019s Young Professionals](https://www.meetup.com/oak-park-west-suburbs-young-professionals/)' Meetup for advice on hosting board games. :D",
+	"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/313646790/",
+	"status": "ACTIVE",
+	"eventType": "PHYSICAL",
+	"featuredEventPhoto": {
+		"__typename": "PhotoInfo",
+		"id": "525565790",
+		"source": "https://secure.meetupstatic.com/photos/event/6/4/b/e/highres_525565790.jpeg",
+		"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/"
+	},
+	"displayPhoto": {
+		"__typename": "PhotoInfo",
+		"id": "525565790",
+		"source": "https://secure.meetupstatic.com/photos/event/6/4/b/e/highres_525565790.jpeg",
+		"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/"
+	},
+	"eventHosts": [
+		{
+			"__typename": "EventHost",
+			"memberId": "327374368",
+			"id": "327374368",
+			"name": "Mike",
+			"member": {
+				"__typename": "Member",
+				"isSuperOrganizer": true,
+				"gender": null
+			},
+			"memberPhoto": {
+				"__typename": "PhotoInfo",
+				"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+				"id": "320588756"
+			}
+		},
+		{
+			"__typename": "EventHost",
+			"memberId": "412362155",
+			"id": "412362155",
+			"name": "Olive Nystrom",
+			"member": {
+				"__typename": "Member",
+				"isSuperOrganizer": false,
+				"gender": null
+			},
+			"memberPhoto": {
+				"__typename": "PhotoInfo",
+				"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+				"id": "324885095"
+			}
+		}
+	],
+	"dateTime": "2026-05-06T18:00:00-05:00",
+	"endTime": "2026-05-06T21:00:00-05:00",
+	"isFeatured": false,
+	"venue": {
+		"__typename": "Venue",
+		"id": "1027268",
+		"name": "Chicagoland Games: The Dice Dojo",
+		"address": "5550 N. Broadway Ave.",
+		"city": "Chicago",
+		"state": "IL",
+		"country": "us",
+		"lat": 41.982727,
+		"lng": -87.660065
+	},
+	"maxTickets": 0,
+	"series": {
+		"__typename": "Series",
+		"description": "Every 1st Wednesday of the month until August 26, 2026"
+	},
+	"rsvps": { "__typename": "RsvpConnection", "totalCount": 0 },
+	"waitingCount": { "__typename": "RsvpConnection", "totalCount": 0 },
+	"goingCount": { "__typename": "RsvpConnection", "totalCount": 27 },
+	"waitlistMode": "AUTO",
+	"guestsAllowed": false,
+	"numberOfAllowedGuests": 0,
+	"proCompleteRsvp": null,
+	"topics": {
+		"__typename": "TopicsConnection",
+		"edges": [
+			{
+				"__typename": "TopicEdge",
+				"node": {
+					"__typename": "Topic",
+					"id": "109937",
+					"name": "Board Games",
+					"urlkey": "board-games"
+				}
+			},
+			{
+				"__typename": "TopicEdge",
+				"node": {
+					"__typename": "Topic",
+					"id": "169851",
+					"name": "Cooperative Board Games",
+					"urlkey": "cooperative-board-games"
+				}
+			},
+			{
+				"__typename": "TopicEdge",
+				"node": {
+					"__typename": "Topic",
+					"id": "169853",
+					"name": "Strategy Board Games",
+					"urlkey": "strategy-board-games"
+				}
+			},
+			{
+				"__typename": "TopicEdge",
+				"node": {
+					"__typename": "Topic",
+					"id": "1510682",
+					"name": "Geek Culture",
+					"urlkey": "geek-culture"
+				}
+			},
+			{
+				"__typename": "TopicEdge",
+				"node": {
+					"__typename": "Topic",
+					"id": "29310",
+					"name": "Geeks & Nerds",
+					"urlkey": "geeks-nerds"
+				}
+			}
+		]
+	},
+	"rsvpSettings": {
+		"__typename": "RsvpOpenSettings",
+		"rsvpOpenTime": null,
+		"rsvpCloseTime": null
+	},
+	"covidPrecautions": {
+		"__typename": "CovidPrecautions",
+		"masks": null,
+		"vaccinations": null,
+		"details": null,
+		"venueType": null
+	},
+	"isNetworkEvent": false,
+	"hosts": [
+		{
+			"__typename": "EventHost",
+			"memberId": "327374368",
+			"id": "327374368",
+			"name": "Mike",
+			"member": {
+				"__typename": "Member",
+				"isSuperOrganizer": true,
+				"gender": null
+			},
+			"memberPhoto": {
+				"__typename": "PhotoInfo",
+				"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+				"id": "320588756"
+			}
+		},
+		{
+			"__typename": "EventHost",
+			"memberId": "412362155",
+			"id": "412362155",
+			"name": "Olive Nystrom",
+			"member": {
+				"__typename": "Member",
+				"isSuperOrganizer": false,
+				"gender": null
+			},
+			"memberPhoto": {
+				"__typename": "PhotoInfo",
+				"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+				"id": "324885095"
+			}
+		}
+	],
+	"feeSettings": null,
+	"networkEvent": null,
+	"speakerDetails": null,
+	"socialProofInsights": null,
+	"group": {
+		"__typename": "Group",
+		"id": "37536316",
+		"name": "Chicago Anime Hangouts",
+		"isPrivate": false,
+		"timezone": "America/Chicago",
+		"link": "https://www.meetup.com/chicago-anime-hangouts",
+		"joinMode": "OPEN",
+		"topicCategory": {
+			"__typename": "TopicCategory",
+			"id": "571",
+			"name": "Hobbies & Passions",
+			"urlkey": "hobbies-passions"
+		},
+		"topics": [
+			{
+				"__typename": "Topic",
+				"id": "286",
+				"urlkey": "anime",
+				"name": "Anime"
+			},
+			{
+				"__typename": "Topic",
+				"id": "18517",
+				"urlkey": "sci-fi-fantasy",
+				"name": "Sci-Fi/Fantasy"
+			},
+			{
+				"__typename": "Topic",
+				"id": "67937",
+				"urlkey": "cosplay",
+				"name": "Cosplay"
+			},
+			{
+				"__typename": "Topic",
+				"id": "17935",
+				"urlkey": "comic-books",
+				"name": "Comic Books"
+			},
+			{
+				"__typename": "Topic",
+				"id": "576262",
+				"urlkey": "anime-manga",
+				"name": "Anime & Manga"
+			},
+			{
+				"__typename": "Topic",
+				"id": "29310",
+				"urlkey": "geeks-nerds",
+				"name": "Geeks & Nerds"
+			},
+			{
+				"__typename": "Topic",
+				"id": "52002",
+				"urlkey": "anime-conventions",
+				"name": "Anime Conventions"
+			},
+			{
+				"__typename": "Topic",
+				"id": "2849",
+				"urlkey": "manga",
+				"name": "Manga"
+			},
+			{
+				"__typename": "Topic",
+				"id": "14980",
+				"urlkey": "japanese-films",
+				"name": "Japanese Films"
+			},
+			{
+				"__typename": "Topic",
+				"id": "19991",
+				"urlkey": "japanese-culture",
+				"name": "Japanese Culture"
+			},
+			{
+				"__typename": "Topic",
+				"id": "25545",
+				"urlkey": "japanese-food",
+				"name": "Japanese Food"
+			},
+			{
+				"__typename": "Topic",
+				"id": "68022",
+				"urlkey": "japanese",
+				"name": "Japanese"
+			},
+			{
+				"__typename": "Topic",
+				"id": "1510682",
+				"urlkey": "geek-culture",
+				"name": "Geek Culture"
+			},
+			{
+				"__typename": "Topic",
+				"id": "30363",
+				"urlkey": "anime-cosplay",
+				"name": "Anime Cosplay"
+			},
+			{
+				"__typename": "Topic",
+				"id": "824622",
+				"urlkey": "anime-music",
+				"name": "Anime Music"
+			}
+		],
+		"urlname": "chicago-anime-hangouts",
+		"country": "us",
+		"state": "IL",
+		"city": "Chicago",
+		"needsPhoto": false,
+		"proNetwork": null,
+		"featuredEvent": null,
+		"stats": {
+			"__typename": "GroupStats",
+			"memberCounts": { "__typename": "GroupMemberCounts", "all": 5449 }
+		},
+		"needsQuestions": false,
+		"duesSettings": null,
+		"questions": [],
+		"sponsors": { "__typename": "ProGroupSponsorsConnection", "edges": [] },
+		"groupPhoto": {
+			"__typename": "PhotoInfo",
+			"id": "522611928",
+			"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+			"source": "https://secure.meetupstatic.com/photos/event/2/e/9/8/highres_522611928.jpeg"
+		},
+		"status": "PAID",
+		"isInCumulativeImpactTreatment": false
+	},
+	"sponsoredUntil": null,
+	"komootUrl": null,
+	"timezone": "America/Chicago",
+	"waiting": 0,
+	"timeStatus": "UPCOMING",
+	"host": {
+		"__typename": "EventHost",
+		"memberId": "327374368",
+		"id": "327374368",
+		"name": "Mike",
+		"member": {
+			"__typename": "Member",
+			"isSuperOrganizer": true,
+			"gender": null
+		},
+		"memberPhoto": {
+			"__typename": "PhotoInfo",
+			"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+			"id": "320588756"
+		}
+	},
+	"currency": "USD"
+}

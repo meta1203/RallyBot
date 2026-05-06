@@ -86,6 +86,11 @@ async def update_events():
 			shared.ddb.write_item(event)
 			print(f"Created new event w/ snowflake id: {event.snowflake_id}")
 			await notify_new_event(event)
+	# check for cancelled events and remove them from ddb
+	hashed_ids: set[int] = set(map(lambda event: event.sort, on_meetup))
+	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp < int(datetime.datetime.now(shared.est).timestamp() * 1000)):
+		if event.sort not in hashed_ids:
+			events.check_existing_event(event)
 
 def get_channel_for_ddb_event(event: events.MeetupEvent):
 	if not event:
@@ -106,7 +111,7 @@ async def notify_events():
 	discord_events = await shared.guild.fetch_scheduled_events()
 	now = datetime.datetime.now(shared.est)
 	for de in discord_events:
-		ddb_event: events.MeetupEvent = shared.ddb.scan_item("snowflake_id", de.id)
+		ddb_event: events.MeetupEvent | None = events.MeetupEvent.scan(index_name="snowflake_id-index", filter_condition=events.MeetupEvent.snowflake_id == de.id).next()
 		if not ddb_event:
 			ddb_event = events.MeetupEvent.from_discord_event(de)
 			await notify_new_event(ddb_event)

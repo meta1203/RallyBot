@@ -1,8 +1,10 @@
 import boto3
-from boto3.dynamodb import conditions
 import jsonpickle
 import datetime
 import decimal
+from pynamodb.expressions.condition import Condition
+from pynamodb.models import Model
+from pynamodb.attributes import UnicodeAttribute, NumberAttribute
 
 boto3.setup_default_session(region_name="us-east-2")
 
@@ -38,40 +40,38 @@ class DecimalHandler(jsonpickle.handlers.BaseHandler):
 	def restore(self, obj):
 		return float(obj)
 
+class RallyBotModel(Model):
+	class Meta:
+		table_name = "RallyBot"
+		region = "us-east-2"
+
+	id = UnicodeAttribute(hash_key=True)
+	sort = NumberAttribute(range_key=True)
+	data = UnicodeAttribute(null=True)
+
 class DynamoDBClient:
 	def __init__(self):
-		self.table_name = "RallyBot"
-		self.dynamodb = boto3.resource('dynamodb')
-		self.table = self.dynamodb.Table(self.table_name)
 		self.pickler = jsonpickle.pickler.Pickler()
 		self.unpickler = jsonpickle.unpickler.Unpickler()
 
 	def write_item(self, item):
-		return self.table.put_item(Item=self.pickler.flatten(item))
+		if isinstance(item, Model):
+			item.save()
+			return True
+		model_item = RallyBotModel(
+			id=item.id,
+			sort=item.sort,
+			data=jsonpickle.encode(item)
+		)
+		model_item.save()
+		return True
 	
 	def read_item(self, id, sort):
-		if 'Item' not in self.table.get_item(Key={'id': id, 'sort': sort}):
+		try:
+			item = RallyBotModel.get(id, sort)
+			return jsonpickle.decode(item.data)
+		except RallyBotModel.DoesNotExist:
 			return None
-		return self.unpickler.restore(self.table.get_item(Key={'id': id, 'sort': sort})['Item'])
-	
-	def scan_item(self, key, value):
-		resp = self.table.scan(
-			FilterExpression=conditions.Attr(key).eq(value)
-		)
-		if 'Items' in resp:
-			if len(resp['Items']) == 1:
-				return self.unpickler.restore(resp['Items'][0])
-			else:
-				return self.unpickler.restore(resp['Items'])
-		print(f"could not find {key}={value}\n{resp}")
-		return None
-	
-	def delete_item(self, id, sort):
-		return self.table.delete_item(Key={'id': id, 'sort': sort})
-
-class TableItem:
-	id: str
-	sort: int
 
 if __name__ == "__main__":
 	ddb = DynamoDBClient()

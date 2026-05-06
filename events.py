@@ -1,4 +1,4 @@
-from aws import TableItem
+from aws import RallyBotModel
 from shared import shared
 
 import discord
@@ -12,28 +12,30 @@ import os
 import json
 from decimal import Decimal
 from traceback import format_exc as get_stacktrace
+from pynamodb.exceptions import AttributeDeserializationError
+from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAttribute, BooleanAttribute
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
 
 categories = ["book club", "conventions", "food", "gaming", "karaoke", "outdoor", "watch party", "volunteering", "other"]
 
-class MeetupEvent(TableItem):
-	title: str
-	description: str
-	link: str
-	datetime: dt.datetime # primary storage as datetime object
-	timestamp: int
-	endtime: dt.datetime
-	location: str
-	snowflake_id: int = 0
-	category: str
-	online: bool
+class MeetupEvent(RallyBotModel):
+	title = UnicodeAttribute(null=True)
+	description = UnicodeAttribute(null=True)
+	link = UnicodeAttribute(null=True)
+	datetime = UTCDateTimeAttribute(null=True)
+	endtime = UTCDateTimeAttribute(null=True)
+	timestamp = NumberAttribute(null=True)
+	location = UnicodeAttribute(null=True)
+	snowflake_id = NumberAttribute(default=0)
+	category = UnicodeAttribute(null=True)
+	online = BooleanAttribute(default=False)
 
 	# timestamp properties for backward compatibility
 	@property
 	def timestamp_start(self):
 		# unix timestamp in milliseconds
-		if not hasattr(self, 'datetime') or self.datetime is None:
+		if self.datetime is None:
 			return None
 		self.timestamp = int(self.datetime.timestamp() * 1000)
 		return self.timestamp
@@ -51,7 +53,7 @@ class MeetupEvent(TableItem):
 			self.timestamp = None
 	
 	@property
-	def start_time(self) -> dt.datetime:
+	def start_time(self) -> dt.datetime | None:
 		# unix timestamp in milliseconds
 		if self.datetime is None and self.timestamp is not None:
 			self.datetime = dt.datetime.fromtimestamp(self.timestamp / 1000, tz=astimezone("America/Chicago"))
@@ -64,13 +66,9 @@ class MeetupEvent(TableItem):
 		else:
 			self.timestamp = int(value.timestamp() * 1000)
 
-	def __init__(self, meetup_id: int) -> None:
+	def __init__(self, **kwargs) -> None:
+		super().__init__(**kwargs)
 		self.id = "event"
-		self.sort = meetup_id
-		self.online = False
-		self.category = None
-		self.datetime = None
-		self.endtime = None
 	
 	def __str__(self) -> str:
 		date_str = self.start_time.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'datetime') and self.start_time else "No date set"
@@ -78,6 +76,7 @@ class MeetupEvent(TableItem):
 		title_str = getattr(self, 'title', 'Untitled Event')
 		return f"MeetupEvent: {title_str} at {location_str} on {date_str}"
 	
+	@staticmethod
 	def from_discord_event(event: discord.ScheduledEvent):
 		print(f"snowflake {event.id} ({event.name}) not found in ddb, creating...")
 		ddb_event = MeetupEvent(event.id)
@@ -88,7 +87,7 @@ class MeetupEvent(TableItem):
 		ddb_event.location = event.location
 		ddb_event.snowflake_id = event.id
 		ddb_event.online = (event.entity_type != discord.EntityType.external)
-		shared.ddb.write_item(ddb_event)
+		ddb_event.save()
 		return ddb_event
 
 def xml_to_dict(xml_string):
@@ -116,6 +115,26 @@ def xml_to_dict(xml_string):
 	root = ET.fromstring(xml_string)
 	return {root.tag: element_to_dict(root)}
 
+def update_event_from_json(event: MeetupEvent, j_item: dict):
+	if not event.category:
+		event.category = ai_categorize(f"{j_item['title'].strip()}\n\n{j_item['description'].strip()}")
+	event.link = j_item['eventUrl']
+	event.title = j_item['title'].strip()
+	event.description = j_item['description'].strip()
+	if len(event.description) > 999:
+		append = f"... [full event]({event.link})"
+		event.description = event.description[0:(999 - len(append))] + append
+
+	event.online = j_item['eventType'] == "ONLINE"
+	event.start_time = dt.datetime.fromisoformat(j_item['dateTime'])
+	event.endtime = dt.datetime.fromisoformat(j_item['endTime'])
+	if not event.online:
+		event.location = f"{j_item['venue']['address']}, {j_item['venue']['city']} | {j_item['venue']['name']}"
+		if len(event.location) > 99:
+			event.location = event.location[0:96]+"..."
+	else:
+		event.location = "Online"
+
 def fetch_meetup_events() -> list[MeetupEvent]:
 	"""
 	Fetches the RSS feed from the Meetup URL and converts it to a list of objects.
@@ -128,37 +147,43 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	for rss_item in rss_content['rss']['channel']['item']:
 		try:
 			guid = int(guid_finder.match(rss_item['guid']).group(1))
-			event: MeetupEvent = shared.ddb.read_item('event', guid)
-			if not event:
-				event = MeetupEvent(guid)
-			if not hasattr(event, 'category') or not event.category:
-				event.category = ai_categorize(f"{rss_item['title'].strip()}\n\n{rss_item['description'].strip()}")
-			event.link = rss_item['link']
-			event.title = rss_item['title'].strip()
-			event.description = rss_item['description'].strip()
-			if len(event.description) > 999:
-				append = f"... [full event]({event.link})"
-				event.description = event.description[0:(999 - len(append))] + append
-			
-			response = requests.get(event.link)
+			response = requests.get(rss_item['link'])
 			soup = BeautifulSoup(response.text, features="lxml")
 			j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
 			j_item = j_item['props']['pageProps']['event']
 
-			event.online = j_item['eventType'] == "ONLINE"
-			event.start_time = dt.datetime.fromisoformat(j_item['dateTime'])
-			event.endtime = dt.datetime.fromisoformat(j_item['endTime'])
-			if not event.online:
-				event.location = f"{j_item['venue']['address']}, {j_item['venue']['city']} | {j_item['venue']['name']}"
-				if len(event.location) > 99:
-					event.location = event.location[0:96]+"..."
-			else:
-				event.location = "Online"
-			shared.ddb.write_item(event)
+			try:
+				event = MeetupEvent.get('event', guid)
+			except MeetupEvent.DoesNotExist:
+				event = MeetupEvent(sort=guid)
+			except AttributeDeserializationError:
+				# this can happen if the data in ddb is corrupted or in an unexpected format, delete the item and start fresh
+				print(f"data for event with guid {guid} is corrupted, deleting and starting fresh...")
+				MeetupEvent.delete('event', guid)
+				event = MeetupEvent(sort=guid)
+			
+			update_event_from_json(event, j_item)
+			
+			event.save()
 			ret.append(event)
 		except Exception as e:
 			print(f"Exception occured while processing {rss_item}:\n{get_stacktrace()}")
 	return ret
+
+def check_existing_event(event: MeetupEvent):
+	response = requests.get(f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/")
+	if response.status_code == 404:
+		event.delete()
+		return False
+	soup = BeautifulSoup(response.text, features="lxml")
+	j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)['props']['pageProps']['event']
+	if j_item['status'] != "ACTIVE":
+		event.delete()
+		return False
+	
+	update_event_from_json(event, j_item)
+	event.save()
+	return True
 
 DO_AI_ENDPOINT = os.getenv('DO_AI_ENDPOINT')
 DO_AI_SECRET = os.getenv('DO_AI_SECRET')
@@ -173,15 +198,15 @@ def ai_categorize(description: str) -> str:
 	}
 	payload = {
 		"messages": [
-      {
-        "role": "user",
-        "content": f"{description}\n\nCategories: {', '.join(categories)}"
-      }
-    ],
-    "stream": False,
-    "include_functions_info": False,
-    "include_retrieval_info": False,
-    "include_guardrails_info": False
+			{
+				"role": "user",
+				"content": f"{description}\n\nCategories: {', '.join(categories)}"
+			}
+		],
+		"stream": False,
+		"include_functions_info": False,
+		"include_retrieval_info": False,
+		"include_guardrails_info": False
 	}
 	response = requests.post(f"{DO_AI_ENDPOINT}/api/v1/chat/completions", json=payload, headers=headers)
 	response.raise_for_status()  # Raise an exception for HTTP errors
