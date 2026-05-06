@@ -22,7 +22,7 @@ class Singleton:
 			print("ALERT: running Rally in silent mode...")
 	
 	@property
-	def ddb(self):
+	def ddb(self) -> aws.DynamoDBClient:
 		if not self._ddb:
 			self._ddb = aws.DynamoDBClient()
 		return self._ddb

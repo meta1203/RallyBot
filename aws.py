@@ -1,10 +1,15 @@
 import boto3
-from boto3.dynamodb import conditions
 import jsonpickle
 import datetime
 import decimal
+from pynamodb.expressions.condition import Condition
+from pynamodb.models import Model
+from pynamodb.attributes import UnicodeAttribute, NumberAttribute
 
-boto3.setup_default_session(region_name="us-east-2")
+TABLE_NAME = "RallyBot"
+REGION = "us-east-2"
+
+boto3.setup_default_session(region_name=REGION)
 
 # encode datetime objects as an ISO 8601 format string
 @jsonpickle.register(datetime.datetime)
@@ -38,43 +43,51 @@ class DecimalHandler(jsonpickle.handlers.BaseHandler):
 	def restore(self, obj):
 		return float(obj)
 
+class RallyBotModel(Model):
+	class Meta:
+		table_name = TABLE_NAME
+		region = REGION
+
+	id = UnicodeAttribute(hash_key=True)
+	sort = NumberAttribute(range_key=True)
+	data = UnicodeAttribute(null=True)
+
 class DynamoDBClient:
 	def __init__(self):
-		self.table_name = "RallyBot"
-		self.dynamodb = boto3.resource('dynamodb')
-		self.table = self.dynamodb.Table(self.table_name)
 		self.pickler = jsonpickle.pickler.Pickler()
 		self.unpickler = jsonpickle.unpickler.Unpickler()
+		self._dynamodb = boto3.resource('dynamodb')
+		self._table = self._dynamodb.Table(TABLE_NAME)
 
 	def write_item(self, item):
-		return self.table.put_item(Item=self.pickler.flatten(item))
-	
-	def read_item(self, id, sort):
-		if 'Item' not in self.table.get_item(Key={'id': id, 'sort': sort}):
-			return None
-		return self.unpickler.restore(self.table.get_item(Key={'id': id, 'sort': sort})['Item'])
-	
-	def scan_item(self, key, value):
-		resp = self.table.scan(
-			FilterExpression=conditions.Attr(key).eq(value)
+		if isinstance(item, Model):
+			item.save()
+			return True
+		model_item = RallyBotModel(
+			id=item.id,
+			sort=item.sort,
+			data=jsonpickle.encode(item)
 		)
-		if 'Items' in resp:
-			if len(resp['Items']) == 1:
-				return self.unpickler.restore(resp['Items'][0])
-			else:
-				return self.unpickler.restore(resp['Items'])
-		print(f"could not find {key}={value}\n{resp}")
-		return None
+		model_item.save()
+		return True
 	
-	def delete_item(self, id, sort):
-		return self.table.delete_item(Key={'id': id, 'sort': sort})
-
-class TableItem:
-	id: str
-	sort: int
-
-if __name__ == "__main__":
-	ddb = DynamoDBClient()
-	test = ddb.read_item("event", 305964611)
-	print(f"test result: {test.datetime}")
-	print(jsonpickle.encode(test))
+	def read_item(self, id, sort) -> RallyBotModel | None:
+		try:
+			item = RallyBotModel.get(id, sort)
+			return jsonpickle.decode(item.data)
+		except RallyBotModel.DoesNotExist:
+			return None
+	
+	def read_raw(self, id, sort) -> dict | None:
+		raw_value = self._table.get_item(Key={'id': id, 'sort': sort})
+		if 'Item' not in raw_value:
+			return None
+		return raw_value['Item']
+	
+	def delete_raw(self, id, sort) -> bool:
+		try:
+			self._table.delete_item(Key={'id': id, 'sort': sort})
+			return True
+		except Exception as e:
+			print(f"Error deleting item with id {id} and sort {sort}: {e}")
+			return False

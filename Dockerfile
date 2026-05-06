@@ -10,16 +10,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Create a non-root user
 RUN adduser --disabled-password --gecos "" appuser
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
 # Install lxml parser for BeautifulSoup
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-dev \
     libxslt-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY main.py shared.py events.py aws.py ./
