@@ -13,7 +13,9 @@ import json
 from decimal import Decimal
 from traceback import format_exc as get_stacktrace
 from pynamodb.exceptions import AttributeDeserializationError
-from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAttribute, BooleanAttribute
+from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAttribute, BooleanAttribute, BinaryAttribute
+from PIL import Image
+import io
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
 
@@ -30,6 +32,7 @@ class MeetupEvent(RallyBotModel):
 	snowflake_id = NumberAttribute(default=0)
 	category = UnicodeAttribute(null=True)
 	online = BooleanAttribute(default=False)
+	_img: BinaryAttribute = BinaryAttribute(legacy_encoding=False)
 
 	# timestamp properties for backward compatibility
 	@property
@@ -65,10 +68,24 @@ class MeetupEvent(RallyBotModel):
 			self.timestamp = None
 		else:
 			self.timestamp = int(value.timestamp() * 1000)
+	
+	@property
+	def image(self) -> Image.Image:
+		if not self._img or self._img == b"":
+			return None
+		return Image.open(io.BytesIO(self._img))
+	@image.setter
+	def image(self, img_obj: Image.Image):
+		if img_obj is None:
+			self._img = b""
+		bio = io.BytesIO()
+		img_obj.save(bio, format="WebP", lossless=True, quality=100)
+		self._img = bio.getvalue()
 
 	def __init__(self, **kwargs) -> None:
 		super().__init__(**kwargs)
 		self.id = "event"
+		self._img = b""
 	
 	def __str__(self) -> str:
 		date_str = self.start_time.strftime("%Y-%m-%d %I:%M %p") if hasattr(self, 'datetime') and self.start_time else "No date set"
@@ -134,6 +151,20 @@ def update_event_from_json(event: MeetupEvent, j_item: dict):
 			event.location = event.location[0:96]+"..."
 	else:
 		event.location = "Online"
+	
+	if not event.image:
+		resp = requests.get(j_item['displayPhoto']['source'])
+		if resp.status_code != 200:
+			print(f"ERROR: failed to download event photo {resp.url} !")
+			return
+		event.image = Image.open(io.BytesIO(resp.content))
+
+def fetch_meetup_page_json(guid) -> dict:
+	response = requests.get(f"https://www.meetup.com/chicago-anime-hangouts/events/{guid}/")
+	soup = BeautifulSoup(response.text, features="lxml")
+	j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
+	j_item = j_item['props']['pageProps']['event']
+	return j_item
 
 def fetch_meetup_events() -> list[MeetupEvent]:
 	"""
@@ -147,10 +178,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	for rss_item in rss_content['rss']['channel']['item']:
 		try:
 			guid = int(guid_finder.match(rss_item['guid']).group(1))
-			response = requests.get(rss_item['link'])
-			soup = BeautifulSoup(response.text, features="lxml")
-			j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
-			j_item = j_item['props']['pageProps']['event']
+			j_item = fetch_meetup_page_json()
 
 			try:
 				event = MeetupEvent.get('event', guid)

@@ -6,3 +6,4 @@ boto3~=1.37.1
 jsonpickle~=3.3.0
 lxml~=5.3.2
 pynamodb~=6.1.0
+pillow~=12.2.0

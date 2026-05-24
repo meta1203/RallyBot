@@ -2,6 +2,8 @@ import boto3
 import jsonpickle
 import datetime
 import decimal
+import os
+import io
 from pynamodb.expressions.condition import Condition
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, NumberAttribute
@@ -91,3 +93,25 @@ class DynamoDBClient:
 		except Exception as e:
 			print(f"Error deleting item with id {id} and sort {sort}: {e}")
 			return False
+
+def upload_to_s3(image, filename: str) -> str:
+	bucket_name = os.getenv('S3_BUCKET_NAME')
+	if not bucket_name:
+		raise ValueError("S3_BUCKET_NAME environment variable is not set")
+	
+	s3 = boto3.client('s3')
+	img_byte_arr = io.BytesIO()
+	image.save(img_byte_arr, format='WebP', lossless=True)
+	img_byte_arr.seek(0)
+	
+	# Upload and set as public-read so Instagram can access it
+	s3.put_object(
+		Bucket=bucket_name,
+		Key=filename,
+		Body=img_byte_arr,
+		ContentType='image/webp',
+		ACL='public-read'
+	)
+	
+	region = boto3.session.Session().region_name or 'us-east-1'
+	return f"https://{bucket_name}.s3.{region}.amazonaws.com/{filename}"
