@@ -130,6 +130,14 @@ def xml_to_dict(xml_string):
 	root = ET.fromstring(xml_string)
 	return {root.tag: element_to_dict(root)}
 
+def _meetup_url_to_json(url: str) -> dict | int:
+	response = requests.get(url)
+	if response.status_code != 200:
+		return response.status_code
+	soup = BeautifulSoup(response.text, features="lxml")
+	j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
+	return j_item['props']['pageProps']['event']
+
 def update_event_from_json(event: MeetupEvent, j_item: dict):
 	if not event.category:
 		event.category = ai_categorize(f"{j_item['title'].strip()}\n\n{j_item['description'].strip()}")
@@ -162,10 +170,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	for rss_item in rss_content['rss']['channel']['item']:
 		try:
 			guid = int(guid_finder.match(rss_item['guid']).group(1))
-			response = requests.get(rss_item['link'])
-			soup = BeautifulSoup(response.text, features="lxml")
-			j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
-			j_item = j_item['props']['pageProps']['event']
+			j_item = _meetup_url_to_json(rss_item['link'])
 
 			try:
 				event = MeetupEvent.get('event', guid)
@@ -197,14 +202,13 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	return ret
 
 def check_existing_event(event: MeetupEvent):
-	response = requests.get(f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/")
-	if response.status_code == 404:
+	url = f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/"
+	j_item = _meetup_url_to_json(url)
+	if j_item == 404:
 		if int(event.sort) != int(event.snowflake_id):
-			print(f"{response.url} returned 404, deleting event with guid {event.sort} from ddb...")
+			print(f"{url} returned 404, deleting event with guid {event.sort} from ddb...")
 			event.delete()
 		return False
-	soup = BeautifulSoup(response.text, features="lxml")
-	j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)['props']['pageProps']['event']
 	if j_item['status'] != "ACTIVE":
 		print(f"deleting event {event.sort} | {event.title} as status {j_item['status']} is no longer ACTIVE...")
 		event.delete()
@@ -258,23 +262,9 @@ def ai_categorize(description: str) -> str:
 	return cat
 
 if __name__ == "__main__":
-	on_meetup = fetch_meetup_events()
-	for event in on_meetup:
-		print(event)
-	
-	hashed_ids: set[int] = set(map(lambda event: event.sort, on_meetup))
-	import boto3.dynamodb.conditions as conditions
-	fexpr = conditions.Attr('timestamp').gt(int(dt.datetime.now(shared.est).timestamp() * 1000))
-
-	for raw_item in shared.ddb._table.scan(IndexName="timestamp-index", FilterExpression=fexpr)['Items']:
-		try:
-			event = MeetupEvent.get(raw_item['id'], int(raw_item['sort']))
-			if check_existing_event(event):
-				print(f"got event {event.title}")
-			else:
-				print(f"deleted event {event.title}")
-			continue
-		except AttributeDeserializationError:
-			print(f"data for event with id {raw_item['id']} and sort {raw_item['sort']} is attempting to mitigate...")
-			event = MeetupEvent(sort=int(raw_item['sort']))
-			check_existing_event(event)
+	from time import sleep
+	for event in MeetupEvent.scan(index_name="timestamp-index", filter_condition=MeetupEvent.timestamp > int(dt.datetime.now(shared.est).timestamp() * 1000)):
+		j_item = _meetup_url_to_json(f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/")
+		print(f"DEBUG: rechecked event {event.sort} | {event.title} status: {j_item['status']}")
+		sleep(5)
+		# check_existing_event(event)

@@ -18,7 +18,6 @@ IN_PERSON_MENTION = "<@&1366086187906895923>"
 ONLINE_MENTION = "<@&1366085997917638826>"
 
 async def set_globals():
-	print("setting globals...")
 	shared.client = client
 	shared.guild = await client.fetch_guild("1219601473948614737")
 
@@ -27,7 +26,6 @@ async def update_events():
 	for event in on_meetup:
 		discord_event: (discord.ScheduledEvent | None) = None
 		if event.snowflake_id:
-			print(f"reading in snowflake id: {event.snowflake_id}")
 			discord_event = None
 			try:
 				discord_event = await shared.guild.fetch_scheduled_event(event.snowflake_id)
@@ -68,7 +66,7 @@ async def update_events():
 				category = get_channel_for_ddb_event(event)
 				target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
 				await shared.message_channel(category, f"{target_role} {event.title} has been updated.")
-				print(f"Updated {event.title}!")
+				print(f"Updated discord event {event.sort} | {event.title}")
 			else:
 				print(f"{event.title} already exists.")
 		else:
@@ -83,13 +81,14 @@ async def update_events():
 				privacy_level=discord.PrivacyLevel.guild_only
 			)
 			event.snowflake_id = discord_event.id
-			shared.ddb.write_item(event)
+			event.save()
 			print(f"Created new event w/ snowflake id: {event.snowflake_id}")
 			await notify_new_event(event)
 	# check for cancelled events and remove them from ddb
 	hashed_ids: set[int] = set(map(lambda event: event.sort, on_meetup))
 	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.est).timestamp() * 1000)):
 		if event.sort not in hashed_ids:
+			print(f"rechecking event {event.sort} | {event.title} ...")
 			events.check_existing_event(event)
 
 def get_channel_for_ddb_event(event: events.MeetupEvent):
@@ -137,6 +136,7 @@ async def on_ready():
 
 	# Schedule update_events to run daily at 12:30 PM
 	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30, timezone="America/Chicago"), max_instances=1)
+	# Schedule notify events to run every hour on the hour
 	shared.scheduler.add_job(notify_events, CronTrigger(minute=0), max_instances=1)
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
