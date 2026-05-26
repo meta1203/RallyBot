@@ -170,6 +170,9 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 			try:
 				event = MeetupEvent.get('event', guid)
 			except MeetupEvent.DoesNotExist:
+				if j_item['status'] != "ACTIVE":
+					# don't do anything with a non-active event
+					continue
 				event = MeetupEvent(sort=guid)
 			except AttributeDeserializationError:
 				# this can happen if the data in ddb is corrupted or in an unexpected format
