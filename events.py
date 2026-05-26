@@ -203,6 +203,7 @@ def check_existing_event(event: MeetupEvent):
 	soup = BeautifulSoup(response.text, features="lxml")
 	j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)['props']['pageProps']['event']
 	if j_item['status'] != "ACTIVE":
+		print(f"deleting event {event.sort} | {event.title} as status {j_item['status']} is no longer ACTIVE...")
 		event.delete()
 		return False
 	
