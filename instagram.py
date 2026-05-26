@@ -4,6 +4,48 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from events import MeetupEvent
 from aws import upload_to_s3
 
+def generate_mapbox_map_image(location: str) -> Image.Image:
+	"""
+	Takes a location string, geocodes it to coordinates, and returns 
+	a 16:9 Mapbox image of the surrounding area.
+	"""
+	token = os.getenv('MAPBOX_ACCESS_TOKEN')
+	if not token:
+		print("ERROR: MAPBOX_ACCESS_TOKEN not set.")
+		return Image.new('RGB', (1920, 1080), color=(40, 40, 40))
+
+	# 1. Geocode location to lat/lon using Nominatim
+	headers = {'User-Agent': 'RallyBot/1.0 (example@example.com)'}
+	geocode_url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(location)}&format=json&limit=1"
+	
+	try:
+		response = requests.get(geocode_url, headers=headers)
+		response.raise_for_status()
+		data = response.json()
+		if not data:
+			print(f"Could not find coordinates for location: {location}")
+			return Image.new('RGB', (1920, 1080), color=(40, 40, 40))
+		
+		lat = data[0]['lat']
+		lon = data[0]['lon']
+	except Exception as e:
+		print(f"Geocoding error: {e}")
+		return Image.new('RGB', (1920, 1080), color=(40, 40, 40))
+
+	# 2. Get static map image (16:9 - 1920x1080)
+	# Mapbox format: /styles/v1/{style}/static/{lon},{lat},{zoom}/{width}x{height}
+	map_url = f"https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/{lon},{lat},14/1920x1080?access_token={token}"
+	
+	try:
+		map_response = requests.get(map_url, stream=True)
+		map_response.raise_for_status()
+		
+		from io import BytesIO
+		return Image.open(BytesIO(map_response.content)).convert('RGB')
+	except Exception as e:
+		print(f"Mapbox fetch error: {e}")
+		return Image.new('RGB', (1920, 1080), color=(40, 40, 40))
+
 def wrap_text(text, font, max_width):
 	words = text.split()
 	final_lines = []
@@ -46,26 +88,44 @@ def create_instagram_image(event: MeetupEvent) -> Image.Image:
 	# Paste image at top
 	canvas.paste(img, (0, 0))
 	
-	# Create a blur transition
+	# 1. Generate and paste map image
+	map_img = generate_mapbox_map_image(event.location if " | " not in event.location else event.location.split(" | ")[0])
+	map_w, map_h = map_img.size
+	# Resize to width 1080, maintaining 16:9 aspect ratio
+	target_map_h = int(width * (map_h / map_w))
+	map_img = map_img.resize((width, target_map_h), Image.Resampling.LANCZOS).convert('RGBA')
+	canvas.paste(map_img, (0, new_h))
+
+	# 2. Blur transitions
 	blur_radius = 50
 	transition_height = 300
+
+	# Transition A: Header -> Map
+	crop_top_a = max(0, new_h - transition_height)
+	img_slice_a = img.crop((0, crop_top_a, width, new_h))
+	blurred_slice_a = img_slice_a.filter(ImageFilter.GaussianBlur(blur_radius))
 	
-	# Crop a slice of the image for blurring
-	crop_top = max(0, new_h - transition_height)
-	img_slice = img.crop((0, crop_top, width, new_h))
-	blurred_slice = img_slice.filter(ImageFilter.GaussianBlur(blur_radius))
-	
-	# Create a gradient mask to fade from original -> blurred -> black
-	mask = Image.new('L', (width, transition_height), 0)
+	mask_a = Image.new('L', (width, transition_height), 0)
 	for y in range(transition_height):
 		alpha = int((y / transition_height) * 255)
 		for x in range(width):
-			mask.putpixel((x, y), alpha)
+			mask_a.putpixel((x, y), alpha)
+	canvas.paste(blurred_slice_a, (0, crop_top_a), mask_a)
+
+	# Transition B: Map -> Black
+	map_bottom = new_h + target_map_h
+	crop_top_b = max(new_h, map_bottom - transition_height)
+	img_slice_b = map_img.crop((0, crop_top_b - new_h, width, target_map_h))
+	blurred_slice_b = img_slice_b.filter(ImageFilter.GaussianBlur(blur_radius))
 	
-	# Paste the blurred slice using the mask
-	canvas.paste(blurred_slice, (0, crop_top), mask)
-	
-	# Add a black gradient fade over the blur to transition to solid black
+	mask_b = Image.new('L', (width, transition_height), 0)
+	for y in range(transition_height):
+		alpha = int((y / transition_height) * 255)
+		for x in range(width):
+			mask_b.putpixel((x, y), alpha)
+	canvas.paste(blurred_slice_b, (0, crop_top_b), mask_b)
+
+	# Final fade to black over Transition B
 	fade_mask = Image.new('L', (width, transition_height), 0)
 	for y in range(transition_height):
 		alpha = int((y / transition_height) * 255)
@@ -73,7 +133,7 @@ def create_instagram_image(event: MeetupEvent) -> Image.Image:
 			fade_mask.putpixel((x, y), alpha)
 	
 	black_overlay = Image.new('RGBA', (width, transition_height), (0, 0, 0, 255))
-	canvas.paste(black_overlay, (0, crop_top), fade_mask)
+	canvas.paste(black_overlay, (0, crop_top_b), fade_mask)
 	
 	# Convert back to RGB for final output
 	canvas = canvas.convert('RGB')
@@ -88,7 +148,9 @@ def create_instagram_image(event: MeetupEvent) -> Image.Image:
 		font_text = ImageFont.load_default()
 
 	# 1. Draw Title (Wrapped)
-	y_offset = new_h + 10
+	# Text starts after header and map
+	map_h_total = int(width * (map_img.size[1] / map_img.size[0])) if 'map_img' in locals() else 0
+	y_offset = new_h + map_h_total + 10
 	title_text = event.title if event.title else "Untitled Event"
 	wrapped_title = wrap_text(title_text, font_title, width - 100)
 	for line in wrapped_title:
