@@ -12,7 +12,7 @@ import os
 import json
 from decimal import Decimal
 from traceback import format_exc as get_stacktrace
-from pynamodb.exceptions import AttributeDeserializationError
+from pynamodb.exceptions import AttributeDeserializationError, DeleteError
 from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAttribute, BooleanAttribute
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
@@ -89,6 +89,21 @@ class MeetupEvent(RallyBotModel):
 		ddb_event.online = (event.entity_type != discord.EntityType.external)
 		ddb_event.save()
 		return ddb_event
+
+	def delete(self, condition = None, *, add_version_condition = True):
+		res = None
+		try:
+			discord_id = int(self.snowflake_id) if self.snowflake_id else None
+			res = super().delete(condition, add_version_condition=add_version_condition)
+			if discord_id:
+				devent = shared.guild.get_scheduled_event(discord_id)
+				devent.delete()
+			return res
+		except DeleteError:
+			print(f"ERROR: Failed to delete event {self.sort} | {self.title} from dynamodb!")
+		except Exception as e:
+			print(f"ERROR: Exception while deleting event {self.sort} | {self.title}\n{get_stacktrace()}")
+		return None
 
 def xml_to_dict(xml_string):
 	"""

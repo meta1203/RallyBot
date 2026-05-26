@@ -112,7 +112,7 @@ async def notify_events():
 	now = datetime.datetime.now(shared.est)
 	for de in discord_events:
 		ddb_event: events.MeetupEvent | None = events.MeetupEvent.scan(index_name="snowflake_id-index", filter_condition=events.MeetupEvent.snowflake_id == de.id).next()
-		if not ddb_event:
+		if not ddb_event and de.status == discord.EventStatus.scheduled:
 			ddb_event = events.MeetupEvent.from_discord_event(de)
 			await notify_new_event(ddb_event)
 			continue
