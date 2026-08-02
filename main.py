@@ -1,7 +1,9 @@
 import discord
+from discord import app_commands
 
 from shared import shared
 import events
+import report
 
 from apscheduler.triggers.cron import CronTrigger
 import os
@@ -14,6 +16,7 @@ intents.guild_scheduled_events = True
 intents.guild_messages = True
 
 client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
 IN_PERSON_MENTION = "<@&1366086187906895923>"
 ONLINE_MENTION = "<@&1366085997917638826>"
 
@@ -130,7 +133,11 @@ async def notify_events():
 async def on_ready():
 	await set_globals()
 	print(f'We have logged in as {client.user}')
-	
+
+	# Register and sync the report context menu command (guild-scoped for instant availability)
+	report.setup(tree, shared.guild)
+	await tree.sync(guild=shared.guild)
+
 	# Run update_events once at startup
 	await update_events()
 
