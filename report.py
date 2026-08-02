@@ -80,9 +80,9 @@ async def submit_report(
 	embed.add_field(name="Reported By", value=f"<@{reporter}> (`{reporter}`)", inline=False)
 	if message:
 		embed.add_field(name="Message", value=message.jump_url, inline=False)
-	embed.add_field(name="Reason", value=comment, inline=False)
 	if message and message.content:
 		embed.add_field(name="Message Content", value=message.content[:1024], inline=False)
+	embed.add_field(name="Reason", value=comment, inline=False)
 	embed.set_footer(text=f"Report ID: {timestamp}")
 
 	view = ReportActionView(report_sort=timestamp, snowflake_id=snowflake_id)
