@@ -1,3 +1,5 @@
+import asyncio
+
 from aws import RallyBotModel
 from shared import shared
 
@@ -79,7 +81,7 @@ class MeetupEvent(RallyBotModel):
 	@staticmethod
 	def from_discord_event(event: discord.ScheduledEvent):
 		print(f"snowflake {event.id} ({event.name}) not found in ddb, creating...")
-		ddb_event = MeetupEvent(event.id)
+		ddb_event = MeetupEvent(sort=event.id)
 		ddb_event.title = event.name
 		ddb_event.description = event.description
 		ddb_event.category = ai_categorize(f"{event.name}\n\n{event.description}")
@@ -90,20 +92,29 @@ class MeetupEvent(RallyBotModel):
 		ddb_event.save()
 		return ddb_event
 
-	def delete(self, condition = None, *, add_version_condition = True):
+	async def delete(self, condition = None, *, add_version_condition = True):
 		res = None
 		try:
 			discord_id = int(self.snowflake_id) if self.snowflake_id else None
 			res = super().delete(condition, add_version_condition=add_version_condition)
-			if discord_id:
-				devent = shared.guild.get_scheduled_event(discord_id)
-				devent.delete()
-			return res
 		except DeleteError:
 			print(f"ERROR: Failed to delete event {self.sort} | {self.title} from dynamodb!")
+			return None
 		except Exception as e:
 			print(f"ERROR: Exception while deleting event {self.sort} | {self.title}\n{get_stacktrace()}")
-		return None
+			return None
+		# also delete the corresponding discord event, fetching it live instead
+		# of relying on the cache: uncached events used to blow up on None here
+		# and silently leave the discord event behind
+		if discord_id:
+			try:
+				devent = await shared.guild.fetch_scheduled_event(discord_id)
+				await devent.delete()
+			except discord.errors.NotFound:
+				print(f"discord event {discord_id} for {self.sort} | {self.title} already gone from discord")
+			except Exception as e:
+				print(f"ERROR: Exception while deleting discord event {discord_id} for event {self.sort} | {self.title}\n{get_stacktrace()}")
+		return res
 
 def xml_to_dict(xml_string):
 	"""
@@ -201,20 +212,22 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 			print(f"Exception occured while processing {rss_item}:\n{get_stacktrace()}")
 	return ret
 
-def check_existing_event(event: MeetupEvent):
+async def check_existing_event(event: MeetupEvent):
 	url = f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/"
-	j_item = _meetup_url_to_json(url)
+	# the meetup scrape (and the AI categorizer inside update_event_from_json)
+	# are blocking requests; keep them off the event loop
+	j_item = await asyncio.to_thread(_meetup_url_to_json, url)
 	if j_item == 404:
 		if int(event.sort) != int(event.snowflake_id):
 			print(f"{url} returned 404, deleting event with guid {event.sort} from ddb...")
-			event.delete()
+			await event.delete()
 		return False
 	if j_item['status'] != "ACTIVE":
 		print(f"deleting event {event.sort} | {event.title} as status {j_item['status']} is no longer ACTIVE...")
-		event.delete()
+		await event.delete()
 		return False
 	
-	update_event_from_json(event, j_item)
+	await asyncio.to_thread(update_event_from_json, event, j_item)
 	event.save()
 	return True
 

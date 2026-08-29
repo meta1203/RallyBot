@@ -10,6 +10,19 @@ from pynamodb.exceptions import UpdateError
 
 MODERATOR_MENTION = "<@&1225935511785570425>"
 
+
+def _is_moderator(interaction: discord.Interaction) -> bool:
+	"""Moderators are members who can timeout or ban users (admins included)."""
+	member = interaction.user
+	if not isinstance(member, discord.Member):
+		return False
+	perms = member.guild_permissions
+	return perms.administrator or perms.moderate_members or perms.ban_members
+
+
+async def _reject_non_moderator(interaction: discord.Interaction):
+	await interaction.response.send_message("You don't have permission to action reports.", ephemeral=True)
+
 class Report(RallyBotModel):
 	"""DynamoDB model for a user-submitted report."""
 	timestamp = NumberAttribute(null=True)
@@ -251,6 +264,9 @@ class ReportActionView(discord.ui.View):
 
 	@discord.ui.button(label="Ignore", style=discord.ButtonStyle.secondary)
 	async def ignore_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+		if not _is_moderator(interaction):
+			await _reject_non_moderator(interaction)
+			return
 		await _finalize_report(
 			interaction=interaction,
 			report_sort=self._report_sort,
@@ -260,6 +276,9 @@ class ReportActionView(discord.ui.View):
 
 	@discord.ui.button(label="Timeout", style=discord.ButtonStyle.primary)
 	async def timeout_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+		if not _is_moderator(interaction):
+			await _reject_non_moderator(interaction)
+			return
 		# check if report is still pending
 		try:
 			report = Report.get("report", self._report_sort)
@@ -303,6 +322,9 @@ class ReportActionView(discord.ui.View):
 
 	@discord.ui.button(label="Ban", style=discord.ButtonStyle.danger)
 	async def ban_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+		if not _is_moderator(interaction):
+			await _reject_non_moderator(interaction)
+			return
 		modal = BanConfirmModal(
 			report_sort=self._report_sort,
 			snowflake_id=self._snowflake_id,
