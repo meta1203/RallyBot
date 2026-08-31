@@ -14,7 +14,7 @@ Discord bot for the **chicago-anime-hangouts** Meetup group that mirrors Meetup 
 ## Tech stack
 
 - Python 3.10+ syntax; Docker image runs `python:3.13-slim`. **Tabs for indentation**, not spaces.
-- discord.py ~2.5.2 (app commands, scheduled events, modals/views), PynamoDB ~6.1 (ORM) over boto3, APScheduler ~3.11 (AsyncIOScheduler), requests + BeautifulSoup/lxml for scraping.
+- discord.py ~2.7.1 (app commands, scheduled events, modals/views incl. UserSelect-in-modal, requires 2.6+ for selects in modals), PynamoDB ~6.1 (ORM) over boto3, APScheduler ~3.11 (AsyncIOScheduler), requests + BeautifulSoup/lxml for scraping.
 - No web framework, no queue — one long-running process.
 
 ## Commands
@@ -43,7 +43,7 @@ Read via `os.getenv` only — no dotenv loading, no config file.
 ```
 main.py     entrypoint: client, intents, cron jobs (update_events daily 12:30 CT, notify_events hourly), create/update/announce flow
 events.py   MeetupEvent model + RSS scrape → __NEXT_DATA__ JSON → upsert; cancellation checks; AI categorizer
-report.py   Report model + "Report…" context menu, mod-channel action buttons (ignore/timeout/ban), escalating timeouts
+report.py   Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rb warn slash command
 aws.py      RallyBotModel (PynamoDB base: table RallyBot, us-east-2, keys id+sort); raw boto3 get/delete helpers
 shared.py   Singleton: client, guild, channel-name cache, scheduler, message_channel (dedupe + quiet mode)
 ```
