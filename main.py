@@ -4,6 +4,7 @@ from discord import app_commands
 from shared import shared
 import events
 import report
+import onboarding
 
 from apscheduler.triggers.cron import CronTrigger
 import asyncio
@@ -15,6 +16,8 @@ intents = discord.Intents.default()
 # required intents for the bot to function
 intents.guild_scheduled_events = True
 intents.guild_messages = True
+# member events (join) power the onboarding welcome + intro flow
+intents.members = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
@@ -143,6 +146,21 @@ async def notify_events():
 			await shared.message_channel(category, f"{ONLINE_MENTION} {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
 
 @client.event
+async def on_member_join(member: discord.Member):
+	# new-user onboarding: welcome in #intro + rules-acceptance flow
+	try:
+		await onboarding.on_member_join(member)
+	except Exception as e:
+		print(f"ERROR: onboarding welcome failed for {member}:\n{get_stacktrace()}")
+
+@client.event
+async def on_message(message: discord.Message):
+	# enforce the one-intro-post rule in #intro (permission overwrite is the
+	# primary gate; this catches role re-grants and races)
+	if message.channel.id == onboarding.INTRO_CHANNEL_ID:
+		await onboarding.handle_intro_message(message)
+
+@client.event
 async def on_ready():
 	await set_globals()
 	print(f'We have logged in as {client.user}')
@@ -150,6 +168,10 @@ async def on_ready():
 	# Register and sync the report context menu command (guild-scoped for instant availability)
 	report.setup(tree, shared.guild)
 	await tree.sync(guild=shared.guild)
+
+	# set up the onboarding flow: persistent rules button + #intro permission lock
+	onboarding.setup(client, shared.guild)
+	await onboarding.startup_checks(client, shared.guild)
 
 	# Run update_events once at startup
 	await update_events()

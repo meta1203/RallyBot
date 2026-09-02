@@ -22,7 +22,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY main.py shared.py events.py aws.py report.py ./
+COPY main.py shared.py events.py aws.py report.py onboarding.py ./
 
 # Switch to non-root user
 USER appuser

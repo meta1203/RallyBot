@@ -41,11 +41,12 @@ Read via `os.getenv` only — no dotenv loading, no config file.
 ## Architecture
 
 ```
-main.py     entrypoint: client, intents, cron jobs (update_events daily 12:30 CT, notify_events hourly), create/update/announce flow
-events.py   MeetupEvent model + RSS scrape → __NEXT_DATA__ JSON → upsert; cancellation checks; AI categorizer
-report.py   Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rb warn slash command
-aws.py      RallyBotModel (PynamoDB base: table RallyBot, us-east-2, keys id+sort); raw boto3 get/delete helpers
-shared.py   Singleton: client, guild, channel-name cache, scheduler, message_channel (dedupe + quiet mode)
+main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, notify_events hourly), create/update/announce flow, onboarding event hooks
+events.py     MeetupEvent model + RSS scrape → __NEXT_DATA__ JSON → upsert; cancellation checks; AI categorizer
+report.py     Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rb warn slash command
+onboarding.py New-user flow: #intro welcome on join, persistent "agree to rules" button in #rules, intro role grant/removal, one-intro-post enforcement
+aws.py        RallyBotModel (PynamoDB base: table RallyBot, us-east-2, keys id+sort); raw boto3 get/delete helpers
+shared.py     Singleton: client, guild, channel-name cache, scheduler, message_channel (dedupe + quiet mode)
 ```
 
 Flow: RSS feed → per-event page scrape → PynamoDB upsert → Discord scheduled-event create/edit → announcement in the category channel with online/in-person role ping.
