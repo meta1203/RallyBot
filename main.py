@@ -199,11 +199,12 @@ async def on_ready():
 	# forum pilot: weekly announcements digest, sundays 3pm central
 	if FORUM_PILOT:
 		shared.scheduler.add_job(forum.send_weekly_announcements, CronTrigger(day_of_week='sun', hour=15, minute=0, timezone="America/Chicago"), max_instances=1)
-		# create forum posts for upcoming events tracked before the pilot
+		# create/refresh forum posts for upcoming events (also repairs posts
+		# written before full_description existed)
 		try:
-			await forum.backfill_forum_posts()
+			await forum.sync_forum_posts()
 		except Exception as e:
-			print(f"forum post backfill failed:\n{get_stacktrace()}")
+			print(f"forum post sync failed:\n{get_stacktrace()}")
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
 

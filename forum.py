@@ -33,6 +33,7 @@ from shared import shared, IN_PERSON_MENTION, ONLINE_MENTION
 
 FORUM_CHANNEL_ID = 1543307748006174920  # #event-chat forum channel
 ANNOUNCEMENTS_CHANNEL_ID = 1244283919218770030  # #announcements
+FORUM_POST_MAX_LEN = 4000  # discord's hard limit for forum post content
 
 _forum_channel_cache: discord.ForumChannel | None = None
 
@@ -81,10 +82,13 @@ def _event_forum_body(event: events.MeetupEvent) -> str:
 		where = event.location
 	else:
 		where = "Online"
+	# prefer the untruncated meetup description; `description` is capped at 999
+	# chars for discord scheduled events
+	body_desc = (event.full_description or event.description or "").strip()
 	lines = [
 		f"**When:** {where} — <t:{round(event.start_time.timestamp())}:F>",
 		"",
-		(event.description or "").strip(),
+		body_desc,
 		"",
 	]
 	discord_link = _discord_event_link(event)
@@ -92,7 +96,14 @@ def _event_forum_body(event: events.MeetupEvent) -> str:
 		lines.append(f"**Discord event:** {discord_link}")
 	if event.link:
 		lines.append(f"**Meetup event:** {event.link}")
-	return "\n".join(lines)
+	body = "\n".join(lines)
+	if len(body) > FORUM_POST_MAX_LEN:
+		# discord physically rejects longer forum post content; trim as close
+		# to the full text as the hard limit allows
+		append = f" ... [full event]({event.link})" if event.link else " ..."
+		body = body[0:(FORUM_POST_MAX_LEN - len(append))] + append
+		print(f"WARNING: forum body for {event.sort} | {event.title} exceeded {FORUM_POST_MAX_LEN} chars, truncated")
+	return body
 
 async def create_forum_post(event: events.MeetupEvent) -> int | None:
 	"""Create the event's forum post and record its thread id on the event row.
@@ -159,7 +170,10 @@ async def update_forum_post(event: events.MeetupEvent) -> None:
 		expected_title = f"Event: {event.title}"
 		if thread.name != expected_title:
 			await thread.edit(name=expected_title)
-		await thread.edit(applied_tags=_build_tags(forum_channel, event))
+		current_tag_names = {t.name for t in (thread.applied_tags or [])}
+		wanted_tags = _build_tags(forum_channel, event)
+		if current_tag_names != {t.name for t in wanted_tags}:
+			await thread.edit(applied_tags=wanted_tags)
 		print(f"Updated forum post {thread.id} for {event.sort} | {event.title}")
 	except Exception as e:
 		print(f"ERROR: failed updating forum post for {event.sort} | {event.title}:\n{traceback.format_exc()}")
@@ -181,19 +195,22 @@ async def delete_forum_post(event: events.MeetupEvent) -> None:
 	except Exception as e:
 		print(f"ERROR: failed deleting forum post {event.forum_thread_id}:\n{traceback.format_exc()}")
 
-async def backfill_forum_posts() -> None:
-	"""Create forum posts for tracked upcoming events that don't have one yet
-	(e.g. events tracked before the pilot was enabled)."""
+async def sync_forum_posts() -> None:
+	"""Startup sync: make sure every tracked upcoming event has a forum post.
+	Creates missing ones and refreshes stale ones (e.g. posts written before
+	full_description existed). In-sync posts are left untouched, so this is
+	cheap to run on every startup."""
 	now_ms = int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000)
 	# the pynamo scan is blocking network I/O; materialize it off the event loop
-	unposted = await asyncio.to_thread(lambda: [
-		e for e in events.MeetupEvent.scan(index_name="timestamp-index",
-			filter_condition=events.MeetupEvent.timestamp > now_ms)
-		if not e.forum_thread_id
-	])
-	for event in unposted:
-		print(f"backfilling forum post for {event.sort} | {event.title}")
-		await create_forum_post(event)
+	upcoming = await asyncio.to_thread(lambda: list(
+		events.MeetupEvent.scan(index_name="timestamp-index",
+			filter_condition=events.MeetupEvent.timestamp > now_ms)))
+	for event in upcoming:
+		if not event.forum_thread_id:
+			print(f"backfilling forum post for {event.sort} | {event.title}")
+			await create_forum_post(event)
+		else:
+			await update_forum_post(event)
 
 # ---------------- weekly announcements ----------------
 

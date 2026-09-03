@@ -38,6 +38,9 @@ class MeetupEvent(RallyBotModel):
 	# updated after creation
 	forum_thread_id = NumberAttribute(null=True)
 	created_at = UTCDateTimeAttribute(null=True)
+	# untruncated meetup description; `description` is capped at 999 chars for
+	# discord scheduled events, but forum posts want the full text
+	full_description = UnicodeAttribute(null=True)
 
 	# timestamp properties for backward compatibility
 	@property
@@ -167,6 +170,9 @@ def update_event_from_json(event: MeetupEvent, j_item: dict):
 	event.link = j_item['eventUrl']
 	event.title = j_item['title'].strip()
 	event.description = j_item['description'].strip()
+	# keep the full text for forum posts before `description` gets truncated
+	# to discord's 999-char scheduled-event limit below
+	event.full_description = j_item['description'].strip()
 	if len(event.description) > 999:
 		append = f"... [full event]({event.link})"
 		event.description = event.description[0:(999 - len(append))] + append

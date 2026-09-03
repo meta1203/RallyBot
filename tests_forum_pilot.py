@@ -125,10 +125,11 @@ shared_mod.shared.guild = FakeGuild(
 
 
 def make_event(sort=111, title="Anime Night", category="watch party", online=False,
-		forum_thread_id=None, created_at=None, start_offset_days=3):
+		forum_thread_id=None, created_at=None, start_offset_days=3, full_description=None):
 	ev = events.MeetupEvent(sort=sort)
 	ev.title = title
 	ev.description = "A watch party for fans."
+	ev.full_description = full_description if full_description is not None else ev.description
 	ev.link = f"https://www.meetup.com/chicago-anime-hangouts/events/{sort}/"
 	ev.start_time = dt.datetime.now(shared_mod.shared.est) + dt.timedelta(days=start_offset_days)
 	ev.category = category
@@ -172,6 +173,29 @@ async def main():
 	ev_other = make_event(sort=333, category="nonexistent-cat")
 	await forum.create_forum_post(ev_other)
 	check("unknown category -> other tag", "other" in captured["threads"][2]["tags"])
+
+	# 3b. full (untruncated) description wins over the 999-char event description
+	long_text = ("Come hang out! " * 120).strip()  # ~1800 chars, way over 999
+	ev_full = make_event(sort=344, full_description=long_text)
+	ev_full.description = long_text[:940] + "... [full event](https://meetup.example)"
+	await forum.create_forum_post(ev_full)
+	check("full description in forum body", long_text in captured["threads"][3]["content"])
+	check("truncated desc not in forum body", "... [full event](https://meetup.example)" not in captured["threads"][3]["content"])
+
+	# 3c. even the full text is capped at discord's 4000-char forum limit
+	huge = ("x" * 4500) + "END-MARKER"
+	ev_huge = make_event(sort=355, full_description=huge)
+	await forum.create_forum_post(ev_huge)
+	huge_body = captured["threads"][4]["content"]
+	check("4000-char forum limit respected", len(huge_body) <= forum.FORUM_POST_MAX_LEN)
+
+	# 3d. update also prefers the full description
+	t_full = FakeThread(id=880000000000000003)
+	shared_mod.shared.guild.threads[880000000000000003] = t_full
+	ev_full.forum_thread_id = 880000000000000003
+	mark = len(captured["starter_edits"])
+	await forum.update_forum_post(ev_full)
+	check("update uses full description", long_text in captured["starter_edits"][mark]["content"])
 
 	# 4. update: rewrites starter body + title + tags
 	existing_thread = FakeThread(id=880000000000000002)
