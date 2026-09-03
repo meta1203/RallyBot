@@ -6,6 +6,10 @@ from collections import deque
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from zoneinfo import ZoneInfo
 
+# role mention strings used in event announcements (hardcoded guild roles)
+IN_PERSON_MENTION = "<@&1366086187906895923>"
+ONLINE_MENTION = "<@&1366085997917638826>"
+
 class Singleton:
 	client: discord.Client = None
 	guild: discord.Guild = None
@@ -24,25 +28,25 @@ class Singleton:
 	@property
 	def quiet(self) -> bool:
 		return self._quiet
-	
+
 	@property
 	def ddb(self) -> aws.DynamoDBClient:
 		if not self._ddb:
 			self._ddb = aws.DynamoDBClient()
 		return self._ddb
-	
+
 	@property
 	def loop(self):
 		if not self._loop:
 			self._loop = asyncio.get_running_loop()
 		return self._loop
-	
+
 	@property
 	def scheduler(self):
 		if not self._scheduler:
 			self._scheduler = AsyncIOScheduler(gconfig={'event_loop': self.loop})
 		return self._scheduler
-	
+
 	async def message_channel(self, channel_name: str, message: str):
 		channel = await self.get_channel_by_name(channel_name)
 		if not channel:
@@ -72,5 +76,5 @@ class Singleton:
 			return None
 		else:
 			return self._channels[name]
-	
+
 shared = Singleton()

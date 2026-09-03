@@ -41,20 +41,22 @@ Read via `os.getenv` only — no dotenv loading, no config file.
 ## Architecture
 
 ```
-main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, notify_events hourly), create/update/announce flow, onboarding event hooks
+main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, notify_events hourly, weekly digest sundays 3pm CT when FORUM_PILOT), create/update/announce flow, onboarding event hooks
 events.py     MeetupEvent model + RSS scrape → __NEXT_DATA__ JSON → upsert; cancellation checks; AI categorizer
+forum.py      forum pilot (gated by FORUM_PILOT): event posts in #event-chat forum (create/update/delete + tags), weekly announcements digest builder/sender, backfill for pre-pilot events
 report.py     Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rb warn slash command
 onboarding.py New-user flow: #intro welcome on join, persistent "agree to rules" button in #rules, intro role grant/removal, one-intro-post enforcement
 aws.py        RallyBotModel (PynamoDB base: table RallyBot, us-east-2, keys id+sort); raw boto3 get/delete helpers
-shared.py     Singleton: client, guild, channel-name cache, scheduler, message_channel (dedupe + quiet mode)
+shared.py     Singleton: client, guild, channel-name cache, scheduler, message_channel (dedupe + quiet mode), role mention constants
 ```
 
-Flow: RSS feed → per-event page scrape → PynamoDB upsert → Discord scheduled-event create/edit → announcement in the category channel with online/in-person role ping.
+Flow: RSS feed → per-event page scrape → PynamoDB upsert → Discord scheduled-event create/edit → forum post in #event-chat (pilot) or at-mention announcement in the category channel (legacy), with online/in-person tagging either way.
 
 ## Conventions & absence notes
 
 - **AWS infra is not in this repo.** The `RallyBot` table and both GSIs (`timestamp-index` on `timestamp`, `snowflake_id-index` on `snowflake_id`) must be created manually — don't look for Terraform/CloudFormation, and new index queries need a matching GSI.
-- **All deployment identity is hardcoded**: guild ID + role mention IDs in `main.py`, Meetup group slug in `events.py`, table/region in `aws.py`, mod role ID in `report.py`. Env vars only carry secrets/toggles.
+- **All deployment identity is hardcoded**: guild ID + role mention IDs in `main.py` (duplicates of `shared.py` constants removed), Meetup group slug in `events.py`, forum + announcements channel IDs in `forum.py`, table/region in `aws.py`, mod role ID in `report.py`. Env vars only carry secrets/toggles.
+- `MeetupEvent` pilot fields: `forum_thread_id` (thread snowflake of the #event-chat post, `null` when unposted) and `created_at` (first-scheduled time; set only on true creation in `events.py` and `from_discord_event`, never refreshed on updates — the weekly digest's "newly planned" section depends on it). No new GSI needed: the digest scans `timestamp-index`.
 - **No tests, no CI, no lint config.** Keep changes verified by compile + manual reasoning; don't scaffold a test framework unasked.
 - `requirements.txt` is hand-pinned (`~=`);
 - Meetup payloads: `meetup_event_sample.json` documents the `__NEXT_DATA__` → `props.pageProps.event` shape.

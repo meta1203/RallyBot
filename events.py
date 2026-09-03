@@ -32,6 +32,12 @@ class MeetupEvent(RallyBotModel):
 	snowflake_id = NumberAttribute(default=0)
 	category = UnicodeAttribute(null=True)
 	online = BooleanAttribute(default=False)
+	# forum pilot fields (see forum.py): forum_thread_id links the event to its
+	# #event-chat forum post; created_at records when the event was first
+	# scheduled (for the weekly digest's "newly planned" section) and is never
+	# updated after creation
+	forum_thread_id = NumberAttribute(null=True)
+	created_at = UTCDateTimeAttribute(null=True)
 
 	# timestamp properties for backward compatibility
 	@property
@@ -89,6 +95,7 @@ class MeetupEvent(RallyBotModel):
 		ddb_event.location = event.location
 		ddb_event.snowflake_id = event.id
 		ddb_event.online = (event.entity_type != discord.EntityType.external)
+		ddb_event.created_at = dt.datetime.now(shared.est)
 		ddb_event.save()
 		return ddb_event
 
@@ -114,6 +121,11 @@ class MeetupEvent(RallyBotModel):
 				print(f"discord event {discord_id} for {self.sort} | {self.title} already gone from discord")
 			except Exception as e:
 				print(f"ERROR: Exception while deleting discord event {discord_id} for event {self.sort} | {self.title}\n{get_stacktrace()}")
+		# clean up the event's forum post as well (runs even with the pilot
+		# disabled, so cancelled events don't leave orphaned posts behind);
+		# lazy import avoids a circular import with forum.py
+		import forum
+		await forum.delete_forum_post(self)
 		return res
 
 def xml_to_dict(xml_string):
@@ -190,6 +202,9 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 					# don't do anything with a non-active event
 					continue
 				event = MeetupEvent(sort=guid)
+				# stamp when the event was first scheduled; used by the weekly
+				# digest's "newly planned" section and never updated afterwards
+				event.created_at = dt.datetime.now(shared.est)
 			except AttributeDeserializationError:
 				# this can happen if the data in ddb is corrupted or in an unexpected format
 				print(f"data for event with guid {guid} is attempting to mitigate...")

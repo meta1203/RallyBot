@@ -1,8 +1,9 @@
 import discord
 from discord import app_commands
 
-from shared import shared
+from shared import shared, IN_PERSON_MENTION, ONLINE_MENTION
 import events
+import forum
 import report
 import onboarding
 
@@ -21,8 +22,13 @@ intents.members = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-IN_PERSON_MENTION = "<@&1366086187906895923>"
-ONLINE_MENTION = "<@&1366085997917638826>"
+# forum pilot kill-switch: unset FORUM_PILOT to fall back to at-mention
+# announcements in the category channels (see forum.py)
+FORUM_PILOT = forum.forum_pilot_enabled()
+if FORUM_PILOT:
+	print("forum pilot ENABLED: events will be posted to the event-chat forum")
+else:
+	print("forum pilot disabled: using category-channel at-mention announcements")
 
 async def set_globals():
 	shared.client = client
@@ -77,7 +83,12 @@ async def update_events():
 					continue
 				category = get_channel_for_ddb_event(event)
 				target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
-				await shared.message_channel(category, f"{target_role} {event.title} has been updated.")
+				if FORUM_PILOT:
+					# pilot: keep the category channel in sync silently and update
+					# the event's forum post instead of pinging the role
+					await forum.update_forum_post(event)
+				else:
+					await shared.message_channel(category, f"{target_role} {event.title} has been updated.")
 				print(f"Updated discord event {event.sort} | {event.title}")
 			else:
 				print(f"{event.title} already exists.")
@@ -114,6 +125,11 @@ def get_channel_for_ddb_event(event: events.MeetupEvent):
 	return category
 
 async def notify_new_event(event: events.MeetupEvent):
+	if FORUM_PILOT:
+		# pilot: post the event to the event-chat forum (tagged + linked)
+		# instead of an at-mention message in the category channel
+		await forum.create_forum_post(event)
+		return
 	category = get_channel_for_ddb_event(event)
 	target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
 	await shared.message_channel(category, f"{target_role} {event.title} has been scheduled for <t:{round(event.start_time.timestamp())}>.")
@@ -180,6 +196,14 @@ async def on_ready():
 	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30, timezone="America/Chicago"), max_instances=1)
 	# Schedule notify events to run every hour on the hour
 	shared.scheduler.add_job(notify_events, CronTrigger(minute=0), max_instances=1)
+	# forum pilot: weekly announcements digest, sundays 3pm central
+	if FORUM_PILOT:
+		shared.scheduler.add_job(forum.send_weekly_announcements, CronTrigger(day_of_week='sun', hour=15, minute=0, timezone="America/Chicago"), max_instances=1)
+		# create forum posts for upcoming events tracked before the pilot
+		try:
+			await forum.backfill_forum_posts()
+		except Exception as e:
+			print(f"forum post backfill failed:\n{get_stacktrace()}")
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
 
