@@ -39,6 +39,42 @@ class Welcome(RallyBotModel):
 		self.id = "welcome"
 
 
+class RulesMessage(RallyBotModel):
+	"""The one rules-acceptance button message in #rules (partition 'rules', sort = 0).
+
+	DynamoDB is the source of truth for which message is canonical (same
+	pattern as Welcome/Intro): the startup check trusts this pointer first,
+	so an unpinned message or a transient pins() failure can never cause a
+	repost.
+	"""
+	message_id = NumberAttribute(null=True)
+
+	def __init__(self, **kwargs) -> None:
+		super().__init__(**kwargs)
+		self.id = "rules"
+
+
+RULES_RECORD_SORT = 0
+
+
+def _get_rules_record() -> RulesMessage | None:
+	try:
+		return RulesMessage.get("rules", RULES_RECORD_SORT)
+	except RulesMessage.DoesNotExist:
+		return None
+	except Exception as e:
+		print(f"ERROR: failed to look up rules message record: {e}")
+		return None
+
+
+def _save_rules_record(message_id: int) -> None:
+	try:
+		RulesMessage(sort=RULES_RECORD_SORT, message_id=message_id).save()
+		print(f"Recorded rules message {message_id} in ddb")
+	except Exception as e:
+		print(f"ERROR: failed to save rules message record for {message_id}: {e}")
+
+
 async def _get_intro_role(guild: discord.Guild) -> discord.Role | None:
 	role = guild.get_role(INTRO_ROLE_ID)
 	if role is None:
@@ -171,8 +207,67 @@ def _has_accept_button(message: discord.Message) -> bool:
 	return False
 
 
+RULES_HISTORY_SCAN_LIMIT = 100
+
+
+def _is_rules_message(client: discord.Client, message: discord.Message) -> bool:
+	"""True if this message is one of the bot's rules-acceptance messages."""
+	return message.author.id == client.user.id and _has_accept_button(message)
+
+
+async def _fetch_message_if_alive(channel: discord.TextChannel, message_id: int) -> discord.Message | None:
+	"""Fetch a message by id; None if it was deleted (or can't be retrieved)."""
+	try:
+		return await channel.fetch_message(message_id)
+	except discord.NotFound:
+		return None
+	except Exception as e:
+		print(f"ERROR: failed to fetch rules message {message_id}: {e}")
+		return None
+
+
+async def _scan_rules_messages(client: discord.Client, channel: discord.TextChannel) -> list[discord.Message]:
+	"""Find ALL of the bot's rules-acceptance messages (pins + recent history), oldest first."""
+	found: dict[int, discord.Message] = {}
+	try:
+		async for message in channel.pins():
+			if _is_rules_message(client, message):
+				found[message.id] = message
+	except Exception as e:
+		print(f"WARN: failed to check pinned messages in rules channel: {e}")
+	try:
+		async for message in channel.history(limit=RULES_HISTORY_SCAN_LIMIT):
+			if _is_rules_message(client, message):
+				found[message.id] = message
+	except Exception as e:
+		print(f"WARN: failed to scan recent history in rules channel: {e}")
+	return [found[key] for key in sorted(found)]
+
+
+async def _delete_duplicate_rules_messages(duplicates: list[discord.Message]) -> None:
+	"""Remove extra copies of the rules message left behind by earlier reposts."""
+	for dup in duplicates:
+		if shared.quiet:
+			print(f"(quiet) would delete duplicate rules message {dup.id}")
+			continue
+		try:
+			await dup.delete()
+			print(f"Deleted duplicate rules message {dup.id}")
+		except discord.NotFound:
+			pass  # already gone
+		except Exception as e:
+			print(f"WARN: failed to delete duplicate rules message {dup.id}: {e}")
+
+
 async def ensure_rules_message(client: discord.Client, guild: discord.Guild) -> None:
-	"""Make sure a rules-acceptance button message is pinned in #rules (idempotent)."""
+	"""Make sure a rules-acceptance button message exists in #rules (idempotent).
+
+	The ddb pointer (RulesMessage) is the source of truth: if the recorded
+	message is still alive we keep it and never repost, even if it was
+	unpinned. A missing/dead pointer falls back to scanning pins and recent
+	history for a surviving copy, and only then posts fresh. Extra copies
+	from earlier reposts are deleted.
+	"""
 	if shared.quiet:
 		print("(quiet) skipping rules-acceptance message check")
 		return
@@ -181,18 +276,50 @@ async def ensure_rules_message(client: discord.Client, guild: discord.Guild) -> 
 	except Exception as e:
 		print(f"ERROR: could not resolve rules channel {RULES_CHANNEL_ID}: {e}")
 		return
-	try:
-		for message in await channel.pins():
-			if message.author.id == client.user.id and _has_accept_button(message):
-				return  # already in place
-	except Exception as e:
-		print(f"WARN: failed to check pinned messages in rules channel: {e}")
-	try:
-		message = await channel.send(RULES_MESSAGE, view=RulesAcceptView())
-		await message.pin(reason="RallyBot: rules acceptance button")
-		print(f"Posted rules acceptance message: {message.jump_url}")
-	except Exception as e:
-		print(f"ERROR: failed to post rules acceptance message: {e}")
+
+	canonical: discord.Message | None = None
+	record = _get_rules_record()
+	if record and record.message_id:
+		canonical = await _fetch_message_if_alive(channel, int(record.message_id))
+		if canonical is None:
+			print(f"Recorded rules message {record.message_id} is gone; looking for a replacement...")
+
+	if canonical is None:
+		# recovery: adopt an existing copy before posting a new one
+		candidates = await _scan_rules_messages(client, channel)
+		if candidates:
+			canonical = candidates[0]
+			_save_rules_record(canonical.id)
+			print(f"Recovered existing rules acceptance message: {canonical.jump_url}")
+			await _delete_duplicate_rules_messages(candidates[1:])
+		else:
+			try:
+				canonical = await channel.send(RULES_MESSAGE, view=RulesAcceptView())
+			except Exception as e:
+				print(f"ERROR: failed to post rules acceptance message: {e}")
+				return
+			# record the pointer before pinning: a failed pin (e.g. the 50-pin
+			# cap) must not make the next startup think the message is missing
+			_save_rules_record(canonical.id)
+			try:
+				await canonical.pin(reason="RallyBot: rules acceptance button")
+			except Exception as e:
+				print(f"WARN: rules message posted but could not be pinned ({e}): {canonical.jump_url}")
+			print(f"Posted rules acceptance message: {canonical.jump_url}")
+		return
+
+	# canonical message survived: keep it, re-pin if it lost its pin,
+	# and sweep up any duplicate copies from previous reposts
+	if not canonical.pinned:
+		try:
+			await canonical.pin(reason="RallyBot: re-pinning rules acceptance button")
+			print(f"Re-pinned rules acceptance message: {canonical.jump_url}")
+		except Exception as e:
+			print(f"WARN: could not re-pin rules message {canonical.id}: {e}")
+	duplicates = [m for m in await _scan_rules_messages(client, channel) if m.id != canonical.id]
+	if duplicates:
+		print(f"Found {len(duplicates)} duplicate rules message(s); cleaning up...")
+		await _delete_duplicate_rules_messages(duplicates)
 
 
 async def ensure_intro_permissions(client: discord.Client, guild: discord.Guild) -> None:

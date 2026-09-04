@@ -5,7 +5,7 @@ Discord bot for the **chicago-anime-hangouts** Meetup group that mirrors Meetup 
 ## Design principles
 
 - **DynamoDB is the source of truth for the mapping.** Every Meetup event (sort key = Meetup guid, partition `id="event"`) stores the Discord snowflake it was published as. Sync reconciles both directions: Meetup changes edit the Discord event; Meetup cancellations/404s delete from both DDB and Discord; Discord events deleted out-of-band are detected and recreated.
-- **Single-table design** via PynamoDB (`aws.py`): `MeetupEvent` and `Report` share the `RallyBot` table, partitioned by the `id` string (`"event"` / `"report"`).
+- **Single-table design** via PynamoDB (`aws.py`): `MeetupEvent`, `Report`, `Intro`, `Welcome`, and `RulesMessage` share the `RallyBot` table, partitioned by the `id` string (`"event"` / `"report"` / `"intro"` / `"welcome"` / `"rules"`). `RulesMessage` (sort 0) points at the canonical rules-acceptance button message in #rules and is what makes `onboarding.ensure_rules_message` idempotent across restarts — plain GetItem, no GSI needed.
 - **Scrape-first, no Meetup API key.** Events come from the RSS feed, then each event page's embedded `script#__NEXT_DATA__` JSON (`_meetup_url_to_json` in `events.py`). This is intentionally fragile-but-accepted; it's a known trade-off, not something to "fix" casually.
 - **Dual-write consistency**: every mutation touches both sides (DDB row + Discord event) with per-side error handling — a Discord-side failure must not abort the DDB write and vice versa.
 - **Announcements are deduped and silencable**: `shared.message_channel` keeps a 5-message deque to prevent duplicate pings; `QUIET_RALLY` env var turns every send into a log-only dry run.
