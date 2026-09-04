@@ -12,7 +12,7 @@ import sys
 import types
 
 # ---- fake discord layer (must exist before importing bot modules) ----
-captured = {"threads": [], "sends": [], "starter_edits": [], "thread_edits": []}
+captured = {"threads": [], "sends": [], "starter_edits": [], "thread_edits": [], "created_tags": []}
 
 import discord.client
 discord.client.Client.run = lambda self, *a, **k: print("(stubbed run)")
@@ -63,7 +63,13 @@ class FakeForumChannel(discord.ForumChannel):
 
 	def __init__(self, id, tags):
 		self.id = id
-		self.available_tags = tags
+		self.available_tags = list(tags)
+
+	async def create_tag(self, name, *, moderator_ids=None):
+		tag = FakeTag(name)
+		self.available_tags.append(tag)
+		captured["created_tags"].append(name)
+		return tag
 
 	async def create_thread(self, name, content, applied_tags):
 		thread = FakeThread(id=990000000000000001, name=name)
@@ -174,7 +180,31 @@ async def main():
 	await forum.create_forum_post(ev_other)
 	check("unknown category -> other tag", "other" in captured["threads"][2]["tags"])
 
-	# 3b. full (untruncated) description wins over the 999-char event description
+	# 3b. missing tags are created automatically (needs manage-channels perm)
+	ch = shared_mod.shared.guild._forum
+	ch.available_tags = [t for t in ch.available_tags if t.name != "karaoke"]
+	n_created = len(captured["created_tags"])
+	tags = await forum.resolve_tags(ch, make_event(sort=366, category="karaoke"))
+	check("missing tag auto-created", "karaoke" in captured["created_tags"])
+	check("created tag returned", any(t.name == "karaoke" for t in tags))
+	check("created tag stored on channel", any(t.name == "karaoke" for t in ch.available_tags))
+	del captured["created_tags"][:]
+
+	# 3c. tag creation failure (no permission) is non-fatal
+	class NoPermChannel(FakeForumChannel):
+		async def create_tag(self, name, *, moderator_ids=None):
+			class _Resp:
+				status = 403
+				reason = "Forbidden"
+				headers = {}
+			raise discord.errors.Forbidden(_Resp(), "nope")
+	no_perm = NoPermChannel(forum.FORUM_CHANNEL_ID, [FakeTag("food")])
+	res = await forum._create_forum_tag(no_perm, "nope-tag")
+	check("forbidden tag create is non-fatal", res is None)
+	tags2 = await forum.resolve_tags(no_perm, make_event(sort=377, category="food"))
+	check("existing tag still resolves without creating", any(t.name == "food" for t in tags2) and captured["created_tags"] == [])
+
+	# 3d. full (untruncated) description wins over the 999-char event description
 	long_text = ("Come hang out! " * 120).strip()  # ~1800 chars, way over 999
 	ev_full = make_event(sort=344, full_description=long_text)
 	ev_full.description = long_text[:940] + "... [full event](https://meetup.example)"

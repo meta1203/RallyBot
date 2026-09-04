@@ -10,7 +10,8 @@ Events are posted to the #event-chat forum channel:
 - title: "Event: <event title>"
 - body: the event content + links to the discord event and the meetup event
 - tags: the event's category tag + "in-person" or "online" (matched by name
-  against the forum's configured tags; unmatched tags are logged and skipped)
+  against the forum's configured tags; missing tags are created automatically
+  when the bot has permission, otherwise logged and skipped)
 
 Once a week (Sundays 3pm CT) a digest is posted to the announcements channel:
 - msg 1: intro line (only sent when msg 2 or msg 3 is sent)
@@ -40,33 +41,56 @@ _forum_channel_cache: discord.ForumChannel | None = None
 def forum_pilot_enabled() -> bool:
 	return not not os.getenv('FORUM_PILOT')
 
-async def get_forum_channel() -> discord.ForumChannel | None:
+async def get_forum_channel(refresh: bool = False) -> discord.ForumChannel | None:
 	global _forum_channel_cache
-	if _forum_channel_cache:
+	if _forum_channel_cache and not refresh:
 		return _forum_channel_cache
-	channel = shared.guild.get_channel_or_thread(FORUM_CHANNEL_ID)
-	if not channel:
+	try:
 		channel = await shared.guild.fetch_channel(FORUM_CHANNEL_ID)
+	except discord.NotFound:
+		print(f"ERROR: forum channel {FORUM_CHANNEL_ID} not found")
+		return None
 	if not isinstance(channel, discord.ForumChannel):
 		print(f"ERROR: channel {FORUM_CHANNEL_ID} is not a forum channel (got {type(channel).__name__})")
 		return None
 	_forum_channel_cache = channel
 	return channel
 
-def _build_tags(forum_channel: discord.ForumChannel, event: events.MeetupEvent) -> list[discord.ForumTag]:
-	"""Resolve the event's category + in-person/online tags against the forum's
-	configured tags by name. Unmatched tags are logged and skipped, so adding a
-	tag in the forum channel's settings is all that's needed to make it apply."""
+async def _create_forum_tag(forum_channel: discord.ForumChannel, name: str) -> discord.ForumTag | None:
+	"""Create a missing tag on the forum channel (best effort)."""
+	try:
+		tag = await forum_channel.create_tag(name=name)
+		print(f"Created forum tag '{name}' on channel {forum_channel.id}")
+		return tag
+	except discord.Forbidden:
+		print(f"WARNING: no permission to create forum tag '{name}' (needs manage-channels); skipping that tag")
+	except Exception:
+		print(f"ERROR: failed creating forum tag '{name}':\n{traceback.format_exc()}")
+	return None
+
+async def resolve_tags(forum_channel: discord.ForumChannel, event: events.MeetupEvent) -> list[discord.ForumTag]:
+	"""Resolve the event's category + in-person/online tags, creating any that
+	are missing on the forum channel as needed. Tags that can neither be found
+	nor created are logged and skipped (the post still gets the rest)."""
 	category = event.category or "other"
 	if category not in events.categories:
 		category = "other"
 	wanted = [category, ("online" if event.online else "in-person")]
-	by_name = {t.name.lower(): t for t in forum_channel.available_tags}
 	tags = []
 	for name in wanted:
+		by_name = {t.name.lower(): t for t in forum_channel.available_tags}
 		tag = by_name.get(name.lower())
 		if tag is None:
-			print(f"WARNING: forum channel {forum_channel.id} has no tag named '{name}', skipping that tag")
+			# refresh from the api first: the tag may exist but be missing from
+			# the startup cache (e.g. added via the discord ui after boot)
+			fresh = await get_forum_channel(refresh=True)
+			if fresh:
+				forum_channel = fresh
+				tag = {t.name.lower(): t for t in fresh.available_tags}.get(name.lower())
+		if tag is None:
+			tag = await _create_forum_tag(forum_channel, name)
+		if tag is None:
+			print(f"WARNING: could not resolve or create forum tag '{name}', skipping that tag")
 		else:
 			tags.append(tag)
 	return tags
@@ -121,10 +145,11 @@ async def create_forum_post(event: events.MeetupEvent) -> int | None:
 		print(f"ERROR: forum channel {FORUM_CHANNEL_ID} not found; cannot post {event.title}")
 		return None
 	try:
+		tags = await resolve_tags(forum_channel, event)
 		thread, starter = await forum_channel.create_thread(
 			name=f"Event: {event.title}",
 			content=_event_forum_body(event),
-			applied_tags=_build_tags(forum_channel, event),
+			applied_tags=tags,
 		)
 	except Exception as e:
 		print(f"ERROR: failed creating forum post for {event.sort} | {event.title}:\n{traceback.format_exc()}")
@@ -171,7 +196,7 @@ async def update_forum_post(event: events.MeetupEvent) -> None:
 		if thread.name != expected_title:
 			await thread.edit(name=expected_title)
 		current_tag_names = {t.name for t in (thread.applied_tags or [])}
-		wanted_tags = _build_tags(forum_channel, event)
+		wanted_tags = await resolve_tags(forum_channel, event)
 		if current_tag_names != {t.name for t in wanted_tags}:
 			await thread.edit(applied_tags=wanted_tags)
 		print(f"Updated forum post {thread.id} for {event.sort} | {event.title}")
