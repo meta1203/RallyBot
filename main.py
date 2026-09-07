@@ -4,8 +4,10 @@ from discord import app_commands
 from shared import shared
 import events
 import report
+import onboarding
 
 from apscheduler.triggers.cron import CronTrigger
+import asyncio
 import os
 import datetime
 from traceback import format_exc as get_stacktrace
@@ -14,6 +16,8 @@ intents = discord.Intents.default()
 # required intents for the bot to function
 intents.guild_scheduled_events = True
 intents.guild_messages = True
+# member events (join) power the onboarding welcome + intro flow
+intents.members = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
@@ -25,7 +29,9 @@ async def set_globals():
 	shared.guild = await client.fetch_guild("1219601473948614737")
 
 async def update_events():
-	on_meetup = events.fetch_meetup_events()
+	# the meetup fetch/scrape is blocking requests; run it in a worker thread
+	# so it doesn't stall the discord event loop (and its heartbeats)
+	on_meetup = await asyncio.to_thread(events.fetch_meetup_events)
 	for event in on_meetup:
 		discord_event: (discord.ScheduledEvent | None) = None
 		if event.snowflake_id:
@@ -52,9 +58,12 @@ async def update_events():
 			# use the explicit endtime if it exists and is set, otherwise its implicitly an hour long
 			if hasattr(event, 'endtime') and event.endtime and discord_event.end_time != event.endtime:
 				updates['end_time'] = event.endtime
-				if discord_event.start_time > updates['end_time']:
-					# this is weird, the end time is after the start time???
-					print(f"this is weird, this is weird, the end time is after the start time???\n{discord_event.start_time} -> {updates['end_time']}\n{event.start_time} -> {event.endtime}")
+				if discord_event.start_time > event.endtime:
+					# the new end time is before the start time discord has on record,
+					# which discord rejects ("Cannot schedule event to end before
+					# starting."), so push the start time (meetup's, which precedes
+					# the new end) in the same edit to keep the update valid
+					print(f"{event.title}: new end time {event.endtime} is before the stored start time {discord_event.start_time}, updating start time as well")
 					updates['start_time'] = event.start_time
 			if discord_event.location != event.location:
 				print(f"{discord_event.location} -> {event.location}")
@@ -92,7 +101,7 @@ async def update_events():
 	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.est).timestamp() * 1000)):
 		if event.sort not in hashed_ids:
 			print(f"rechecking event {event.sort} | {event.title} ...")
-			events.check_existing_event(event)
+			await events.check_existing_event(event)
 
 def get_channel_for_ddb_event(event: events.MeetupEvent):
 	if not event:
@@ -113,10 +122,17 @@ async def notify_events():
 	discord_events = await shared.guild.fetch_scheduled_events()
 	now = datetime.datetime.now(shared.est)
 	for de in discord_events:
-		ddb_event: events.MeetupEvent | None = events.MeetupEvent.scan(index_name="snowflake_id-index", filter_condition=events.MeetupEvent.snowflake_id == de.id).next()
-		if not ddb_event and de.status == discord.EventStatus.scheduled:
-			ddb_event = events.MeetupEvent.from_discord_event(de)
-			await notify_new_event(ddb_event)
+		query = events.MeetupEvent.scan(index_name="snowflake_id-index", filter_condition=events.MeetupEvent.snowflake_id == de.id)
+		# ResultIterator.next() raises StopIteration when nothing matches (e.g.
+		# discord events that were created manually), which used to kill the
+		# entire notification run, so use a non-throwing next() instead
+		ddb_event: events.MeetupEvent | None = next(iter(query), None)
+		if ddb_event is None:
+			# not tracked in ddb: adopt (and announce) scheduled events, skip the rest
+			if de.status == discord.EventStatus.scheduled:
+				# from_discord_event hits the AI categorizer + dynamodb; keep it off the event loop
+				ddb_event = await asyncio.to_thread(events.MeetupEvent.from_discord_event, de)
+				await notify_new_event(ddb_event)
 			continue
 		
 		# handle categories
@@ -130,6 +146,21 @@ async def notify_events():
 			await shared.message_channel(category, f"{ONLINE_MENTION} {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
 
 @client.event
+async def on_member_join(member: discord.Member):
+	# new-user onboarding: welcome in #intro + rules-acceptance flow
+	try:
+		await onboarding.on_member_join(member)
+	except Exception as e:
+		print(f"ERROR: onboarding welcome failed for {member}:\n{get_stacktrace()}")
+
+@client.event
+async def on_message(message: discord.Message):
+	# enforce the one-intro-post rule in #intro (permission overwrite is the
+	# primary gate; this catches role re-grants and races)
+	if message.channel.id == onboarding.INTRO_CHANNEL_ID:
+		await onboarding.handle_intro_message(message)
+
+@client.event
 async def on_ready():
 	await set_globals()
 	print(f'We have logged in as {client.user}')
@@ -137,6 +168,10 @@ async def on_ready():
 	# Register and sync the report context menu command (guild-scoped for instant availability)
 	report.setup(tree, shared.guild)
 	await tree.sync(guild=shared.guild)
+
+	# set up the onboarding flow: persistent rules button + #intro permission lock
+	onboarding.setup(client, shared.guild)
+	await onboarding.startup_checks(client, shared.guild)
 
 	# Run update_events once at startup
 	await update_events()

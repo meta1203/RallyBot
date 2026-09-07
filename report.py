@@ -9,6 +9,20 @@ from pynamodb.attributes import UnicodeAttribute, NumberAttribute
 from pynamodb.exceptions import UpdateError
 
 MODERATOR_MENTION = "<@&1225935511785570425>"
+GENERAL_CHANNEL_ID = 1219601474661912668
+
+
+def _is_moderator(interaction: discord.Interaction) -> bool:
+	"""Moderators are members who can timeout or ban users (admins included)."""
+	member = interaction.user
+	if not isinstance(member, discord.Member):
+		return False
+	perms = member.guild_permissions
+	return perms.administrator or perms.moderate_members or perms.ban_members
+
+
+async def _reject_non_moderator(interaction: discord.Interaction):
+	await interaction.response.send_message("You don't have permission to action reports.", ephemeral=True)
 
 class Report(RallyBotModel):
 	"""DynamoDB model for a user-submitted report."""
@@ -163,6 +177,172 @@ async def _finalize_report(
 		print(f"ERROR: failed to send followup to mod channel: {e}")
 
 
+async def issue_warning(
+	interaction: discord.Interaction,
+	target_id: int,
+	warning_message: str,
+	report_sort: int | None = None,
+) -> None:
+	"""Send a warning notice to the target user and log it as a report record.
+
+	Writes an actioned Report row so warnings appear in the running tally
+	(see _count_actioned_reports), notifies the mod channel, and marks the
+	linked report (if any) as actioned.
+	"""
+	moderator = interaction.user
+	timestamp = int(time.time() * 1000)
+
+	# if this warning came from a report, make sure it hasn't been actioned
+	# already (mirrors BanConfirmModal's pre-check; prevents double-warnings
+	# when two moderators act on the same report)
+	if report_sort is not None:
+		try:
+			report = Report.get("report", report_sort)
+			if report.outcome != "pending":
+				await interaction.response.send_message("This report has already been actioned.", ephemeral=True)
+				return
+		except Exception as e:
+			print(f"ERROR: failed to fetch report {report_sort} for warning: {e}")
+			await interaction.response.send_message("Failed to fetch report from database.", ephemeral=True)
+			return
+
+	# log the warning to the database (as an actioned report record)
+	try:
+		warning_record = Report(sort=timestamp)
+		warning_record.timestamp = timestamp
+		warning_record.snowflake_id = target_id
+		warning_record.reporter = moderator.id
+		warning_record.comment = f"Warning issued by <@{moderator.id}>: {warning_message}"
+		warning_record.message_id = report_sort  # link to the source report, if any
+		warning_record.outcome = "actioned"
+		warning_record.save()
+	except Exception as e:
+		print(f"ERROR: failed to save warning record for user {target_id}: {e}")
+		await interaction.response.send_message("Failed to save the warning to the database. Warning not sent.", ephemeral=True)
+		return
+
+	# post the warning in #general with an @ mention of the warned user so
+	# they are notified. (Discord has no way to send a truly ephemeral message
+	# to another user — ephemeral responses only go to the interaction author —
+	# so the notice is a normal channel message that mentions them.)
+	warning_post = None
+	warning_post_failed = False
+	try:
+		general = interaction.client.get_channel(GENERAL_CHANNEL_ID) or await interaction.client.fetch_channel(GENERAL_CHANNEL_ID)
+		server_line = interaction.guild.name if interaction.guild else "the server"
+		warning_post = await general.send(
+			content=f"<@{target_id}>",
+			embed=discord.Embed(
+				title="⚠️ You have received a moderation warning",
+				description=f"**Server:** {server_line}\n\n{warning_message}",
+				color=discord.Color.gold(),
+				timestamp=discord.utils.utcnow(),
+			),
+		)
+	except discord.Forbidden:
+		# bot lacks permission to post in #general; warning still counts
+		warning_post_failed = True
+		print(f"WARN: no permission to post warning in channel {GENERAL_CHANNEL_ID} for user {target_id}")
+	except Exception as e:
+		warning_post_failed = True
+		print(f"ERROR: failed to post warning in channel {GENERAL_CHANNEL_ID} for user {target_id}: {e}")
+
+	# mark the source report actioned and clear its buttons
+	if report_sort is not None:
+		try:
+			report.update(actions=[Report.outcome.set("actioned")])
+		except Exception as e:
+			print(f"ERROR: failed to update report {report_sort} after warning: {e}")
+		try:
+			await interaction.response.edit_message(view=None)
+		except Exception as e:
+			print(f"ERROR: failed to edit original report message: {e}")
+	else:
+		await interaction.response.send_message("Warning issued.", ephemeral=True)
+
+	# notify the mod channel
+	mod_channel_name = os.getenv("MOD_CHANNEL", "moderator-only")
+	followup_embed = discord.Embed(
+		title="User Warned",
+		color=discord.Color.gold(),
+		timestamp=discord.utils.utcnow(),
+	)
+	followup_embed.add_field(name="Warned User", value=f"<@{target_id}> (`{target_id}`)", inline=False)
+	followup_embed.add_field(name="Moderator", value=f"<@{moderator.id}> (`{moderator.id}`)", inline=False)
+	followup_embed.add_field(name="Warning", value=warning_message[:1024], inline=False)
+	if report_sort is not None:
+		followup_embed.add_field(name="Report ID", value=str(report_sort), inline=False)
+	if warning_post_failed:
+		followup_embed.add_field(name="Notice", value="⚠️ Could not post the warning in #general — warning still logged.", inline=False)
+	elif warning_post is not None:
+		followup_embed.add_field(name="Posted", value=warning_post.jump_url, inline=False)
+
+	try:
+		channel = await shared.get_channel_by_name(mod_channel_name)
+		if channel:
+			await channel.send(embed=followup_embed)
+		else:
+			print(f"ERROR: could not find mod channel '{mod_channel_name}' for warning followup.")
+	except Exception as e:
+		print(f"ERROR: failed to send warning followup to mod channel: {e}")
+
+
+class WarnModal(discord.ui.Modal, title="Warn User"):
+	"""Modal for issuing a moderation warning.
+
+	Contains a user select (who to warn) and a text field for the warning
+	message. Both are required before the modal can be submitted.
+	"""
+	reason: discord.ui.TextInput = discord.ui.TextInput(
+		label="Warning message",
+		style=discord.TextStyle.paragraph,
+		placeholder="Describe the rule that was broken and what happens if it continues...",
+		required=True,
+		max_length=1000,
+	)
+
+	def __init__(
+		self,
+		user_id: int | None = None,
+		preset_message: str | None = None,
+		report_sort: int | None = None,
+	):
+		super().__init__()
+		self._report_sort = report_sort
+		if preset_message:
+			self.reason.default = preset_message
+		self.user_select = discord.ui.UserSelect(
+			placeholder="Select the user to warn...",
+			min_values=1,
+			max_values=1,
+			required=True,
+			default_values=[discord.Object(id=user_id, type=discord.User)] if user_id else None,
+			custom_id="rallybot_warn_user_select",
+		)
+		self.add_item(self.user_select)
+
+	async def on_submit(self, interaction: discord.Interaction):
+		if not _is_moderator(interaction):
+			await _reject_non_moderator(interaction)
+			return
+		selected = self.user_select.values
+		if not selected:
+			await interaction.response.send_message("No user was selected.", ephemeral=True)
+			return
+		target = selected[0]
+		await issue_warning(
+			interaction=interaction,
+			target_id=target.id,
+			warning_message=self.reason.value.strip(),
+			report_sort=self._report_sort,
+		)
+
+	async def on_error(self, interaction: discord.Interaction, error: Exception, /):
+		print(f"ERROR: exception in warn modal: {error}")
+		if not interaction.response.is_done():
+			await interaction.response.send_message("Something went wrong while issuing the warning.", ephemeral=True)
+
+
 class BanConfirmModal(discord.ui.Modal, title="Confirm Ban"):
 	confirm: discord.ui.TextInput = discord.ui.TextInput(
 		label='Type "CONFIRM" to ban this user',
@@ -251,6 +431,9 @@ class ReportActionView(discord.ui.View):
 
 	@discord.ui.button(label="Ignore", style=discord.ButtonStyle.secondary)
 	async def ignore_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+		if not _is_moderator(interaction):
+			await _reject_non_moderator(interaction)
+			return
 		await _finalize_report(
 			interaction=interaction,
 			report_sort=self._report_sort,
@@ -258,8 +441,32 @@ class ReportActionView(discord.ui.View):
 			action_description=f"Ignored report for <@{self._snowflake_id}> (`{self._snowflake_id}`)",
 		)
 
+	@discord.ui.button(label="Warn", style=discord.ButtonStyle.secondary, row=0)
+	async def warn_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+		if not _is_moderator(interaction):
+			await _reject_non_moderator(interaction)
+			return
+		# pre-populate the modal with the reported user and the report reason;
+		# the moderator can edit the warning message before sending
+		preset = None
+		try:
+			report = Report.get("report", self._report_sort)
+			if report.comment:
+				preset = report.comment
+		except Exception as e:
+			print(f"ERROR: failed to fetch report {self._report_sort} for warn preset: {e}")
+		modal = WarnModal(
+			user_id=self._snowflake_id,
+			preset_message=preset,
+			report_sort=self._report_sort,
+		)
+		await interaction.response.send_modal(modal)
+
 	@discord.ui.button(label="Timeout", style=discord.ButtonStyle.primary)
 	async def timeout_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+		if not _is_moderator(interaction):
+			await _reject_non_moderator(interaction)
+			return
 		# check if report is still pending
 		try:
 			report = Report.get("report", self._report_sort)
@@ -303,6 +510,9 @@ class ReportActionView(discord.ui.View):
 
 	@discord.ui.button(label="Ban", style=discord.ButtonStyle.danger)
 	async def ban_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+		if not _is_moderator(interaction):
+			await _reject_non_moderator(interaction)
+			return
 		modal = BanConfirmModal(
 			report_sort=self._report_sort,
 			snowflake_id=self._snowflake_id,
@@ -321,7 +531,38 @@ report_command = app_commands.ContextMenu(
 	callback=report_message,
 )
 
+warn_group = app_commands.Group(
+	name="rb",
+	description="RallyBot moderator commands",
+	default_permissions=discord.Permissions(
+		administrator=True,
+		moderate_members=True,
+		ban_members=True,
+	),
+	guild_only=True,
+)
+
+
+@warn_group.command(name="warn", description="Issue a moderation warning to a user")
+@app_commands.check(_is_moderator)
+async def rb_warn(interaction: discord.Interaction):
+	"""Open the warn modal (slash-command entry point)."""
+	await interaction.response.send_modal(WarnModal())
+
+
+@rb_warn.error
+async def rb_warn_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+	"""Surface moderator-check failures to the user (otherwise they fail silently)."""
+	if isinstance(error, app_commands.CheckFailure):
+		if not interaction.response.is_done():
+			await interaction.response.send_message("You don't have permission to warn users.", ephemeral=True)
+		return
+	print(f"ERROR: exception in /rb warn: {error}")
+	if not interaction.response.is_done():
+		await interaction.response.send_message("Something went wrong while opening the warn dialog.", ephemeral=True)
+
 
 def setup(tree: app_commands.CommandTree, guild: discord.Guild | None = None):
-	"""Register the report context menu command on the given command tree."""
+	"""Register the report context menu and warn commands on the given command tree."""
 	tree.add_command(report_command, guild=guild)
+	tree.add_command(warn_group, guild=guild)
