@@ -156,7 +156,7 @@ def xml_to_dict(xml_string):
 	root = ET.fromstring(xml_string)
 	return {root.tag: element_to_dict(root)}
 
-def _meetup_url_to_json(url: str) -> dict | int:
+def _meetup_url_to_json(url: str) -> dict | list | int:
 	response = requests.get(url)
 	if response.status_code != 200:
 		return response.status_code
@@ -166,7 +166,19 @@ def _meetup_url_to_json(url: str) -> dict | int:
 	if 'event' in j_item:
 		return j_item['event']
 	if '__APOLLO_STATE__' in j_item:
-		return list(filter(lambda v: '__typename' in v and v['__typename'] == 'Event', j_item['__APOLLO_STATE__'].keys()))
+		# the events list page embeds an apollo cache: a flat map of every
+		# normalized entity ("Event:<id>", "Venue:<id>", ...) keyed by type.
+		# collect the Event entities and inline their venue refs so the
+		# payloads match the per-event pageProps.event shape.
+		apollo = j_item['__APOLLO_STATE__']
+		events = [v for v in apollo.values()
+				if isinstance(v, dict) and v.get('__typename') == 'Event']
+		for ev in events:
+			venue = ev.get('venue')
+			if isinstance(venue, dict) and '__ref' in venue and venue['__ref'] in apollo:
+				ev['venue'] = apollo[venue['__ref']]
+		return events
+	return []
 
 def update_event_from_json(event: MeetupEvent, j_item: dict):
 	if not event.category:
@@ -198,17 +210,33 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 	"""
 	ret = []
 	event_items = _meetup_url_to_json("https://www.meetup.com/chicago-anime-hangouts/events/")
+	if not isinstance(event_items, list):
+		# a non-200 status code (int) or an unexpected page shape
+		print(f"meetup event list fetch failed or returned an unexpected shape: {event_items!r}")
+		return ret
 	for j_item in event_items:
+		guid = "?"
 		try:
 			guid = int(j_item['id'], base=10)
+
+			# unlike the RSS feed, the events page lists past and cancelled
+			# events too; only upcoming ACTIVE events belong in the mirror.
+			# skipping cancelled ones keeps them out of the tracked set so
+			# update_events' reconciliation pass deletes them from ddb+discord
+			if j_item['status'] != "ACTIVE":
+				# don't do anything with a non-active event
+				continue
+			if dt.datetime.fromisoformat(j_item['dateTime']) < dt.datetime.now(shared.est):
+				# past event: nothing to mirror
+				continue
 
 			try:
 				event = MeetupEvent.get('event', guid)
 			except MeetupEvent.DoesNotExist:
-				if j_item['status'] != "ACTIVE":
-					# don't do anything with a non-active event
-					continue
 				event = MeetupEvent(sort=guid)
+				# stamp when the event was first scheduled; used by the weekly
+				# digest's "newly planned" section and never updated afterwards
+				event.created_at = dt.datetime.now(shared.est)
 			except AttributeDeserializationError:
 				# this can happen if the data in ddb is corrupted or in an unexpected format
 				print(f"data for event with guid {guid} is attempting to mitigate...")
@@ -217,18 +245,18 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 				if not raw_item:
 					print(f"no raw data found for event with guid {guid}, deleting and recreating...")
 				else:
-					if raw_item['snowflake_id']:
+					if raw_item.get('snowflake_id'):
 						event.snowflake_id = int(raw_item['snowflake_id'])
-					if raw_item['category']:
+					if raw_item.get('category'):
 						event.category = raw_item['category']
 					shared.ddb.delete_raw('event', guid)
-			
+
 			update_event_from_json(event, j_item)
-			
+
 			event.save()
 			ret.append(event)
 		except Exception as e:
-			print(f"Exception occured while processing {rss_item}:\n{get_stacktrace()}")
+			print(f"Exception occured while processing event {guid}:\n{get_stacktrace()}")
 	return ret
 
 def fetch_meetup_events_rss() -> list[MeetupEvent]:
@@ -286,6 +314,16 @@ async def check_existing_event(event: MeetupEvent):
 		if int(event.sort) != int(event.snowflake_id):
 			print(f"{url} returned 404, deleting event with guid {event.sort} from ddb...")
 			await event.delete()
+		return False
+	if isinstance(j_item, list):
+		# the single-event page may serve the events-list apollo layout
+		# instead of pageProps.event; dig this event's entry out of the list
+		matches = [e for e in j_item if isinstance(e, dict) and str(e.get('id')) == str(event.sort)]
+		j_item = matches[0] if matches else None
+	if not isinstance(j_item, dict) or 'status' not in j_item:
+		# unexpected shape or a non-404 error status code (403 rate limit,
+		# 5xx, ...): fail safe — keep the event and let a later run recheck it
+		print(f"{url} returned an unexpected shape ({j_item!r}); skipping recheck of {event.sort} | {event.title}")
 		return False
 	if j_item['status'] != "ACTIVE":
 		print(f"deleting event {event.sort} | {event.title} as status {j_item['status']} is no longer ACTIVE...")
