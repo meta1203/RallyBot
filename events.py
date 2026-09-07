@@ -136,7 +136,11 @@ def _meetup_url_to_json(url: str) -> dict | int:
 		return response.status_code
 	soup = BeautifulSoup(response.text, features="lxml")
 	j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
-	return j_item['props']['pageProps']['event']
+	j_item = j_item['props']['pageProps']
+	if 'event' in j_item:
+		return j_item['event']
+	if '__APOLLO_STATE__' in j_item:
+		return list(filter(lambda v: '__typename' in v and v['__typename'] == 'Event', j_item['__APOLLO_STATE__'].keys()))
 
 def update_event_from_json(event: MeetupEvent, j_item: dict):
 	if not event.category:
@@ -158,7 +162,47 @@ def update_event_from_json(event: MeetupEvent, j_item: dict):
 	else:
 		event.location = "Online"
 
+
 def fetch_meetup_events() -> list[MeetupEvent]:
+	"""
+	Fetches the event list from the Meetup URL and converts it to a list of objects.
+	"""
+	ret = []
+	event_items = _meetup_url_to_json("https://www.meetup.com/chicago-anime-hangouts/events/")
+	for j_item in event_items:
+		try:
+			guid = int(j_item['id'], base=10)
+
+			try:
+				event = MeetupEvent.get('event', guid)
+			except MeetupEvent.DoesNotExist:
+				if j_item['status'] != "ACTIVE":
+					# don't do anything with a non-active event
+					continue
+				event = MeetupEvent(sort=guid)
+			except AttributeDeserializationError:
+				# this can happen if the data in ddb is corrupted or in an unexpected format
+				print(f"data for event with guid {guid} is attempting to mitigate...")
+				raw_item = shared.ddb.read_raw('event', guid)
+				event = MeetupEvent(sort=guid)
+				if not raw_item:
+					print(f"no raw data found for event with guid {guid}, deleting and recreating...")
+				else:
+					if raw_item['snowflake_id']:
+						event.snowflake_id = int(raw_item['snowflake_id'])
+					if raw_item['category']:
+						event.category = raw_item['category']
+					shared.ddb.delete_raw('event', guid)
+			
+			update_event_from_json(event, j_item)
+			
+			event.save()
+			ret.append(event)
+		except Exception as e:
+			print(f"Exception occured while processing {rss_item}:\n{get_stacktrace()}")
+	return ret
+
+def fetch_meetup_events_rss() -> list[MeetupEvent]:
 	"""
 	Fetches the RSS feed from the Meetup URL and converts it to a list of objects.
 	"""

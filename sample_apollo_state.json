@@ -1,0 +1,4286 @@
+{
+	"props": {
+		"pageProps": {
+			"isMobile": false,
+			"showMobileBanner": true,
+			"memberLocale": "en-US",
+			"localeMessages": {
+				"organizerUpgradeModal2.upgradeToTier": "Upgrade to {tier}",
+				"sendEmailModal.subject": "Subject",
+				"sendEmailModal.message": "Message",
+				"sendEmailModal.send": "Send",
+				"sendEmailModal.cancel": "Cancel",
+				"comparisonLikePaywall.continue": "Continue",
+				"a11y.skipToContent": "Skip to content",
+				"groupEvents.title": "{GROUP} Events",
+				"desktopHeader.homepage": "Homepage",
+				"desktopSearch.searchEvents": "Search events...",
+				"searchLocationTypeahead.placeholder": "Neighborhood, city or zip",
+				"searchLocationTypeahead.searchLocationByCityOrZip": "Search for location by city or zip code",
+				"desktopHeader.logIn": "Log in",
+				"desktopHeader.signUp": "Sign up",
+				"seoHeader.defaultDescription2": "Find Meetup events so you can do more of what matters to you. Or create your own group and meet people near you who share your interests.",
+				"groupHomeHeader.coverPhotoAltText": "{NAME} cover photo",
+				"groupHome.numberOfRatingsPlural": "{COUNT} ratings",
+				"groupHomeHeader.membersCount": "{COUNT} members",
+				"groupHomeHeader.shareLabel": "Share",
+				"shareModal.email": "Email",
+				"groupHomeHeader.membeshipDropdownBtnAlt": "Group actions",
+				"groupHomeHeader.joinActionBtn": "Join this group",
+				"groupHomeHeader.aboutLink": "About",
+				"groupHomeHeader.eventsLink": "Events",
+				"groupHomeHeader.membersLink": "Members",
+				"groupHomeHeader.photosLink": "Photos",
+				"groupHomeHeader.discussionsLink": "Discussions",
+				"groupEvents.events": "Events",
+				"groupEvents.eventList": "List",
+				"groupEvents.eventCalendar": "Calendar",
+				"groupEvents.upcomingEvent": "Upcoming",
+				"footer.meetupOnFacebook": "Meetup on Facebook",
+				"footer.meetupOnTwitter": "Meetup on Twitter",
+				"footer.meetupOnYoutube": "Meetup on YouTube",
+				"footer.meetupOnInstagram": "Instagram",
+				"footer.meetupOnTiktok": "TikTok",
+				"footer.thePeoplePlatform": "The \u003cred\u003epeople\u003c/red\u003e platform",
+				"footer.createYourOwnMeetupGroup": "Create your own Meetup group",
+				"footer.startNewGroup": "Start a new group",
+				"footer.yourAccount": "Your account",
+				"footer.signUp": "Sign up",
+				"footer.logIn": "Log in",
+				"footer.help": "Help",
+				"footer.discover": "Discover",
+				"footer.groups": "Groups",
+				"footer.events": "Events",
+				"footer.topics": "Topics",
+				"footer.cities": "Cities",
+				"footer.onlineEvents": "Online events",
+				"footer.localGuides": "Local guides",
+				"footer.makeFriendsLp": "Make friends",
+				"footer.sitemap": "Sitemap",
+				"footer.meetupText": "Meetup",
+				"footer.about": "About",
+				"footer.blog": "Blog",
+				"footer.meetupPro": "Meetup Pro",
+				"footer.careers": "Careers",
+				"footer.apps": "Apps",
+				"footer.podcast": "Podcast",
+				"footer.followUs": "Follow us",
+				"footer.getTheApp": "Get the app",
+				"mobileDownloadButtons.downloadFromGooglePlay": "Download app from Google Play",
+				"mobileDownloadButtons.downloadFromAppStore": "Download app from App Store",
+				"mobileDownloadButtons.downloadOnStore": "Download on",
+				"footer.meetupYear2": "{YEAR} Bending Spoons US Inc.",
+				"footer.termsOfService": "Terms of service",
+				"footer.privacyPolicy": "Privacy policy",
+				"footer.cookiePolicy": "Cookie policy",
+				"footer.licenseAttribution": "License attribution",
+				"footer.madeWithLoveBy": "Made with {love} by"
+			},
+			"country": "US",
+			"isMemberBlocked": false,
+			"__APOLLO_STATE__": {
+				"Group:37536316": {
+					"__typename": "Group",
+					"id": "37536316",
+					"membershipMetadata": null,
+					"name": "Chicago Anime Hangouts",
+					"urlname": "chicago-anime-hangouts",
+					"timezone": "America/Chicago",
+					"isPrivate": false,
+					"organizer": { "__ref": "Member:327374368" },
+					"stats": {
+						"__typename": "GroupStats",
+						"memberCounts": {
+							"__typename": "GroupMemberCounts",
+							"all": 7223,
+							"leadership": 15,
+							"pending": 0
+						},
+						"eventRatings": {
+							"__typename": "GroupStatsEventRatings",
+							"average": 4.74,
+							"total": 1144
+						}
+					},
+					"lat": 41.88,
+					"lon": -87.62,
+					"joinMode": "OPEN",
+					"isMember": false,
+					"status": "PAID",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us",
+					"keyGroupPhoto": { "__ref": "PhotoInfo:534428429" },
+					"proNetwork": null,
+					"isPrimaryOrganizer": false,
+					"canSeeMemberList": false,
+					"events({\"filter\":{\"status\":[\"DRAFT\"]},\"first\":1})": {
+						"__typename": "GroupEventConnection",
+						"totalCount": 11
+					},
+					"needsQuestions": false,
+					"needsPhoto": false,
+					"questions": [],
+					"memberDuesSettingsUrl": "https://www.meetup.com/dues/chicago-anime-hangouts/start/",
+					"duesSettings": null,
+					"canAddPhotos": false,
+					"calendarFeeds": null,
+					"welcomeBlurb": "Thanks for joining \"Chicago Anime Hangouts!\" We hope to see you at an event!\u003cbr /\u003e\u003cbr /\u003eWe want this to be a shared space where people can try out new restaurants, movies, and activities they would like to do together. If you have any event suggestions feel free to message to the organizers. If you would like to host events, don't hesitate to reach out. :D\u003cbr /\u003e\u003cbr /\u003eWe're on Discord (https://discord.gg/QRg9duaHwK) primarily.",
+					"organizerStartTime": null,
+					"memberships:{\"filter\":{\"status\":\"LEADER\"}}": {
+						"__typename": "GroupMemberConnection",
+						"edges": [
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:327374368" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:411837663" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:359331042" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:370723005" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:401725507" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:10222051" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:398986297" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:365065721" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:411956289" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:304083452" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:422916697" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:213744364" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:125345892" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:412362155" }
+							},
+							{
+								"__typename": "GroupMemberEdge",
+								"node": { "__ref": "Member:480474239" }
+							}
+						]
+					},
+					"events({\"filter\":{\"status\":[\"PAST\"]},\"first\":1})": {
+						"__typename": "GroupEventConnection",
+						"totalCount": 323
+					},
+					"featuredEvent": null,
+					"activeTopics": [
+						{ "__ref": "Topic:286" },
+						{ "__ref": "Topic:18517" },
+						{ "__ref": "Topic:67937" },
+						{ "__ref": "Topic:17935" },
+						{ "__ref": "Topic:576262" },
+						{ "__ref": "Topic:29310" },
+						{ "__ref": "Topic:52002" },
+						{ "__ref": "Topic:2849" },
+						{ "__ref": "Topic:14980" },
+						{ "__ref": "Topic:19991" },
+						{ "__ref": "Topic:25545" },
+						{ "__ref": "Topic:68022" },
+						{ "__ref": "Topic:1510682" },
+						{ "__ref": "Topic:30363" },
+						{ "__ref": "Topic:824622" }
+					],
+					"topicCategory": { "__ref": "TopicCategory:571" },
+					"events({\"filter\":{\"afterDateTime\":\"2026-08-02T20:07:11.543Z\",\"status\":[\"ACTIVE\",\"PAST\",\"CANCELLED\"]},\"first\":30,\"sort\":\"ASC\"})": {
+						"__typename": "GroupEventConnection",
+						"totalCount": 34,
+						"pageInfo": {
+							"__typename": "PageInfo",
+							"endCursor": "MzE1NjkyMjIzOjE3OTM4MzY4MDAwMDA=",
+							"hasNextPage": true
+						},
+						"edges": [
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314490702" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314903948" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315530455" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315454189" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314511468" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314738648" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315803276" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315612721" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315304209" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315838053" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314462932" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315052647" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:312553841" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315286913" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315824004" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314490704" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314738662" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315692197" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315910669" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315419630" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315231398" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:312553843" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315356533" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315203884" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314490706" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315692209" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314738674" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:313672330" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:314903986" }
+							},
+							{
+								"__typename": "EventEdge",
+								"node": { "__ref": "Event:315692223" }
+							}
+						]
+					}
+				},
+				"ROOT_QUERY": {
+					"__typename": "Query",
+					"groupByUrlname:{\"urlname\":\"chicago-anime-hangouts\"}": {
+						"__ref": "Group:37536316"
+					},
+					"self": null
+				},
+				"PhotoInfo:325640588": {
+					"__typename": "PhotoInfo",
+					"id": "325640588",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/5/0/6/c/highres_325640588.jpeg"
+				},
+				"Member:327374368": {
+					"__typename": "Member",
+					"id": "327374368",
+					"name": "Mike",
+					"email": "",
+					"memberPhoto": { "__ref": "PhotoInfo:325640588" },
+					"isStarterOrganizer": false,
+					"isSuperOrganizer": true
+				},
+				"PhotoInfo:534428429": {
+					"__typename": "PhotoInfo",
+					"id": "534428429",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/2/0/e/d/highres_534428429.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/"
+				},
+				"Member:411837663": {
+					"__typename": "Member",
+					"id": "411837663",
+					"name": "Rube",
+					"isSuperOrganizer": false
+				},
+				"Member:359331042": {
+					"__typename": "Member",
+					"id": "359331042",
+					"name": "raymond lin",
+					"isSuperOrganizer": false,
+					"memberPhoto": { "__ref": "PhotoInfo:315530187" }
+				},
+				"Member:370723005": {
+					"__typename": "Member",
+					"id": "370723005",
+					"name": "Ana Dalipi",
+					"isSuperOrganizer": false,
+					"memberPhoto": { "__ref": "PhotoInfo:320124933" }
+				},
+				"Member:401725507": {
+					"__typename": "Member",
+					"id": "401725507",
+					"name": "neikey panah",
+					"isSuperOrganizer": false
+				},
+				"Member:10222051": {
+					"__typename": "Member",
+					"id": "10222051",
+					"name": "Nikhil Sharma",
+					"isSuperOrganizer": false
+				},
+				"Member:398986297": {
+					"__typename": "Member",
+					"id": "398986297",
+					"name": "Kyle G",
+					"isSuperOrganizer": false,
+					"memberPhoto": { "__ref": "PhotoInfo:318422103" }
+				},
+				"Member:365065721": {
+					"__typename": "Member",
+					"id": "365065721",
+					"name": "Keegan R.",
+					"isSuperOrganizer": false,
+					"memberPhoto": { "__ref": "PhotoInfo:323161828" }
+				},
+				"Member:411956289": {
+					"__typename": "Member",
+					"id": "411956289",
+					"name": "victor hernandez",
+					"isSuperOrganizer": false,
+					"memberPhoto": { "__ref": "PhotoInfo:318345297" }
+				},
+				"Member:304083452": {
+					"__typename": "Member",
+					"id": "304083452",
+					"name": "Blake Waters",
+					"isSuperOrganizer": false
+				},
+				"Member:422916697": {
+					"__typename": "Member",
+					"id": "422916697",
+					"name": "Axel Cardenas",
+					"isSuperOrganizer": false
+				},
+				"Member:213744364": {
+					"__typename": "Member",
+					"id": "213744364",
+					"name": "Amy Liu",
+					"isSuperOrganizer": false,
+					"memberPhoto": { "__ref": "PhotoInfo:323176579" }
+				},
+				"Member:125345892": {
+					"__typename": "Member",
+					"id": "125345892",
+					"name": "Hunter Hancock",
+					"isSuperOrganizer": false,
+					"memberPhoto": { "__ref": "PhotoInfo:320863842" }
+				},
+				"Member:412362155": {
+					"__typename": "Member",
+					"id": "412362155",
+					"name": "Olive Nystrom",
+					"isSuperOrganizer": false,
+					"memberPhoto": null
+				},
+				"Member:480474239": {
+					"__typename": "Member",
+					"id": "480474239",
+					"name": "Chicago Anime Hangouts",
+					"isSuperOrganizer": false,
+					"memberPhoto": { "__ref": "PhotoInfo:325407672" }
+				},
+				"Topic:286": {
+					"__typename": "Topic",
+					"id": "286",
+					"name": "Anime",
+					"urlkey": "anime"
+				},
+				"Topic:18517": {
+					"__typename": "Topic",
+					"id": "18517",
+					"name": "Sci-Fi/Fantasy",
+					"urlkey": "sci-fi-fantasy"
+				},
+				"Topic:67937": {
+					"__typename": "Topic",
+					"id": "67937",
+					"name": "Cosplay",
+					"urlkey": "cosplay"
+				},
+				"Topic:17935": {
+					"__typename": "Topic",
+					"id": "17935",
+					"name": "Comic Books",
+					"urlkey": "comic-books"
+				},
+				"Topic:576262": {
+					"__typename": "Topic",
+					"id": "576262",
+					"name": "Anime \u0026 Manga",
+					"urlkey": "anime-manga"
+				},
+				"Topic:29310": {
+					"__typename": "Topic",
+					"id": "29310",
+					"name": "Geeks \u0026 Nerds",
+					"urlkey": "geeks-nerds"
+				},
+				"Topic:52002": {
+					"__typename": "Topic",
+					"id": "52002",
+					"name": "Anime Conventions",
+					"urlkey": "anime-conventions"
+				},
+				"Topic:2849": {
+					"__typename": "Topic",
+					"id": "2849",
+					"name": "Manga",
+					"urlkey": "manga"
+				},
+				"Topic:14980": {
+					"__typename": "Topic",
+					"id": "14980",
+					"name": "Japanese Films",
+					"urlkey": "japanese-films"
+				},
+				"Topic:19991": {
+					"__typename": "Topic",
+					"id": "19991",
+					"name": "Japanese Culture",
+					"urlkey": "japanese-culture"
+				},
+				"Topic:25545": {
+					"__typename": "Topic",
+					"id": "25545",
+					"name": "Japanese Food",
+					"urlkey": "japanese-food"
+				},
+				"Topic:68022": {
+					"__typename": "Topic",
+					"id": "68022",
+					"name": "Japanese",
+					"urlkey": "japanese"
+				},
+				"Topic:1510682": {
+					"__typename": "Topic",
+					"id": "1510682",
+					"name": "Geek Culture",
+					"urlkey": "geek-culture"
+				},
+				"Topic:30363": {
+					"__typename": "Topic",
+					"id": "30363",
+					"name": "Anime Cosplay",
+					"urlkey": "anime-cosplay"
+				},
+				"Topic:824622": {
+					"__typename": "Topic",
+					"id": "824622",
+					"name": "Anime Music",
+					"urlkey": "anime-music"
+				},
+				"TopicCategory:571": {
+					"__typename": "TopicCategory",
+					"id": "571",
+					"name": "Hobbies \u0026 Passions",
+					"urlkey": "hobbies-passions"
+				},
+				"Venue:27808280": {
+					"__typename": "Venue",
+					"id": "27808280",
+					"name": "Goblin Market Manga \u0026 Curiosities",
+					"address": "2868 N Lincoln Ave",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:530495732": {
+					"__typename": "PhotoInfo",
+					"id": "530495732",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/8/b/9/4/highres_530495732.jpeg"
+				},
+				"PhotoInfo:318422103": {
+					"__typename": "PhotoInfo",
+					"id": "318422103",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/8/3/7/highres_318422103.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Rsvp:2069688313": {
+					"__typename": "Rsvp",
+					"id": "2069688313",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2069688314": {
+					"__typename": "Rsvp",
+					"id": "2069688314",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"PhotoInfo:323051241": {
+					"__typename": "PhotoInfo",
+					"id": "323051241",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/2/b/e/9/highres_323051241.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Member:452387956": {
+					"__typename": "Member",
+					"id": "452387956",
+					"name": "Danny",
+					"memberPhoto": { "__ref": "PhotoInfo:323051241" }
+				},
+				"Rsvp:2071959874": {
+					"__typename": "Rsvp",
+					"id": "2071959874",
+					"member": { "__ref": "Member:452387956" }
+				},
+				"Member:482121744": {
+					"__typename": "Member",
+					"id": "482121744",
+					"name": "Ri Rivera",
+					"memberPhoto": null
+				},
+				"Rsvp:2074762640": {
+					"__typename": "Rsvp",
+					"id": "2074762640",
+					"member": { "__ref": "Member:482121744" }
+				},
+				"PhotoInfo:323312186": {
+					"__typename": "PhotoInfo",
+					"id": "323312186",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/7/d/b/a/highres_323312186.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Member:216598402": {
+					"__typename": "Member",
+					"id": "216598402",
+					"name": "Devon",
+					"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+				},
+				"Rsvp:2076285936": {
+					"__typename": "Rsvp",
+					"id": "2076285936",
+					"member": { "__ref": "Member:216598402" }
+				},
+				"Event:314490702": {
+					"__typename": "Event",
+					"id": "314490702",
+					"title": "Bring Your Own Manga Book Club @ Goblin Market (Manga Shop) (Lakeview)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314490702/",
+					"description": "hi - bring what you've been reading whether it's manga, light novels, manhwa, and more. hope to talk about what we've been reading, exchange recommendations, and more. just show up :D\n\nthis will be a reoccurring monthly event at Goblin Market, a manga shop located in Chicago's Lakeview neighborhood. once you enter, head down to their basement with seating. outside food is allowed but please be respectful of the venue.\n\n\\-\\-\\-\nFrom Goblin Market: for curious minds seeking a curated selection of manga, comics, games and more—Goblin Market is Chicago’s destination for first-timers and enthusiasts alike. Step inside, explore our collection and always ask us questions.\nWe’re delighted you are here.\n\n\\~\\~\\~\nwe hope to see you there!",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:27808280" },
+					"dateTime": "2026-08-02T14:00:00-05:00",
+					"createdTime": "2026-04-26T10:24:05-04:00",
+					"endTime": "2026-08-02T16:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 24 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": {
+						"__typename": "Series",
+						"description": "Every 1st Sunday of the month until January 4, 2027",
+						"weeklyRecurrence": null,
+						"monthlyRecurrence": {
+							"__typename": "MonthlyRecurrenceInfo",
+							"monthlyDayOfWeek": "SUNDAY",
+							"monthlyWeekOfMonth": 1
+						}
+					},
+					"featuredEventPhoto": { "__ref": "PhotoInfo:530495732" },
+					"displayPhoto": { "__ref": "PhotoInfo:530495732" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 24,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069688313" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069688314" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071959874" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074762640" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076285936" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:1027268": {
+					"__typename": "Venue",
+					"id": "1027268",
+					"name": "Chicagoland Games: The Dice Dojo",
+					"address": "5550 N. Broadway Ave.",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:525565790": {
+					"__typename": "PhotoInfo",
+					"id": "525565790",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/6/4/b/e/highres_525565790.jpeg"
+				},
+				"Rsvp:2072102732": {
+					"__typename": "Rsvp",
+					"id": "2072102732",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2072102733": {
+					"__typename": "Rsvp",
+					"id": "2072102733",
+					"member": { "__ref": "Member:412362155" }
+				},
+				"Member:481507086": {
+					"__typename": "Member",
+					"id": "481507086",
+					"name": "Adam Zhang",
+					"memberPhoto": null
+				},
+				"Rsvp:2072414668": {
+					"__typename": "Rsvp",
+					"id": "2072414668",
+					"member": { "__ref": "Member:481507086" }
+				},
+				"PhotoInfo:322520572": {
+					"__typename": "PhotoInfo",
+					"id": "322520572",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/5/0/5/c/highres_322520572.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Member:209329332": {
+					"__typename": "Member",
+					"id": "209329332",
+					"name": "Alex Quah",
+					"memberPhoto": { "__ref": "PhotoInfo:322520572" }
+				},
+				"Rsvp:2073407777": {
+					"__typename": "Rsvp",
+					"id": "2073407777",
+					"member": { "__ref": "Member:209329332" }
+				},
+				"PhotoInfo:323965568": {
+					"__typename": "PhotoInfo",
+					"id": "323965568",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/6/3/e/0/highres_323965568.jpeg"
+				},
+				"Member:475622536": {
+					"__typename": "Member",
+					"id": "475622536",
+					"name": "Sophie T",
+					"memberPhoto": { "__ref": "PhotoInfo:323965568" }
+				},
+				"Rsvp:2075576754": {
+					"__typename": "Rsvp",
+					"id": "2075576754",
+					"member": { "__ref": "Member:475622536" }
+				},
+				"Event:314903948": {
+					"__typename": "Event",
+					"id": "314903948",
+					"title": "Board Games (Dice Dojo) (Edgewater)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314903948/",
+					"description": "board game meetup for chicago anime hangouts! hope to play some board games and have conversations about anime, and manga and more. just show up :D\n\ndice dojo has 1000+ games in their demo library. please support them if there’s a game you like and want to purchase.\n\n**feel free to bring what you'd like to play!**\n\nschedule:\n6:00 pm: show up / checkin and get started with board games. their board game night starts at 5:00 and ends at 10:00 pm.\n\nname tags will be brought to indicate who's apart of the meetup.\n\n\\-\\-\\-\n\nhope to see you there!\n\\-\\-\\-\n\nThank you to the '[Chicagoland 20’s and 30’s Young Professionals](https://www.meetup.com/oak-park-west-suburbs-young-professionals/)' Meetup for advice on hosting board games. :D",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "412362155" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:1027268" },
+					"dateTime": "2026-08-05T18:00:00-05:00",
+					"createdTime": "2026-05-22T00:12:07-04:00",
+					"endTime": "2026-08-05T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 28 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": {
+						"__typename": "Series",
+						"description": "Every 1st Wednesday of the month until August 26, 2026",
+						"weeklyRecurrence": null,
+						"monthlyRecurrence": {
+							"__typename": "MonthlyRecurrenceInfo",
+							"monthlyDayOfWeek": "WEDNESDAY",
+							"monthlyWeekOfMonth": 1
+						}
+					},
+					"featuredEventPhoto": { "__ref": "PhotoInfo:525565790" },
+					"displayPhoto": { "__ref": "PhotoInfo:525565790" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 28,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072102732" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072102733" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072414668" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2073407777" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075576754" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:21625102": {
+					"__typename": "Venue",
+					"id": "21625102",
+					"name": "435 W Menomonee St",
+					"address": "(Old Town)",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:535038303": {
+					"__typename": "PhotoInfo",
+					"id": "535038303",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/4/7/7/f/highres_535038303.jpeg"
+				},
+				"Rsvp:2075873945": {
+					"__typename": "Rsvp",
+					"id": "2075873945",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2075875536": {
+					"__typename": "Rsvp",
+					"id": "2075875536",
+					"member": { "__ref": "Member:209329332" }
+				},
+				"PhotoInfo:325443043": {
+					"__typename": "PhotoInfo",
+					"id": "325443043",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/b/e/3/highres_325443043.jpeg"
+				},
+				"Member:372302414": {
+					"__typename": "Member",
+					"id": "372302414",
+					"name": "Jen",
+					"memberPhoto": { "__ref": "PhotoInfo:325443043" }
+				},
+				"Rsvp:2075875568": {
+					"__typename": "Rsvp",
+					"id": "2075875568",
+					"member": { "__ref": "Member:372302414" }
+				},
+				"PhotoInfo:109389482": {
+					"__typename": "PhotoInfo",
+					"id": "109389482",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/2/5/0/a/highres_109389482.jpeg"
+				},
+				"Member:26860512": {
+					"__typename": "Member",
+					"id": "26860512",
+					"name": "Jaime Dan Reyes-Hildel",
+					"memberPhoto": { "__ref": "PhotoInfo:109389482" }
+				},
+				"Rsvp:2075875779": {
+					"__typename": "Rsvp",
+					"id": "2075875779",
+					"member": { "__ref": "Member:26860512" }
+				},
+				"PhotoInfo:325872100": {
+					"__typename": "PhotoInfo",
+					"id": "325872100",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/2/f/4/4/highres_325872100.jpeg"
+				},
+				"Member:475083872": {
+					"__typename": "Member",
+					"id": "475083872",
+					"name": "Cassidy",
+					"memberPhoto": { "__ref": "PhotoInfo:325872100" }
+				},
+				"Rsvp:2075875904": {
+					"__typename": "Rsvp",
+					"id": "2075875904",
+					"member": { "__ref": "Member:475083872" }
+				},
+				"Event:315530455": {
+					"__typename": "Event",
+					"id": "315530455",
+					"title": "Ginza Holiday Festival (Old Town)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315530455/",
+					"description": "**READ THE CHAT,**_ we're *first* gonna meet-up ***@ HUDSON CHESS PARK (directly outside of the entrance)*** for \\~15 min \u0026 then go to the event at **5:45pm\\~6:00pm**.\n\nThis is a casual hangout event for those attending the Ginza Holiday Festival. This outdoor street fest offers live performances, shopping and food.\n\n**Schedule:**\nDon't need to get there 5:30 sharply! It's a more relaxed festival where people are mainly there for the performances, and socialize. The main stage is mainly performance, and then there are shops and food in the back corner of the temple. Just recognize that we will be mainly just watching the performances but people are free to peel off and shop around and grab food.\n\n**Friday August 7**\n(open 5 pm – 8 pm)\n\n* 6:00 **MBT MINYO GROUP**\n* 6:30 **CHICAGO AIKIKAI**\n* 7:00 **MBT TAIKO GROUP**\n\nThroughout Ginza MBT’s chapel will be open for viewing. During intermissions on Saturday and Sunday brief presentations will be given by one of our ministers. Click for more information about our [chapel tours](https://ginzaholiday.com/hondo-tour).\n\nThe festival also occurs on Saturday August 8, and Sunday August 9.\n\n**About Ginza Festival:**\nGinza Holiday is MBT’s annual fundraising event that has been bringing Japanese American food, culture and entertainment to Chicago’s Old Town neighborhood for over 65 years. We’ve had an uninterrupted run of our annual Ginza event from it’s humble beginnings in 1955 up to 2019.\n\nVisit their website for more information: [Here](https://ginzaholiday.com/)",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:21625102" },
+					"dateTime": "2026-08-07T17:30:00-05:00",
+					"createdTime": "2026-07-03T11:06:51-04:00",
+					"endTime": "2026-08-07T20:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 51 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:535038303" },
+					"displayPhoto": { "__ref": "PhotoInfo:535038303" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 51,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075873945" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075875536" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075875568" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075875779" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075875904" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:25516166": {
+					"__typename": "Venue",
+					"id": "25516166",
+					"name": "Promontory Point",
+					"address": "5491 South Shore Drive",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "US"
+				},
+				"PhotoInfo:534962476": {
+					"__typename": "PhotoInfo",
+					"id": "534962476",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/9/a/c/highres_534962476.jpeg"
+				},
+				"Rsvp:2075449303": {
+					"__typename": "Rsvp",
+					"id": "2075449303",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2075449305": {
+					"__typename": "Rsvp",
+					"id": "2075449305",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Member:481964652": {
+					"__typename": "Member",
+					"id": "481964652",
+					"name": "castillocald08",
+					"memberPhoto": null
+				},
+				"Rsvp:2075450947": {
+					"__typename": "Rsvp",
+					"id": "2075450947",
+					"member": { "__ref": "Member:481964652" }
+				},
+				"PhotoInfo:320863842": {
+					"__typename": "PhotoInfo",
+					"id": "320863842",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/a/b/4/2/highres_320863842.jpeg"
+				},
+				"Rsvp:2075451263": {
+					"__typename": "Rsvp",
+					"id": "2075451263",
+					"member": { "__ref": "Member:125345892" }
+				},
+				"PhotoInfo:325405573": {
+					"__typename": "PhotoInfo",
+					"id": "325405573",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/6/3/e/5/highres_325405573.jpeg"
+				},
+				"Member:480119744": {
+					"__typename": "Member",
+					"id": "480119744",
+					"name": "Mercy Maahtob",
+					"memberPhoto": { "__ref": "PhotoInfo:325405573" }
+				},
+				"Rsvp:2075451308": {
+					"__typename": "Rsvp",
+					"id": "2075451308",
+					"member": { "__ref": "Member:480119744" }
+				},
+				"Event:315454189": {
+					"__typename": "Event",
+					"id": "315454189",
+					"title": "Bonfire @ Promontory Point (Hyde Park)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315454189/",
+					"description": "meetup for Chicago anime hangouts! hope to have conversations about anime, and manga and more. just show up :D\n\nwhether you're looking to meet new people, catch up with friends, or simply enjoy a summer night along the lakefront, everyone is welcome. we'll hang out around the fire, chat, roast food, and watch the sunset.\n\ni'll be bringing hot dogs and marshmallows for everyone to roast over the fire! feel free to bring your own drinks, snacks, or anything else you'd like to share.\n\nhere is a [signup sheet](https://docs.google.com/spreadsheets/d/1Gt6fmSR5D6kcFhryvOSWbaHHkQ2YRLOmSUcUJ4kiQzM/edit?usp=sharing). i'll bring a blanket, frisbee, and board games at the least. please bring what you'd like people to participate in if you'd like to.\n\nfind us next to the field house at Promontory Point to start. organizer and members will update where in the park we are. (organizer will have a Meetup logo).\n\nschedule:\n7:00 pm: show up\n(organizer will update if event extends longer than originally planned)\n\nwe hope to see you! :D\n\nmore about the park:\nhttps://www.chicagoparkdistrict.com/promontory-point-special-event-venue",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:25516166" },
+					"dateTime": "2026-08-08T19:00:00-05:00",
+					"createdTime": "2026-06-28T10:02:57-04:00",
+					"endTime": "2026-08-08T22:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 52 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:534962476" },
+					"displayPhoto": { "__ref": "PhotoInfo:534962476" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 52,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075449303" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075449305" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075450947" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075451263" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075451308" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:28252933": {
+					"__typename": "Venue",
+					"id": "28252933",
+					"name": "Harlem/Lake Green Line Station",
+					"address": "1 S Harlem Ave, Forest Park, IL 60302",
+					"city": "Forest Park",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:533939005": {
+					"__typename": "PhotoInfo",
+					"id": "533939005",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/e/6/7/d/highres_533939005.jpeg"
+				},
+				"Rsvp:2071958697": {
+					"__typename": "Rsvp",
+					"id": "2071958697",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"PhotoInfo:324489483": {
+					"__typename": "PhotoInfo",
+					"id": "324489483",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/2/5/0/b/highres_324489483.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Member:474620258": {
+					"__typename": "Member",
+					"id": "474620258",
+					"name": "Jakeya",
+					"memberPhoto": { "__ref": "PhotoInfo:324489483" }
+				},
+				"Rsvp:2071959975": {
+					"__typename": "Rsvp",
+					"id": "2071959975",
+					"member": { "__ref": "Member:474620258" }
+				},
+				"PhotoInfo:325614351": {
+					"__typename": "PhotoInfo",
+					"id": "325614351",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/d/4/4/f/highres_325614351.jpeg"
+				},
+				"Member:481319814": {
+					"__typename": "Member",
+					"id": "481319814",
+					"name": "Abhi Abhimanyu",
+					"memberPhoto": { "__ref": "PhotoInfo:325614351" }
+				},
+				"Rsvp:2071960035": {
+					"__typename": "Rsvp",
+					"id": "2071960035",
+					"member": { "__ref": "Member:481319814" }
+				},
+				"PhotoInfo:322085749": {
+					"__typename": "PhotoInfo",
+					"id": "322085749",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/1/6/7/5/highres_322085749.jpeg"
+				},
+				"Member:246772221": {
+					"__typename": "Member",
+					"id": "246772221",
+					"name": "Alec Martin",
+					"memberPhoto": { "__ref": "PhotoInfo:322085749" }
+				},
+				"Rsvp:2071960206": {
+					"__typename": "Rsvp",
+					"id": "2071960206",
+					"member": { "__ref": "Member:246772221" }
+				},
+				"PhotoInfo:325794710": {
+					"__typename": "PhotoInfo",
+					"id": "325794710",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/d/5/b/6/highres_325794710.jpeg"
+				},
+				"Member:400300098": {
+					"__typename": "Member",
+					"id": "400300098",
+					"name": "davon",
+					"memberPhoto": { "__ref": "PhotoInfo:325794710" }
+				},
+				"Rsvp:2071960374": {
+					"__typename": "Rsvp",
+					"id": "2071960374",
+					"member": { "__ref": "Member:400300098" }
+				},
+				"Event:314511468": {
+					"__typename": "Event",
+					"id": "314511468",
+					"title": "Neighborhood Exploration (Oak Park)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314511468/",
+					"description": "This will be a bit of exploring of the neighborhood. We hope to split up into groups and explore bits of the neighborhood, similar to our dessert crawls in the past.\n\nSome items for a self-guided itinerary:\n\nPlaces/Spaces:\n\\- Pumpkin Moon \\(gift shop\\)\n\\- Scratch 'n Sniff \\(gift shop\\)\n\\- Sugarcup Trading \\(gift shop\\)\n\\- The Book Loft Oak Park \\(bookstore\\)\n\nBakery:\n\\- Firecakes\n\\- Léa French Café\n\\- Sugar Fixé Pâtisserie\n\nEats:\n\\- Gyumon\n\\- Katy's Dumplings\n\\- KYURAMEN\n\\- Poke Burrito\n\\- Sweet Dim Sum\n([non-exhaustive list](https://www.downtownoakpark.net/dining/))\n\n📍 start at Harlem/Lake Green Line Station\n\nLearn more about Oak Park:\nhttps://www.downtownoakpark.net/",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:28252933" },
+					"dateTime": "2026-08-09T12:00:00-05:00",
+					"createdTime": "2026-04-27T13:15:25-04:00",
+					"endTime": "2026-08-09T14:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 38 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:533939005" },
+					"displayPhoto": { "__ref": "PhotoInfo:533939005" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 38,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071958697" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071959975" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071960035" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071960206" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071960374" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:27815918": {
+					"__typename": "Venue",
+					"id": "27815918",
+					"name": "1716 W Hubbard St",
+					"address": "1716 W Hubbard St",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:521222989": {
+					"__typename": "PhotoInfo",
+					"id": "521222989",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/b/a/d/highres_521222989.jpeg"
+				},
+				"Rsvp:2071148352": {
+					"__typename": "Rsvp",
+					"id": "2071148352",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"PhotoInfo:323176579": {
+					"__typename": "PhotoInfo",
+					"id": "323176579",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/4/0/c/3/highres_323176579.jpeg"
+				},
+				"Rsvp:2071148353": {
+					"__typename": "Rsvp",
+					"id": "2071148353",
+					"member": { "__ref": "Member:213744364" }
+				},
+				"PhotoInfo:318345297": {
+					"__typename": "PhotoInfo",
+					"id": "318345297",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/b/0/f/1/highres_318345297.jpeg"
+				},
+				"Rsvp:2071503703": {
+					"__typename": "Rsvp",
+					"id": "2071503703",
+					"member": { "__ref": "Member:411956289" }
+				},
+				"PhotoInfo:307876067": {
+					"__typename": "PhotoInfo",
+					"id": "307876067",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/3/e/c/3/highres_307876067.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Member:344101773": {
+					"__typename": "Member",
+					"id": "344101773",
+					"name": "Jonathan West",
+					"memberPhoto": { "__ref": "PhotoInfo:307876067" }
+				},
+				"Rsvp:2072102841": {
+					"__typename": "Rsvp",
+					"id": "2072102841",
+					"member": { "__ref": "Member:344101773" }
+				},
+				"Rsvp:2072414708": {
+					"__typename": "Rsvp",
+					"id": "2072414708",
+					"member": { "__ref": "Member:481507086" }
+				},
+				"Event:314738648": {
+					"__typename": "Event",
+					"id": "314738648",
+					"title": "Nourishing Hope - Online Market Evening Packing (Volunteer) (West Town)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314738648/",
+					"description": "meetup for chicago anime hangouts! hope to have conversations about anime, and manga and more. just show up :D just note that this is the first event focused around volunteering, and helping people, so be prepared to learn more about the non-profit we're working with in addition to the socializing aspect, and getting a meal or dessert afterwards.\n\nNourishing Hope is an established Chicago food pantry, providing free food in a comfortable person-focused environment, with social and mental health services.\n\n**INSTRUCTIONS FOR SIGNING UP TO VOLUNTEER AT BOTTOM**\n\n**description:** come help us pack orders for Nourishing Hope's Online Market! Then we will load orders into the van for distribution. Volunteers are encouraged to wear comfortable clothing and closed toed shoes. Gloves provided at individual shifts.\n\n**schedule:**\n**5:30:** get trained to help load orders and pack for Nourishing Hope.\n**post-meetup:** open to walk to Sabroso! Mexican Grill (624 N Ashland Ave, Chicago, IL 60622 - 8 minute walk away) to grab a light meal, or grab smoothies/dessert nearby.\n\nwe hope to see you there!\n\n**\\-\\-\\-INSTRUCTIONS\\-\\-\\-**\n**Volunteering at Nourishing Hope (formerly Lakeview Pantry):**\nRegister to be a volunteer: **[Form link](https://lakeviewpantry.my.site.com/volunteer/s/group-registration?group_code=3721).**\n\n**Already have a volunteer account?** Login into your personal volunteer site ([link here](https://lakeviewpantry.my.site.com/volunteer/s/group-registration?group_code=3721)), click Volunteer Calendar, and enter the group code: **3721** under \"**I have a Group Code.**\"[ Watch this helpful video!](https://www.youtube.com/watch?v=tou-bRF0i8Y\u0026feature=youtu.be)",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "213744364" },
+						{ "__typename": "EventHost", "memberId": "411956289" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:27815918" },
+					"dateTime": "2026-08-12T17:30:00-05:00",
+					"createdTime": "2026-05-11T14:02:37-04:00",
+					"endTime": "2026-08-12T19:30:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 10 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:521222989" },
+					"displayPhoto": { "__ref": "PhotoInfo:521222989" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 10,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071148352" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071148353" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071503703" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072102841" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072414708" }
+							}
+						]
+					},
+					"maxTickets": 10,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:28121983": {
+					"__typename": "Venue",
+					"id": "28121983",
+					"name": "Lao Der",
+					"address": "3922 N Elston Ave,",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "US"
+				},
+				"PhotoInfo:527867821": {
+					"__typename": "PhotoInfo",
+					"id": "527867821",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/b/a/c/d/highres_527867821.jpeg"
+				},
+				"PhotoInfo:320124933": {
+					"__typename": "PhotoInfo",
+					"id": "320124933",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/6/1/6/5/highres_320124933.jpeg"
+				},
+				"Rsvp:2077514067": {
+					"__typename": "Rsvp",
+					"id": "2077514067",
+					"member": { "__ref": "Member:370723005" }
+				},
+				"PhotoInfo:315661293": {
+					"__typename": "PhotoInfo",
+					"id": "315661293",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/5/0/d/highres_315661293.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Member:382664482": {
+					"__typename": "Member",
+					"id": "382664482",
+					"name": "Ucheoma O",
+					"memberPhoto": { "__ref": "PhotoInfo:315661293" }
+				},
+				"Rsvp:2077515957": {
+					"__typename": "Rsvp",
+					"id": "2077515957",
+					"member": { "__ref": "Member:382664482" }
+				},
+				"Rsvp:2077523073": {
+					"__typename": "Rsvp",
+					"id": "2077523073",
+					"member": { "__ref": "Member:216598402" }
+				},
+				"PhotoInfo:278783299": {
+					"__typename": "PhotoInfo",
+					"id": "278783299",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/5/b/0/3/highres_278783299.jpeg"
+				},
+				"Member:258626411": {
+					"__typename": "Member",
+					"id": "258626411",
+					"name": "Ali",
+					"memberPhoto": { "__ref": "PhotoInfo:278783299" }
+				},
+				"Rsvp:2078198932": {
+					"__typename": "Rsvp",
+					"id": "2078198932",
+					"member": { "__ref": "Member:258626411" }
+				},
+				"PhotoInfo:325654683": {
+					"__typename": "PhotoInfo",
+					"id": "325654683",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/8/7/7/b/highres_325654683.jpeg"
+				},
+				"Member:481390317": {
+					"__typename": "Member",
+					"id": "481390317",
+					"name": "Tarun",
+					"memberPhoto": { "__ref": "PhotoInfo:325654683" }
+				},
+				"Rsvp:2078302843": {
+					"__typename": "Rsvp",
+					"id": "2078302843",
+					"member": { "__ref": "Member:481390317" }
+				},
+				"Event:315803276": {
+					"__typename": "Event",
+					"id": "315803276",
+					"title": "International Food Series@ Lao Der",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315803276/",
+					"description": "This is a series of events with focus on international food restaurants where we try food from another culture each month with a different country. We accept recommendations for future.\n\nPlease bring card, cash or have Venmo.\n\\~\\~\\~\nplease try to update your RSVP at least 12 hours before an event if you can't make it to be respectful of the people on waitlist.\n\\~\\~\\~\nWe hope to see you there!",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:370723005" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "370723005" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:28121983" },
+					"dateTime": "2026-08-14T17:00:00-05:00",
+					"createdTime": "2026-07-23T09:33:19-04:00",
+					"endTime": "2026-08-14T19:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 5 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:527867821" },
+					"displayPhoto": { "__ref": "PhotoInfo:527867821" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 5,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077514067" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077515957" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077523073" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2078198932" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2078302843" }
+							}
+						]
+					},
+					"maxTickets": 8,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:25443402": {
+					"__typename": "Venue",
+					"id": "25443402",
+					"name": "Beermiscuous",
+					"address": "2812 North Lincoln Avenue",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "US"
+				},
+				"PhotoInfo:535127766": {
+					"__typename": "PhotoInfo",
+					"id": "535127766",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/b/a/9/6/highres_535127766.jpeg"
+				},
+				"Rsvp:2076379470": {
+					"__typename": "Rsvp",
+					"id": "2076379470",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2076380451": {
+					"__typename": "Rsvp",
+					"id": "2076380451",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2076468463": {
+					"__typename": "Rsvp",
+					"id": "2076468463",
+					"member": { "__ref": "Member:209329332" }
+				},
+				"PhotoInfo:315530187": {
+					"__typename": "PhotoInfo",
+					"id": "315530187",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/c/4/0/b/highres_315530187.jpeg"
+				},
+				"Rsvp:2076499848": {
+					"__typename": "Rsvp",
+					"id": "2076499848",
+					"member": { "__ref": "Member:359331042" }
+				},
+				"PhotoInfo:324333568": {
+					"__typename": "PhotoInfo",
+					"id": "324333568",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/8/3/2/0/highres_324333568.jpeg"
+				},
+				"Member:476970341": {
+					"__typename": "Member",
+					"id": "476970341",
+					"name": "jenny",
+					"memberPhoto": { "__ref": "PhotoInfo:324333568" }
+				},
+				"Rsvp:2076660780": {
+					"__typename": "Rsvp",
+					"id": "2076660780",
+					"member": { "__ref": "Member:476970341" }
+				},
+				"Event:315612721": {
+					"__typename": "Event",
+					"id": "315612721",
+					"title": "Avatar Aang: The Last Airbender Movie Screening (Lakeview)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315612721/",
+					"description": "5:30 PM – Doors open, arrivals, grab drinks and snacks\n\n6:00 PM – Avatar: The Last Airbender – Book 3 Finale (Episodes 18–21)\nEpisode 18: Sozin's Comet, Part 1: The Phoenix King\nEpisode 19: Sozin's Comet, Part 2: The Old Masters\nEpisode 20: Sozin's Comet, Part 3: Into the Inferno\nEpisode 21: Sozin's Comet, Part 4: Avatar Aang\n⏱️ Approximately 23–25 minutes each\nEnds: \\~7:35 PM\n7:35–7:45 PM – Intermission (10 minutes)\n7:45 PM – Avatar Aang: The Last Airbender (2026)\n⏱️ Runtime: 1 hour 38 minutes\nEnds: 9:23 PM\n9:23–9:35 PM – Short break (12 minutes)\n9:35 PM – The Legend of Korra Episode 1: Welcome to Republic City\n⏱️ Runtime: \\~24 minutes\n9:59 PM – Wrap-up and discussion\n\n**LOGISTICS:**\nBeermiscuous does not have a parking lot. But there is paid parking along Lincoln Ave and free parking on Diversey Pkwy as well as Lakewood Ave (\\~1 block west of the shop).",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:25443402" },
+					"dateTime": "2026-08-14T18:00:00-05:00",
+					"createdTime": "2026-07-09T08:20:01-04:00",
+					"endTime": "2026-08-14T22:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 30 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:535127766" },
+					"displayPhoto": { "__ref": "PhotoInfo:535127766" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 30,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076379470" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076380451" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076468463" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076499848" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076660780" }
+							}
+						]
+					},
+					"maxTickets": 30,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:28267657": {
+					"__typename": "Venue",
+					"id": "28267657",
+					"name": "Horner Park",
+					"address": "2741 W Montrose Ave, Chicago, Il, 60618",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "US"
+				},
+				"PhotoInfo:534796246": {
+					"__typename": "PhotoInfo",
+					"id": "534796246",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/3/f/7/6/highres_534796246.jpeg"
+				},
+				"Rsvp:2074553955": {
+					"__typename": "Rsvp",
+					"id": "2074553955",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"PhotoInfo:306124550": {
+					"__typename": "PhotoInfo",
+					"id": "306124550",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/1/1/c/6/highres_306124550.jpeg"
+				},
+				"Member:336716109": {
+					"__typename": "Member",
+					"id": "336716109",
+					"name": "Kapil Kanwar",
+					"memberPhoto": { "__ref": "PhotoInfo:306124550" }
+				},
+				"Rsvp:2074553993": {
+					"__typename": "Rsvp",
+					"id": "2074553993",
+					"member": { "__ref": "Member:336716109" }
+				},
+				"PhotoInfo:315083199": {
+					"__typename": "PhotoInfo",
+					"id": "315083199",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/5/a/9/f/highres_315083199.jpeg"
+				},
+				"Member:391168621": {
+					"__typename": "Member",
+					"id": "391168621",
+					"name": "Jackie Way",
+					"memberPhoto": { "__ref": "PhotoInfo:315083199" }
+				},
+				"Rsvp:2074554011": {
+					"__typename": "Rsvp",
+					"id": "2074554011",
+					"member": { "__ref": "Member:391168621" }
+				},
+				"PhotoInfo:323297318": {
+					"__typename": "PhotoInfo",
+					"id": "323297318",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/4/3/a/6/highres_323297318.jpeg"
+				},
+				"Member:474035273": {
+					"__typename": "Member",
+					"id": "474035273",
+					"name": "Adriana M",
+					"memberPhoto": { "__ref": "PhotoInfo:323297318" }
+				},
+				"Rsvp:2074555008": {
+					"__typename": "Rsvp",
+					"id": "2074555008",
+					"member": { "__ref": "Member:474035273" }
+				},
+				"PhotoInfo:325595963": {
+					"__typename": "PhotoInfo",
+					"id": "325595963",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/8/c/7/b/highres_325595963.jpeg"
+				},
+				"Member:481311495": {
+					"__typename": "Member",
+					"id": "481311495",
+					"name": "Tay",
+					"memberPhoto": { "__ref": "PhotoInfo:325595963" }
+				},
+				"Rsvp:2074555054": {
+					"__typename": "Rsvp",
+					"id": "2074555054",
+					"member": { "__ref": "Member:481311495" }
+				},
+				"Event:315304209": {
+					"__typename": "Event",
+					"id": "315304209",
+					"title": "Adult Field Day @ Horner Park (Irving Park)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315304209/",
+					"description": "meetup for Chicago anime hangouts! hope to have conversations about anime, and manga and more. just show up :D\n\nget ready to move! All Field Day activities will be active and movement-based, so be sure to wear athletic clothing and comfortable sneakers.\n\nschedule: (aim is to go through a circuit of different relay games, recess games aiming with a final tug of war)\n12:00 - 3:00 pm\n(organizer will update if event extends longer than originally planned)\n\n\\- Cops and robbers\n\\- Human knot\n\\- Sharks and minnows (Tatanka, Tatanka)\n\\- Three legged race\n\\- Tug\\-of\\-War\n\nthese will be subject to change are discretion of organizer. organizers will also bring a frisbee and volleyball\n\nwe hope to see you! :D\n\nmore about the park:\n[https://www.chicagoparkdistrict.com/parks-facilities/horner-henry-park](https://www.chicagoparkdistrict.com/parks-facilities/tom-ping-memorial-park)",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:28267657" },
+					"dateTime": "2026-08-16T12:00:00-05:00",
+					"createdTime": "2026-06-17T17:46:56-04:00",
+					"endTime": "2026-08-16T15:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 36 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:534796246" },
+					"displayPhoto": { "__ref": "PhotoInfo:534796246" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 36,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074553955" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074553993" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074554011" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074555008" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074555054" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:25688295": {
+					"__typename": "Venue",
+					"id": "25688295",
+					"name": "Woodfield Mall",
+					"address": "5 Woodfield Mall",
+					"city": "Schaumburg",
+					"state": "IL",
+					"country": "US"
+				},
+				"PhotoInfo:533155700": {
+					"__typename": "PhotoInfo",
+					"id": "533155700",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/d/9/9/4/highres_533155700.jpeg"
+				},
+				"PhotoInfo:325407672": {
+					"__typename": "PhotoInfo",
+					"id": "325407672",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/6/c/1/8/highres_325407672.jpeg"
+				},
+				"Rsvp:2077718061": {
+					"__typename": "Rsvp",
+					"id": "2077718061",
+					"member": { "__ref": "Member:480474239" }
+				},
+				"PhotoInfo:323777292": {
+					"__typename": "PhotoInfo",
+					"id": "323777292",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/4/3/8/c/highres_323777292.jpeg"
+				},
+				"Member:475343767": {
+					"__typename": "Member",
+					"id": "475343767",
+					"name": "Maeleen ",
+					"memberPhoto": { "__ref": "PhotoInfo:323777292" }
+				},
+				"Rsvp:2077719017": {
+					"__typename": "Rsvp",
+					"id": "2077719017",
+					"member": { "__ref": "Member:475343767" }
+				},
+				"PhotoInfo:325175297": {
+					"__typename": "PhotoInfo",
+					"id": "325175297",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/8/9/e/1/highres_325175297.jpeg"
+				},
+				"Member:341694970": {
+					"__typename": "Member",
+					"id": "341694970",
+					"name": "Ernest Hernandez",
+					"memberPhoto": { "__ref": "PhotoInfo:325175297" }
+				},
+				"Rsvp:2077719403": {
+					"__typename": "Rsvp",
+					"id": "2077719403",
+					"member": { "__ref": "Member:341694970" }
+				},
+				"PhotoInfo:317996965": {
+					"__typename": "PhotoInfo",
+					"id": "317996965",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/d/e/8/5/highres_317996965.jpeg"
+				},
+				"Member:383541301": {
+					"__typename": "Member",
+					"id": "383541301",
+					"name": "Ray Ray",
+					"memberPhoto": { "__ref": "PhotoInfo:317996965" }
+				},
+				"Rsvp:2077719817": {
+					"__typename": "Rsvp",
+					"id": "2077719817",
+					"member": { "__ref": "Member:383541301" }
+				},
+				"Member:480319310": {
+					"__typename": "Member",
+					"id": "480319310",
+					"name": "johnknaak000",
+					"memberPhoto": null
+				},
+				"Rsvp:2077720195": {
+					"__typename": "Rsvp",
+					"id": "2077720195",
+					"member": { "__ref": "Member:480319310" }
+				},
+				"Event:315838053": {
+					"__typename": "Event",
+					"id": "315838053",
+					"title": "Woodfield Mall Hangout (Schaumburg)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315838053/",
+					"description": "meetup for chicago anime hangouts! hope to have conversations about anime, and manga and more. just show up :\n\nThis is the weekend of One Piece Card Game mall tour, so anyone interested can participate.\nAnyone not coming for One Piece can hang out at Enterrium, or just enjoy the mall. All nice vibes\n\nPeople are welcome to join whenever as we browse the shops.",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "480474239" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:25688295" },
+					"dateTime": "2026-08-16T13:00:00-05:00",
+					"createdTime": "2026-07-25T19:41:44-04:00",
+					"endTime": "2026-08-16T15:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 18 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:533155700" },
+					"displayPhoto": { "__ref": "PhotoInfo:533155700" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 18,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077718061" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077719017" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077719403" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077719817" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077720195" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:28202982": {
+					"__typename": "Venue",
+					"id": "28202982",
+					"name": "Haibayo",
+					"address": "1132 W Argyle St.",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:528729280": {
+					"__typename": "PhotoInfo",
+					"id": "528729280",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/2/4/4/0/highres_528729280.jpeg"
+				},
+				"Rsvp:2069501802": {
+					"__typename": "Rsvp",
+					"id": "2069501802",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2069501804": {
+					"__typename": "Rsvp",
+					"id": "2069501804",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2069501805": {
+					"__typename": "Rsvp",
+					"id": "2069501805",
+					"member": { "__ref": "Member:412362155" }
+				},
+				"PhotoInfo:324407841": {
+					"__typename": "PhotoInfo",
+					"id": "324407841",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/b/a/e/1/highres_324407841.jpeg"
+				},
+				"Member:190750979": {
+					"__typename": "Member",
+					"id": "190750979",
+					"name": "Erica",
+					"memberPhoto": { "__ref": "PhotoInfo:324407841" }
+				},
+				"Rsvp:2069796068": {
+					"__typename": "Rsvp",
+					"id": "2069796068",
+					"member": { "__ref": "Member:190750979" }
+				},
+				"Rsvp:2069933179": {
+					"__typename": "Rsvp",
+					"id": "2069933179",
+					"member": { "__ref": "Member:209329332" }
+				},
+				"Event:314462932": {
+					"__typename": "Event",
+					"id": "314462932",
+					"title": "Argyle Night Market (Thursday) @ Argyle (Uptown)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314462932/",
+					"description": "**READ THE CHAT,*** we're* first *gonna meet-up* **@ HAIBAYÔ*** for \\~15 min \u0026 then go to the event at **6:30pm\\~6:40pm**.\n\nThis is a casual hangout event for those attending the *first*** Argyle Night Market **of the year. This outdoor street fest offers everything from sizzling Asian eats to lively performances! We'll wander the fest, chat, \u0026 grab food/drinks along the way. Whether you’re new to the group or a regular, this is a laid-back way to meet new people with similar interests!\n\n**About Argyle Night Market**:\n• An annual event on Thursday evenings each summer that features food from local Argyle restaurants plus live cultural \u0026 musical performances.\n• Uptown United has partnered with several local arts organizations, able to bring live music, dance, \u0026 other performance styles to this market festival.\n• Admission is 100% free!\n\n**Schedule**:\n•** 6:15pm**: So that folks can group-up \u0026 talk for a bit instead of struggling to find one another, there's a place nearby called HAIBAYÔ that has indoor seats.\n•** 6:30pm \\~ 6:40pm**: We'll clutter up as a group \u0026 enter the fest. I'll send updates about available spots to hangout at in the Meetup comments.\n• **During Festival**: If you want to sync up with us mid-event, DM us in our...\n• [WhatsApp](https://chat.whatsapp.com/Cfa83H3C76698eQpMx3Icb)\n• or [Discord](https://discord.gg/QRg9duaHwK)\n• or this Meetup chat!\n\n*See you out there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" },
+						{ "__typename": "EventHost", "memberId": "412362155" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:28202982" },
+					"dateTime": "2026-08-20T18:15:00-05:00",
+					"createdTime": "2026-04-24T15:35:02-04:00",
+					"endTime": "2026-08-20T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 15 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:528729280" },
+					"displayPhoto": { "__ref": "PhotoInfo:528729280" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 15,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069501802" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069501804" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069501805" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069796068" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069933179" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:28128801": {
+					"__typename": "Venue",
+					"id": "28128801",
+					"name": "Hyatt Regency O'Hare Chicago",
+					"address": "9300 W Bryn Mawr Ave, Rosemont, IL 60018,",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "US"
+				},
+				"PhotoInfo:529226730": {
+					"__typename": "PhotoInfo",
+					"id": "529226730",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/6/8/6/a/highres_529226730.jpeg"
+				},
+				"Rsvp:2073002339": {
+					"__typename": "Rsvp",
+					"id": "2073002339",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2073002341": {
+					"__typename": "Rsvp",
+					"id": "2073002341",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2073648282": {
+					"__typename": "Rsvp",
+					"id": "2073648282",
+					"member": { "__ref": "Member:344101773" }
+				},
+				"PhotoInfo:316553903": {
+					"__typename": "PhotoInfo",
+					"id": "316553903",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/d/2/8/f/highres_316553903.jpeg"
+				},
+				"Member:374422842": {
+					"__typename": "Member",
+					"id": "374422842",
+					"name": "David Mitchell",
+					"memberPhoto": { "__ref": "PhotoInfo:316553903" }
+				},
+				"Rsvp:2073699174": {
+					"__typename": "Rsvp",
+					"id": "2073699174",
+					"member": { "__ref": "Member:374422842" }
+				},
+				"Rsvp:2074024691": {
+					"__typename": "Rsvp",
+					"id": "2074024691",
+					"member": { "__ref": "Member:216598402" }
+				},
+				"Event:315052647": {
+					"__typename": "Event",
+					"id": "315052647",
+					"title": "Anime Magic (Saturday) Meetup @ Hyatt Regency (Rosemont)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315052647/",
+					"description": "*Hey folks!* This is a hangout event for those attending **Anime Magic**'s *Saturday* convention!\n\n• Launched in 2019, [Anime Magic](https://www.animemagic.org/) is a *mid*-sized *three*-day anime \u0026 JP culture convention held in **Rosemont, IL** (*just outside Chicago*).\n• Similar to other notable anime cons like ACEN, there'll be a *vendor halls \u0026 artist alley*, *panels*, *guest VAs*, \u0026 *late-night events*.\n\nAs for *this meetup*, we plan to meet as a group at **\\~1:00pm** inside the convention, talk \u0026 take pictures, probably get some lunch outside, then wander back in to explore more of the event hall! Whether you’re planning afterwards to *browse artist alley*, *attend panels*, or *just wanna wander around*, feel free to come hang out for a bit with new or familiar faces!\n\n**Attending Anime Magic**:\n• [Buy Badges~!](https://www.animemagic.org/badges)\n• [See Convention Schedules~!](https://www.animemagic.org/schedules)\n\n**Meetup Schedule**:\n• **\\~1 Hour Prior (12:00pm)**: Since different areas of the convention hall can get busy at different times based on event schedules, we'll try to figure out where we want to meet up in the con around this time. I'll send updates about available spots to hangout at in the Meetup comments.\n• **1:00pm**: We'll start cluttering up as a group by this point at where we've decided to meet.\n• **1:30pm**: At around this time, we'll probably leave the convention hall to go eat somewhere depending on the mood. Anyone's free to split off \u0026 explore or attend panels.\n• **Afterwards**: If you want to sync up with us mid-event, post a message in our...\n• or [Discord](https://discord.gg/QRg9duaHwK)\n• or *this* Meetup chat!\n\n*See you out there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:28128801" },
+					"dateTime": "2026-08-22T13:00:00-05:00",
+					"createdTime": "2026-06-01T09:04:42-04:00",
+					"endTime": "2026-08-22T15:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 15 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:529226730" },
+					"displayPhoto": { "__ref": "PhotoInfo:529226730" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 15,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2073002339" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2073002341" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2073648282" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2073699174" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074024691" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:25143481": {
+					"__typename": "Venue",
+					"id": "25143481",
+					"name": "Headquarters Beercade - River North",
+					"address": "213 West Institute Place",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:529644897": {
+					"__typename": "PhotoInfo",
+					"id": "529644897",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/6/1/4/1/highres_529644897.jpeg"
+				},
+				"Rsvp:2058145221": {
+					"__typename": "Rsvp",
+					"id": "2058145221",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2058145222": {
+					"__typename": "Rsvp",
+					"id": "2058145222",
+					"member": { "__ref": "Member:411956289" }
+				},
+				"Rsvp:2071410496": {
+					"__typename": "Rsvp",
+					"id": "2071410496",
+					"member": { "__ref": "Member:216598402" }
+				},
+				"Rsvp:2072102906": {
+					"__typename": "Rsvp",
+					"id": "2072102906",
+					"member": { "__ref": "Member:344101773" }
+				},
+				"PhotoInfo:306207236": {
+					"__typename": "PhotoInfo",
+					"id": "306207236",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/6/a/6/4/highres_306207236.jpeg"
+				},
+				"Member:263991236": {
+					"__typename": "Member",
+					"id": "263991236",
+					"name": "Kashawna Brantley",
+					"memberPhoto": { "__ref": "PhotoInfo:306207236" }
+				},
+				"Rsvp:2072574246": {
+					"__typename": "Rsvp",
+					"id": "2072574246",
+					"member": { "__ref": "Member:263991236" }
+				},
+				"Event:312553841": {
+					"__typename": "Event",
+					"id": "312553841",
+					"title": "Acquaintances \u0026 Alcohol (Friday Social) @ Headquarters Beercade (River North)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/312553841/",
+					"description": "***Hello old \u0026 new friends!*** We like to unwind on the *last Friday* of each month to do some chillmaxing (*whatever that means*) @ **Headquarters Beercade**!\n\nThis is a casual hangout event to talk with folks about *this* \u0026 *that*, while at a big cool bar that *lets you play arcade games for* ***free***. Even if you're *not* a super big anime nerd, feel free to connect w/ folks on *any* of your hobbies, interests, \u0026 experiences!\n\n**About [Headquarters Beercade](https://www.hqrivernorth.com/)**:\n• A funky arcade bar with loads of *throwback video games* \u0026 *films*, plus *creative craft beers*, *cocktails*, \u0026 *food*.\n• **Bar Reminder**: You will need to bring \u0026 show your ID to staff in order to enter even if you *don't* plan on drinking.\n• **From HQ Staff**: Please use the coat racks instead of leaving jackets lying around, \u0026 don't use the larger tables unless you intend to order drinks/food.\n\n**Schedule**:\n• **7:00pm**: Get your butt over to **Headquarters Beercade** (*don't forget your ID!*)\n• **Post-Event**: Depending on how the group's feeling, we'll typically dip after *\\~2\\~3* hours \u0026 find a cool local place to eat at (like [Griddle 24](https://www.griddle24.com/)).\n• **Also**: If you want to sync up with us pre/post-event, DM us in our...\n• [WhatsApp](https://chat.whatsapp.com/Cfa83H3C76698eQpMx3Icb)\n• or [Discord](https://discord.gg/QRg9duaHwK)\n• or this Meetup chat!\n\n*See you out there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:398986297" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:25143481" },
+					"dateTime": "2026-08-28T19:00:00-05:00",
+					"createdTime": "2025-12-23T14:51:30-05:00",
+					"endTime": "2026-08-28T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 5 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "CANCELLED",
+					"series": {
+						"__typename": "Series",
+						"description": "Every 4th Friday of the month until November 26, 2026",
+						"weeklyRecurrence": null,
+						"monthlyRecurrence": {
+							"__typename": "MonthlyRecurrenceInfo",
+							"monthlyDayOfWeek": "FRIDAY",
+							"monthlyWeekOfMonth": 4
+						}
+					},
+					"featuredEventPhoto": { "__ref": "PhotoInfo:529644897" },
+					"displayPhoto": { "__ref": "PhotoInfo:529644897" },
+					"rsvpState": "CANCELLED",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 5,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2058145221" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2058145222" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071410496" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072102906" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072574246" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:27416888": {
+					"__typename": "Venue",
+					"id": "27416888",
+					"name": "Navy Pier",
+					"address": "1000 E Grand Ave",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:534778992": {
+					"__typename": "PhotoInfo",
+					"id": "534778992",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/e/6/7/0/highres_534778992.jpeg"
+				},
+				"PhotoInfo:323161828": {
+					"__typename": "PhotoInfo",
+					"id": "323161828",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/7/2/4/highres_323161828.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Rsvp:2074482658": {
+					"__typename": "Rsvp",
+					"id": "2074482658",
+					"member": { "__ref": "Member:365065721" }
+				},
+				"Rsvp:2074483210": {
+					"__typename": "Rsvp",
+					"id": "2074483210",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"PhotoInfo:324829964": {
+					"__typename": "PhotoInfo",
+					"id": "324829964",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/c/3/2/c/highres_324829964.jpeg"
+				},
+				"Member:478411903": {
+					"__typename": "Member",
+					"id": "478411903",
+					"name": "Alana Edwards",
+					"memberPhoto": { "__ref": "PhotoInfo:324829964" }
+				},
+				"Rsvp:2074483575": {
+					"__typename": "Rsvp",
+					"id": "2074483575",
+					"member": { "__ref": "Member:478411903" }
+				},
+				"Rsvp:2074484904": {
+					"__typename": "Rsvp",
+					"id": "2074484904",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2074484981": {
+					"__typename": "Rsvp",
+					"id": "2074484981",
+					"member": { "__ref": "Member:209329332" }
+				},
+				"Event:315286913": {
+					"__typename": "Event",
+					"id": "315286913",
+					"title": "Summer Skate at Navy Pier",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315286913/",
+					"description": "***Hello old \u0026 new friends!*** We like to unwind on the *last Friday* of each month. But this time we got something special. We will be going to Navy Pier for their Summer Skate event. Even if you're *not* a super big anime nerd, feel free to connect w/ folks on *any* of your hobbies, interests, \u0026 experiences or skate around like Shadow the Hedgehog!\n\nTickets are $20.38 per person and last from opening till closing so if you feel for skating beforehand, you're perfectly open to. You can buy tickets using clicking right [here](https://bucketlisters.com/experience/summer-skate-at-navy-pier).\n\nAbout [Summer Skate at Navy Pier](https://navypier.org/pier-events/summerskate/):\n\n* This event was opened as a summer alternative to Navy Pier's ice skating.\n* It opens on June 18th and ends on September 7th.\n* Skate rentals are included in the ticket price so you don't need to bring your own skates (unless you want to)\n* There will be arcade games to play and even a DJ.\n\nIf you want to link up with people before, during, and/or after the event, feel free to join our [Discord](https://discord.gg/QRg9duaHwK).\n\n*See you out there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:365065721" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "365065721" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:27416888" },
+					"dateTime": "2026-08-28T19:00:00-05:00",
+					"createdTime": "2026-06-16T14:10:49-04:00",
+					"endTime": "2026-08-28T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 22 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:534778992" },
+					"displayPhoto": { "__ref": "PhotoInfo:534778992" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 22,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074482658" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074483210" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074483575" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074484904" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074484981" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:25604564": {
+					"__typename": "Venue",
+					"id": "25604564",
+					"name": "AMC DINE-IN Block 37",
+					"address": "108 North State Street",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "US"
+				},
+				"PhotoInfo:535401507": {
+					"__typename": "PhotoInfo",
+					"id": "535401507",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/5/4/0/3/highres_535401507.jpeg"
+				},
+				"Rsvp:2077857318": {
+					"__typename": "Rsvp",
+					"id": "2077857318",
+					"member": { "__ref": "Member:125345892" }
+				},
+				"PhotoInfo:316374069": {
+					"__typename": "PhotoInfo",
+					"id": "316374069",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/d/3/3/5/highres_316374069.jpeg"
+				},
+				"Member:399997388": {
+					"__typename": "Member",
+					"id": "399997388",
+					"name": "Daniel Wilmoth",
+					"memberPhoto": { "__ref": "PhotoInfo:316374069" }
+				},
+				"Rsvp:2077860683": {
+					"__typename": "Rsvp",
+					"id": "2077860683",
+					"member": { "__ref": "Member:399997388" }
+				},
+				"PhotoInfo:321225783": {
+					"__typename": "PhotoInfo",
+					"id": "321225783",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/b/2/d/7/highres_321225783.jpeg"
+				},
+				"Member:447564974": {
+					"__typename": "Member",
+					"id": "447564974",
+					"name": "Yann Maboundou",
+					"memberPhoto": { "__ref": "PhotoInfo:321225783" }
+				},
+				"Rsvp:2077862242": {
+					"__typename": "Rsvp",
+					"id": "2077862242",
+					"member": { "__ref": "Member:447564974" }
+				},
+				"PhotoInfo:318745281": {
+					"__typename": "PhotoInfo",
+					"id": "318745281",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/6/2/c/1/highres_318745281.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Member:333919099": {
+					"__typename": "Member",
+					"id": "333919099",
+					"name": "Hector Rionda",
+					"memberPhoto": { "__ref": "PhotoInfo:318745281" }
+				},
+				"Rsvp:2077863110": {
+					"__typename": "Rsvp",
+					"id": "2077863110",
+					"member": { "__ref": "Member:333919099" }
+				},
+				"PhotoInfo:324669805": {
+					"__typename": "PhotoInfo",
+					"id": "324669805",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/2/6/4/d/highres_324669805.jpeg"
+				},
+				"Member:477793256": {
+					"__typename": "Member",
+					"id": "477793256",
+					"name": "Juniper ",
+					"memberPhoto": { "__ref": "PhotoInfo:324669805" }
+				},
+				"Rsvp:2077866697": {
+					"__typename": "Rsvp",
+					"id": "2077866697",
+					"member": { "__ref": "Member:477793256" }
+				},
+				"Event:315824004": {
+					"__typename": "Event",
+					"id": "315824004",
+					"title": "Coyote vs. Acme - Movie Night",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315824004/",
+					"description": "Meep meep!\n\n**Where we'll be near:** *Seats C4-C5*\n**Buy your tickets in advance**: [HERE](https://www.amctheatres.com/showtimes/145478355)\n\n• **Movie**: *Coyote vs. Acme @ 4:15pm*\n• **Date**: *2026-08-29 (Saturday)*.\n• **Theater**: *AMC DINE-IN Block 37*.\n\nHey folks, this is a casual meetup to watch the Coyote vs. Acme movie in theaters! We'll meetup at the theater, watch the film, then chat \u0026 might grab dinner afterwards. Whether you’re new to the group or a regular, this is a laid-back way to meet new people with similar interests!\n**About Coyote vs. Acme**:\n• **Trailer**: [https://www.youtube.com/watch?v=H-43VeYGiPM](https://www.youtube.com/watch?v=H-43VeYGiPM)\n• **Synopsis**: *After Acme products fail him one too many times in his dogged pursuit of the Roadrunner, Wile E. Coyote decides to hire a billboard lawyer to sue the Acme Corporation.*\n**Post-Meetup**: If you want to get in touch before or after the movie, reach out on...\n• [Discord](https://discord.gg/QRg9duaHwK)\n• or this Meetup chat!",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:125345892" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "125345892" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:25604564" },
+					"dateTime": "2026-08-29T16:00:00-05:00",
+					"createdTime": "2026-07-24T16:17:29-04:00",
+					"endTime": "2026-08-29T18:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 10 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:535401507" },
+					"displayPhoto": { "__ref": "PhotoInfo:535401507" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 10,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077857318" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077860683" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077862242" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077863110" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077866697" }
+							}
+						]
+					},
+					"maxTickets": 15,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Rsvp:2069688330": {
+					"__typename": "Rsvp",
+					"id": "2069688330",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2069688331": {
+					"__typename": "Rsvp",
+					"id": "2069688331",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2071959882": {
+					"__typename": "Rsvp",
+					"id": "2071959882",
+					"member": { "__ref": "Member:452387956" }
+				},
+				"PhotoInfo:325617682": {
+					"__typename": "PhotoInfo",
+					"id": "325617682",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/e/1/5/2/highres_325617682.jpeg",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/"
+				},
+				"Member:481397933": {
+					"__typename": "Member",
+					"id": "481397933",
+					"name": "Sahara Thomas",
+					"memberPhoto": { "__ref": "PhotoInfo:325617682" }
+				},
+				"Rsvp:2075875502": {
+					"__typename": "Rsvp",
+					"id": "2075875502",
+					"member": { "__ref": "Member:481397933" }
+				},
+				"Member:422628186": {
+					"__typename": "Member",
+					"id": "422628186",
+					"name": "Marcus Harris",
+					"memberPhoto": null
+				},
+				"Rsvp:2076072367": {
+					"__typename": "Rsvp",
+					"id": "2076072367",
+					"member": { "__ref": "Member:422628186" }
+				},
+				"PhotoInfo:320578172": {
+					"__typename": "PhotoInfo",
+					"id": "320578172",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/e/3/3/c/highres_320578172.jpeg"
+				},
+				"PhotoInfo:318799047": {
+					"__typename": "PhotoInfo",
+					"id": "318799047",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/4/a/6/7/highres_318799047.jpeg"
+				},
+				"PhotoInfo:318802601": {
+					"__typename": "PhotoInfo",
+					"id": "318802601",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/5/8/4/9/highres_318802601.jpeg"
+				},
+				"PhotoInfo:316971938": {
+					"__typename": "PhotoInfo",
+					"id": "316971938",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/c/a/e/2/highres_316971938.jpeg"
+				},
+				"Event:314490704": {
+					"__typename": "Event",
+					"id": "314490704",
+					"title": "Bring Your Own Manga Book Club @ Goblin Market (Manga Shop) (Lakeview)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314490704/",
+					"description": "hi - bring what you've been reading whether it's manga, light novels, manhwa, and more. hope to talk about what we've been reading, exchange recommendations, and more. just show up :D\n\nthis will be a reoccurring monthly event at Goblin Market, a manga shop located in Chicago's Lakeview neighborhood. once you enter, head down to their basement with seating. outside food is allowed but please be respectful of the venue.\n\n\\-\\-\\-\nFrom Goblin Market: for curious minds seeking a curated selection of manga, comics, games and more—Goblin Market is Chicago’s destination for first-timers and enthusiasts alike. Step inside, explore our collection and always ask us questions.\nWe’re delighted you are here.\n\n\\~\\~\\~\nwe hope to see you there!",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:27808280" },
+					"dateTime": "2026-09-06T14:00:00-05:00",
+					"createdTime": "2026-04-26T10:24:19-04:00",
+					"endTime": "2026-09-06T16:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 6 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": {
+						"__typename": "Series",
+						"description": "Every 1st Sunday of the month until January 4, 2027",
+						"weeklyRecurrence": null,
+						"monthlyRecurrence": {
+							"__typename": "MonthlyRecurrenceInfo",
+							"monthlyDayOfWeek": "SUNDAY",
+							"monthlyWeekOfMonth": 1
+						}
+					},
+					"featuredEventPhoto": { "__ref": "PhotoInfo:530495732" },
+					"displayPhoto": { "__ref": "PhotoInfo:530495732" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 6,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069688330" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069688331" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071959882" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075875502" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076072367" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 33,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323051241" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:325617682" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:320578172" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318802601" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:316971938" }
+							}
+						]
+					}
+				},
+				"Rsvp:2071148482": {
+					"__typename": "Rsvp",
+					"id": "2071148482",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2071148485": {
+					"__typename": "Rsvp",
+					"id": "2071148485",
+					"member": { "__ref": "Member:213744364" }
+				},
+				"Rsvp:2071503733": {
+					"__typename": "Rsvp",
+					"id": "2071503733",
+					"member": { "__ref": "Member:411956289" }
+				},
+				"Rsvp:2072102947": {
+					"__typename": "Rsvp",
+					"id": "2072102947",
+					"member": { "__ref": "Member:344101773" }
+				},
+				"PhotoInfo:275934810": {
+					"__typename": "PhotoInfo",
+					"id": "275934810",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/d/6/1/a/highres_275934810.jpeg"
+				},
+				"Member:195164524": {
+					"__typename": "Member",
+					"id": "195164524",
+					"name": "Cristóbal Corona Castillo",
+					"memberPhoto": { "__ref": "PhotoInfo:275934810" }
+				},
+				"Rsvp:2076633359": {
+					"__typename": "Rsvp",
+					"id": "2076633359",
+					"member": { "__ref": "Member:195164524" }
+				},
+				"Event:314738662": {
+					"__typename": "Event",
+					"id": "314738662",
+					"title": "Nourishing Hope - Online Market Evening Packing (Volunteer) (West Town)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314738662/",
+					"description": "meetup for chicago anime hangouts! hope to have conversations about anime, and manga and more. just show up :D just note that this is the first event focused around volunteering, and helping people, so be prepared to learn more about the non-profit we're working with in addition to the socializing aspect, and getting a meal or dessert afterwards.\n\nNourishing Hope is an established Chicago food pantry, providing free food in a comfortable person-focused environment, with social and mental health services.\n\n**INSTRUCTIONS FOR SIGNING UP TO VOLUNTEER AT BOTTOM**\n\n**description:** come help us pack orders for Nourishing Hope's Online Market! Then we will load orders into the van for distribution. Volunteers are encouraged to wear comfortable clothing and closed toed shoes. Gloves provided at individual shifts.\n\n**schedule:**\n**5:30:** get trained to help load orders and pack for Nourishing Hope.\n**post-meetup:** open to walk to Sabroso! Mexican Grill (624 N Ashland Ave, Chicago, IL 60622 - 8 minute walk away) to grab a light meal, or grab smoothies/dessert nearby.\n\nwe hope to see you there!\n\n**\\-\\-\\-INSTRUCTIONS\\-\\-\\-**\n**Volunteering at Nourishing Hope (formerly Lakeview Pantry):**\nRegister to be a volunteer: **[Form link](https://lakeviewpantry.my.site.com/volunteer/s/group-registration?group_code=3722).**\n\n**Already have a volunteer account?** Login into your personal volunteer site ([link here](https://lakeviewpantry.my.site.com/volunteer/s/group-registration?group_code=3722)), click Volunteer Calendar, and enter the group code: **3722** under \"**I have a Group Code.**\"[ Watch this helpful video!](https://www.youtube.com/watch?v=tou-bRF0i8Y\u0026feature=youtu.be)",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "213744364" },
+						{ "__typename": "EventHost", "memberId": "411956289" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:27815918" },
+					"dateTime": "2026-09-09T17:30:00-05:00",
+					"createdTime": "2026-05-11T14:04:26-04:00",
+					"endTime": "2026-09-09T19:30:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 5 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:521222989" },
+					"displayPhoto": { "__ref": "PhotoInfo:521222989" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 5,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071148482" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071148485" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071503733" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072102947" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076633359" }
+							}
+						]
+					},
+					"maxTickets": 10,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Rsvp:2076860312": {
+					"__typename": "Rsvp",
+					"id": "2076860312",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2076860315": {
+					"__typename": "Rsvp",
+					"id": "2076860315",
+					"member": { "__ref": "Member:412362155" }
+				},
+				"PhotoInfo:320273508": {
+					"__typename": "PhotoInfo",
+					"id": "320273508",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/d/1/0/4/highres_320273508.jpeg"
+				},
+				"PhotoInfo:318614564": {
+					"__typename": "PhotoInfo",
+					"id": "318614564",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/3/8/e/4/highres_318614564.jpeg"
+				},
+				"PhotoInfo:243805086": {
+					"__typename": "PhotoInfo",
+					"id": "243805086",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/6/1/f/e/highres_243805086.jpeg"
+				},
+				"Event:315692197": {
+					"__typename": "Event",
+					"id": "315692197",
+					"title": "Board Games (Dice Dojo) (Edgewater)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315692197/",
+					"description": "board game meetup for chicago anime hangouts! hope to play some board games and have conversations about anime, and manga and more. just show up :D\n\ndice dojo has 1000+ games in their demo library. please support them if there’s a game you like and want to purchase.\n\n**feel free to bring what you'd like to play!**\n\nschedule:\n6:00 pm: show up / checkin and get started with board games. their board game night starts at 5:00 and ends at 10:00 pm.\n\nname tags will be brought to indicate who's apart of the meetup.\n\n\\-\\-\\-\n\nhope to see you there!\n\\-\\-\\-\n\nThank you to the '[Chicagoland 20’s and 30’s Young Professionals](https://www.meetup.com/oak-park-west-suburbs-young-professionals/)' Meetup for advice on hosting board games. :D",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "412362155" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:1027268" },
+					"dateTime": "2026-09-16T18:00:00-05:00",
+					"createdTime": "2026-07-15T07:01:24-04:00",
+					"endTime": "2026-09-16T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 2 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:525565790" },
+					"displayPhoto": { "__ref": "PhotoInfo:525565790" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 2,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076860312" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076860315" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 28,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318802601" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:316971938" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:320273508" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318614564" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:243805086" }
+							}
+						]
+					}
+				},
+				"Rsvp:2078123783": {
+					"__typename": "Rsvp",
+					"id": "2078123783",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2078123784": {
+					"__typename": "Rsvp",
+					"id": "2078123784",
+					"member": { "__ref": "Member:412362155" }
+				},
+				"Event:315910669": {
+					"__typename": "Event",
+					"id": "315910669",
+					"title": "Board Games (Dice Dojo) (Edgewater)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315910669/",
+					"description": "board game meetup for chicago anime hangouts! hope to play some board games and have conversations about anime, and manga and more. just show up :D\n\ndice dojo has 1000+ games in their demo library. please support them if there’s a game you like and want to purchase.\n\n**feel free to bring what you'd like to play!**\n\nschedule:\n6:00 pm: show up / checkin and get started with board games. their board game night starts at 5:00 and ends at 10:00 pm.\n\nname tags will be brought to indicate who's apart of the meetup.\n\n\\-\\-\\-\n\nhope to see you there!\n\\-\\-\\-\n\nThank you to the '[Chicagoland 20’s and 30’s Young Professionals](https://www.meetup.com/oak-park-west-suburbs-young-professionals/)' Meetup for advice on hosting board games. :D",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "412362155" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:1027268" },
+					"dateTime": "2026-09-16T18:00:00-05:00",
+					"createdTime": "2026-07-30T17:13:24-04:00",
+					"endTime": "2026-09-16T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 2 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:525565790" },
+					"displayPhoto": { "__ref": "PhotoInfo:525565790" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 2,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2078123783" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2078123784" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 43,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318802601" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:316971938" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:320273508" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318614564" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:243805086" }
+							}
+						]
+					}
+				},
+				"Venue:28271289": {
+					"__typename": "Venue",
+					"id": "28271289",
+					"name": "Vjosa Cafe \u0026 Events",
+					"address": "1010 W 35th St Suite 102, Chicago, IL 60609",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:534920393": {
+					"__typename": "PhotoInfo",
+					"id": "534920393",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/4/f/a/9/highres_534920393.jpeg"
+				},
+				"Rsvp:2075233278": {
+					"__typename": "Rsvp",
+					"id": "2075233278",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"PhotoInfo:293015746": {
+					"__typename": "PhotoInfo",
+					"id": "293015746",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/8/b/a/2/highres_293015746.jpeg"
+				},
+				"Member:14507155": {
+					"__typename": "Member",
+					"id": "14507155",
+					"name": "Jeremy D",
+					"memberPhoto": { "__ref": "PhotoInfo:293015746" }
+				},
+				"Rsvp:2075234423": {
+					"__typename": "Rsvp",
+					"id": "2075234423",
+					"member": { "__ref": "Member:14507155" }
+				},
+				"Rsvp:2075235759": {
+					"__typename": "Rsvp",
+					"id": "2075235759",
+					"member": { "__ref": "Member:383541301" }
+				},
+				"PhotoInfo:323162370": {
+					"__typename": "PhotoInfo",
+					"id": "323162370",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/9/4/2/highres_323162370.jpeg"
+				},
+				"Member:330505483": {
+					"__typename": "Member",
+					"id": "330505483",
+					"name": "Alex",
+					"memberPhoto": { "__ref": "PhotoInfo:323162370" }
+				},
+				"Rsvp:2075236985": {
+					"__typename": "Rsvp",
+					"id": "2075236985",
+					"member": { "__ref": "Member:330505483" }
+				},
+				"Rsvp:2075238068": {
+					"__typename": "Rsvp",
+					"id": "2075238068",
+					"member": { "__ref": "Member:382664482" }
+				},
+				"Event:315419630": {
+					"__typename": "Event",
+					"id": "315419630",
+					"title": "Chicago Reincarnated: Anime Pop-Up Meetup @ Vjosa Cafe (Bridgeport)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315419630/",
+					"description": "*Hey folks!* This is a hangout event for those attending the **Chicago Reincarnated: Anime Pop-Up**!\n\n**Chicago Reincarnated** is a cozy anime market and pop-up event bringing together local artists, vendors, creators, and anime fans for a day of shopping, community, and fandom fun. Browse unique anime merchandise, fan art, stickers, prints, apparel, accessories, handmade goods, collectibles, and more while enjoying the atmosphere of a themed anime gathering right here in Chicago.\n\nWhat to expect:\n🌟 Anime \u0026 kawaii vendors\n🎭 Cosplay-friendly atmosphere\n🎁 Raffles \u0026 giveaways\n🍜 Food \u0026 drinks available\n📸 Photo opportunities\n🛍️ Collectibles, art, handmade goods \u0026 more\n\n**About [Atelier Cielyn](https://www.instagram.com/ateliercielyn)**:\nHi there! I started Atelier Cielyn out of my love for crafting and all things creative. What began as a small DIY hobby turned into a collection of adorable acrylics, beads, and keychains I couldn’t wait to share!\nMy goal is to make crafting simple, affordable, and full of joy — whether you’re decorating your own phone case, making gifts, or building your dream keychain collection.\nI handpick and package every item with care, often adding surprise mystery mixes and discounts for fellow craft lovers. 💕\nThank you for supporting my small business, your purchase truly keeps the creativity going! Follow my journey at https://ateliercielyn.square.site/✨\n\n**Meetup Details**:\n• As for *this meetup*, Chicago Reincarnated starts at [1pm \u0026 ends at 6pm](https://www.eventbrite.com/e/chicago-reincarnated-anime-pop-up-tickets-1992462704585#location), but we'll try to gather for a meetup around **\\~1:00pm**.\n• We'll meet inside the pop-up, talk \u0026 take pictures, then wander about to any events of interest!\n• Feel free to come hang out for a bit with new or familiar faces!\n\n**Attending Chicago Reincarnated**:\n•[ Register Now](https://www.eventbrite.com/e/chicago-reincarnated-anime-pop-up-tickets-1992462704585?utm_experiment=test_share_listing\u0026aff=ebdsshios\u0026utm_source=ig\u0026utm_medium=social\u0026utm_content=link_in_bio\u0026fbclid=PAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnNq9wj8F8uPbfAVVjL5DCWcq7l7SjQKhpdZRjnWFS8g0ED_aECxS3DCNBqVI_aem_tco3H2ezKv8bU79p_lNhDA)! Tickets are $5 (early bird) and $8\n\n**Meetup Schedule**:\n• **\\~1 Hour Prior (12:00pm)**: We'll try to figure out *where* we want to meet-up in the con around this time. I'll send updates about available spots to hangout at in the Meetup comments.\n• **1:15pm**: We'll start cluttering up as a group by this point at *where* we've decided to meet.\n• **3:30pm**: At around this time, we'll probably leave the convention hall to go elsewhere depending on the mood. Anyone's free to split off \u0026 explore or attend events.\n• **Afterwards**: If you want to sync up with us mid-event, post a message in our...\n• [Discord](https://discord.gg/QRg9duaHwK)\n• or *this* Meetup chat!\n\n*See you out there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:28271289" },
+					"dateTime": "2026-09-19T13:15:00-05:00",
+					"createdTime": "2026-06-25T19:01:01-04:00",
+					"endTime": "2026-09-19T15:30:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 14 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:534920393" },
+					"displayPhoto": { "__ref": "PhotoInfo:534920393" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 14,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075233278" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075234423" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075235759" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075236985" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075238068" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:25698103": {
+					"__typename": "Venue",
+					"id": "25698103",
+					"name": "Zhou B Art Center",
+					"address": "1029 W 35th St",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "US"
+				},
+				"PhotoInfo:534920839": {
+					"__typename": "PhotoInfo",
+					"id": "534920839",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/5/1/6/7/highres_534920839.jpeg"
+				},
+				"Rsvp:2075233185": {
+					"__typename": "Rsvp",
+					"id": "2075233185",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2075245419": {
+					"__typename": "Rsvp",
+					"id": "2075245419",
+					"member": { "__ref": "Member:333919099" }
+				},
+				"Rsvp:2075838378": {
+					"__typename": "Rsvp",
+					"id": "2075838378",
+					"member": { "__ref": "Member:209329332" }
+				},
+				"Rsvp:2077514378": {
+					"__typename": "Rsvp",
+					"id": "2077514378",
+					"member": { "__ref": "Member:365065721" }
+				},
+				"Rsvp:2077606250": {
+					"__typename": "Rsvp",
+					"id": "2077606250",
+					"member": { "__ref": "Member:474620258" }
+				},
+				"Event:315231398": {
+					"__typename": "Event",
+					"id": "315231398",
+					"title": "Neighborhood Exploration (Bridgeport)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315231398/",
+					"description": "This will be a bit of exploring of the neighborhood. We hope to split up into groups and explore bits of the neighborhood, similar to our dessert crawls in the past.\n\nLet's meet at Zhou B. Art Center! The first-part of this will be an anime pop-up in the neighborhood on this day! (for those interested---feel free to just pull up here for exploring the neighborhood)\n\nArt, Culture \u0026 History\n\\- Hoofprint \\(public art/sculpture\\)\\*\n\\- Chicago Maritime Museum\n\\- Co\\-Prosperity\n\\- Heritage Museum of Asian Art\n\nMusic, Books\n\\- Bridgeport Records\n\\- Let's Boogie Records \u0026 Tapes\n\\- Unabridged Books\n\nThrifting\n\\- SO HAPPY YOU'RE HERE\n\\- UNIQUE\n\nCoffee\n\\- Bad Owl Coffee Roasters\n\\- Bridgeport Coffee Center\n\\- Jackalope Coffee\n\\- Vjosa Cafe \u0026 Events\n\nFood \u0026 Drink\n\\- Cowabunga Pizza Pies\n\\- Four Seasons Dumpling\n\\- Potsticker House\n\\- Maria's Community Packaged Goods\n\nLearn more about Bridgeport:\nhttps://www.choosechicago.com/neighborhoods/bridgeport/",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:25698103" },
+					"dateTime": "2026-09-20T12:00:00-05:00",
+					"createdTime": "2026-06-12T12:43:26-04:00",
+					"endTime": "2026-09-20T14:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 5 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:534920839" },
+					"displayPhoto": { "__ref": "PhotoInfo:534920839" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 5,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075233185" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075245419" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2075838378" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077514378" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2077606250" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 44,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318745281" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:322520572" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323161828" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:324489483" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318802601" }
+							}
+						]
+					}
+				},
+				"Rsvp:2058145229": {
+					"__typename": "Rsvp",
+					"id": "2058145229",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2058145230": {
+					"__typename": "Rsvp",
+					"id": "2058145230",
+					"member": { "__ref": "Member:411956289" }
+				},
+				"Rsvp:2072103022": {
+					"__typename": "Rsvp",
+					"id": "2072103022",
+					"member": { "__ref": "Member:344101773" }
+				},
+				"Rsvp:2076676329": {
+					"__typename": "Rsvp",
+					"id": "2076676329",
+					"member": { "__ref": "Member:481397933" }
+				},
+				"Event:312553843": {
+					"__typename": "Event",
+					"id": "312553843",
+					"title": "Acquaintances \u0026 Alcohol (Friday Social) @ Headquarters Beercade (River North)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/312553843/",
+					"description": "***Hello old \u0026 new friends!*** We like to unwind on the *last Friday* of each month to do some chillmaxing (*whatever that means*) @ **Headquarters Beercade**!\n\nThis is a casual hangout event to talk with folks about *this* \u0026 *that*, while at a big cool bar that *lets you play arcade games for* ***free***. Even if you're *not* a super big anime nerd, feel free to connect w/ folks on *any* of your hobbies, interests, \u0026 experiences!\n\n**About [Headquarters Beercade](https://www.hqrivernorth.com/)**:\n• A funky arcade bar with loads of *throwback video games* \u0026 *films*, plus *creative craft beers*, *cocktails*, \u0026 *food*.\n• **Bar Reminder**: You will need to bring \u0026 show your ID to staff in order to enter even if you *don't* plan on drinking.\n• **From HQ Staff**: Please use the coat racks instead of leaving jackets lying around, \u0026 don't use the larger tables unless you intend to order drinks/food.\n\n**Schedule**:\n• **7:00pm**: Get your butt over to **Headquarters Beercade** (*don't forget your ID!*)\n• **Post-Event**: Depending on how the group's feeling, we'll typically dip after *\\~2\\~3* hours \u0026 find a cool local place to eat at (like [Griddle 24](https://www.griddle24.com/)).\n• **Also**: If you want to sync up with us pre/post-event, DM us in our...\n• [WhatsApp](https://chat.whatsapp.com/Cfa83H3C76698eQpMx3Icb)\n• or [Discord](https://discord.gg/QRg9duaHwK)\n• or this Meetup chat!\n\n*See you out there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:398986297" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:25143481" },
+					"dateTime": "2026-09-25T19:00:00-05:00",
+					"createdTime": "2025-12-23T14:51:42-05:00",
+					"endTime": "2026-09-25T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 4 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": {
+						"__typename": "Series",
+						"description": "Every 4th Friday of the month until November 26, 2026",
+						"weeklyRecurrence": null,
+						"monthlyRecurrence": {
+							"__typename": "MonthlyRecurrenceInfo",
+							"monthlyDayOfWeek": "FRIDAY",
+							"monthlyWeekOfMonth": 4
+						}
+					},
+					"featuredEventPhoto": { "__ref": "PhotoInfo:529644897" },
+					"displayPhoto": { "__ref": "PhotoInfo:529644897" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 4,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2058145229" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2058145230" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072103022" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076676329" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:8954682": {
+					"__typename": "Venue",
+					"id": "8954682",
+					"name": "Sound-Bar",
+					"address": "226 W. Ontario St., 226 West Ontario Street",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:529966046": {
+					"__typename": "PhotoInfo",
+					"id": "529966046",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/b/3/d/e/highres_529966046.jpeg"
+				},
+				"Rsvp:2074855486": {
+					"__typename": "Rsvp",
+					"id": "2074855486",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2074855488": {
+					"__typename": "Rsvp",
+					"id": "2074855488",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"PhotoInfo:325662258": {
+					"__typename": "PhotoInfo",
+					"id": "325662258",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/a/5/1/2/highres_325662258.jpeg"
+				},
+				"Member:330794147": {
+					"__typename": "Member",
+					"id": "330794147",
+					"name": "Kendall",
+					"memberPhoto": { "__ref": "PhotoInfo:325662258" }
+				},
+				"Rsvp:2074857115": {
+					"__typename": "Rsvp",
+					"id": "2074857115",
+					"member": { "__ref": "Member:330794147" }
+				},
+				"PhotoInfo:306634137": {
+					"__typename": "PhotoInfo",
+					"id": "306634137",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/8/5/5/9/highres_306634137.jpeg"
+				},
+				"Member:338703079": {
+					"__typename": "Member",
+					"id": "338703079",
+					"name": "Kyle Rockett",
+					"memberPhoto": { "__ref": "PhotoInfo:306634137" }
+				},
+				"Rsvp:2074858451": {
+					"__typename": "Rsvp",
+					"id": "2074858451",
+					"member": { "__ref": "Member:338703079" }
+				},
+				"Member:481737902": {
+					"__typename": "Member",
+					"id": "481737902",
+					"name": "rodrigoicastroa",
+					"memberPhoto": null
+				},
+				"Rsvp:2074859008": {
+					"__typename": "Rsvp",
+					"id": "2074859008",
+					"member": { "__ref": "Member:481737902" }
+				},
+				"Event:315356533": {
+					"__typename": "Event",
+					"id": "315356533",
+					"title": "#WeTouchGrass Anime Rave @ Sound Bar (River North)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315356533/",
+					"description": "**Buy your tickets in advance**: [HERE](https://kydlabs.com/e/EV6ceb1178-9438-4ccb-8f6c-fadfff5a300c?referral_id=g-d5e4115a-9b26-4cf9-b9a0-f3602a6e62b6)\n• *Tickets are also sold at the door, but typically cheaper if bought in-advance.*\n\nHey folks, **#WeTouchGrass** is back in town for another *exciting rave experience*! Join us for [drinks](https://www.youtube.com/watch?v=T28LyXf8MlU\u0026pp=ygUZcGFzcyBtZSBhIGRyaW5rIGJhcnRlbmRlcg%3D%3D) \u0026 [dancing that lasts all night](https://www.youtube.com/watch?v=_8f2bhz5cFc\u0026pp=ygUYcGVyc29uYSA0IGRhbmNpbmcgYWRhY2hp)!\n\n**About [#WeTouchGrass](https://touchgrassent.live/)**\n• Since *2022*, **Touch Grass Entertainment** has hosted worldwide rave events featuring *anime / J-Pop*, *video game*, \u0026 *K-Pop* music alike!\n• Featuring *multiple performers* \u0026 *original remixes*!\n• Cosplay allowed \u0026 welcomed! But keep in-mind that [props are ](https://touchgrassent.live/faq-rules/)***[not](https://touchgrassent.live/faq-rules/)***[ permitted](https://touchgrassent.live/faq-rules/).\n\n**About [Sound Bar](https://sound-bar.com/)**\n• A sizeable nightclub offering *multiple bars* \u0026 *a plethora of seating*.\n• Check out [their calendar](https://sound-bar.com/event-calendar/) for more EDM events!\n\n**Schedule**\n• **7:00pm:** Some members will be at [Headquarters Beercade](https://www.meetup.com/chicago-anime-hangouts/events/312553843/?eventOrigin=group_events_list), our monthly social and may migrate over from pre-gaming/socializing there (8 minute walk away from Sound Bar).\n• **9:00pm**: Doors open. We *might* try to coordinate a specific spot to chill at until the performances start.\n\n*Hope to see you there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:8954682" },
+					"dateTime": "2026-09-25T21:00:00-05:00",
+					"createdTime": "2026-06-21T12:48:25-04:00",
+					"endTime": "2026-09-26T02:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 14 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:529966046" },
+					"displayPhoto": { "__ref": "PhotoInfo:529966046" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 14,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074855486" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074855488" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074857115" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074858451" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074859008" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Venue:28264246": {
+					"__typename": "Venue",
+					"id": "28264246",
+					"name": "47th Street Green Line Station",
+					"address": "314 E. 47th Street, Chicago, IL 60653",
+					"city": "Chicago",
+					"state": "IL",
+					"country": "us"
+				},
+				"PhotoInfo:534683243": {
+					"__typename": "PhotoInfo",
+					"id": "534683243",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-events/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/event/5/a/c/b/highres_534683243.jpeg"
+				},
+				"Rsvp:2073938881": {
+					"__typename": "Rsvp",
+					"id": "2073938881",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2073941651": {
+					"__typename": "Rsvp",
+					"id": "2073941651",
+					"member": { "__ref": "Member:333919099" }
+				},
+				"Rsvp:2073958251": {
+					"__typename": "Rsvp",
+					"id": "2073958251",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2074293542": {
+					"__typename": "Rsvp",
+					"id": "2074293542",
+					"member": { "__ref": "Member:344101773" }
+				},
+				"Rsvp:2074452304": {
+					"__typename": "Rsvp",
+					"id": "2074452304",
+					"member": { "__ref": "Member:209329332" }
+				},
+				"PhotoInfo:325500276": {
+					"__typename": "PhotoInfo",
+					"id": "325500276",
+					"baseUrl": "https://secure-content.meetupstatic.com/images/classic-member/",
+					"highResUrl": "https://secure.meetupstatic.com/photos/member/1/1/4/highres_325500276.jpeg"
+				},
+				"Event:315203884": {
+					"__typename": "Event",
+					"id": "315203884",
+					"title": "Bronzeville Summer Nights 2026 (Bronzeville)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315203884/",
+					"description": "**READ THE CHAT,*** we're* first *gonna meet-up* **@ 47th Street (Green Line)*** for \\~15 min \u0026 then go to the event at **1:00pm\\~1:15pm**.\n\nThis is a casual hangout event for those attending the** Bronzeville Summer Nights 2026**. This outdoor event offers everything specific to Bronzeville! We'll wander the area, chat, \u0026 grab food/drinks along the way. Whether you’re new to the group or a regular, this is a laid-back way to meet new people with similar interests!\n\n**About Bronzeville Summer Nights 2026**:\n• The Quad Communities Development Corporation (QCDC) is proud to announce the return of its signature event series, Bronzeville Summer Nights\nJoin QCDC as we celebrate the \"Three Cs\": Commerce, Community, and Culture. This is our invitation to follow the music through our corridors, directly into the shops and restaurants that make Bronzeville home. From our summer kicks-offs to our new family-friendly \"Fall\" finale, come experience the soul of the Bronzeville.\nAdmission: Free and open to the public.\nMore Information: Visit ShopLocalBronzeville.com\n\n**Schedule**:\n•** 12:45 pm**: So that folks can group-up \u0026 talk for a bit instead of struggling to find one another, let's meet at the 47th Street station.\n•** 1:00 pm \\~ 1:10pm**: We'll clutter up as a group \u0026 enter the fest. I'll send updates about available spots to hangout at in the Meetup comments.\n• **During Festival**: If you want to sync up with us mid-event, DM us in our...\n[Discord](https://discord.gg/QRg9duaHwK)\n• or this Meetup chat!\n\n*See you out there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:28264246" },
+					"dateTime": "2026-09-26T12:45:00-05:00",
+					"createdTime": "2026-06-10T17:45:34-04:00",
+					"endTime": "2026-09-26T17:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 7 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:534683243" },
+					"displayPhoto": { "__ref": "PhotoInfo:534683243" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 7,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2073938881" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2073941651" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2073958251" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074293542" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2074452304" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 27,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318745281" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318422103" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:307876067" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:322520572" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:315661293" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:325500276" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							}
+						]
+					}
+				},
+				"Rsvp:2069688344": {
+					"__typename": "Rsvp",
+					"id": "2069688344",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2069688345": {
+					"__typename": "Rsvp",
+					"id": "2069688345",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Event:314490706": {
+					"__typename": "Event",
+					"id": "314490706",
+					"title": "Bring Your Own Manga Book Club @ Goblin Market (Manga Shop) (Lakeview)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314490706/",
+					"description": "hi - bring what you've been reading whether it's manga, light novels, manhwa, and more. hope to talk about what we've been reading, exchange recommendations, and more. just show up :D\n\nthis will be a reoccurring monthly event at Goblin Market, a manga shop located in Chicago's Lakeview neighborhood. once you enter, head down to their basement with seating. outside food is allowed but please be respectful of the venue.\n\n\\-\\-\\-\nFrom Goblin Market: for curious minds seeking a curated selection of manga, comics, games and more—Goblin Market is Chicago’s destination for first-timers and enthusiasts alike. Step inside, explore our collection and always ask us questions.\nWe’re delighted you are here.\n\n\\~\\~\\~\nwe hope to see you there!",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:27808280" },
+					"dateTime": "2026-10-04T14:00:00-05:00",
+					"createdTime": "2026-04-26T10:24:30-04:00",
+					"endTime": "2026-10-04T16:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 2 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": {
+						"__typename": "Series",
+						"description": "Every 1st Sunday of the month until January 4, 2027",
+						"weeklyRecurrence": null,
+						"monthlyRecurrence": {
+							"__typename": "MonthlyRecurrenceInfo",
+							"monthlyDayOfWeek": "SUNDAY",
+							"monthlyWeekOfMonth": 1
+						}
+					},
+					"featuredEventPhoto": { "__ref": "PhotoInfo:530495732" },
+					"displayPhoto": { "__ref": "PhotoInfo:530495732" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 2,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069688344" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2069688345" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 35,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318802601" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:316971938" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:320273508" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318614564" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:243805086" }
+							}
+						]
+					}
+				},
+				"Rsvp:2076860364": {
+					"__typename": "Rsvp",
+					"id": "2076860364",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2076860365": {
+					"__typename": "Rsvp",
+					"id": "2076860365",
+					"member": { "__ref": "Member:412362155" }
+				},
+				"Event:315692209": {
+					"__typename": "Event",
+					"id": "315692209",
+					"title": "Board Games (Dice Dojo) (Edgewater)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315692209/",
+					"description": "board game meetup for chicago anime hangouts! hope to play some board games and have conversations about anime, and manga and more. just show up :D\n\ndice dojo has 1000+ games in their demo library. please support them if there’s a game you like and want to purchase.\n\n**feel free to bring what you'd like to play!**\n\nschedule:\n6:00 pm: show up / checkin and get started with board games. their board game night starts at 5:00 and ends at 10:00 pm.\n\nname tags will be brought to indicate who's apart of the meetup.\n\n\\-\\-\\-\n\nhope to see you there!\n\\-\\-\\-\n\nThank you to the '[Chicagoland 20’s and 30’s Young Professionals](https://www.meetup.com/oak-park-west-suburbs-young-professionals/)' Meetup for advice on hosting board games. :D",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "412362155" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:1027268" },
+					"dateTime": "2026-10-07T18:00:00-05:00",
+					"createdTime": "2026-07-15T07:02:27-04:00",
+					"endTime": "2026-10-07T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 2 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:525565790" },
+					"displayPhoto": { "__ref": "PhotoInfo:525565790" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 2,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076860364" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076860365" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 40,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318802601" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:316971938" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:320273508" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318614564" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:243805086" }
+							}
+						]
+					}
+				},
+				"Rsvp:2071148586": {
+					"__typename": "Rsvp",
+					"id": "2071148586",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2071148587": {
+					"__typename": "Rsvp",
+					"id": "2071148587",
+					"member": { "__ref": "Member:213744364" }
+				},
+				"Rsvp:2071503761": {
+					"__typename": "Rsvp",
+					"id": "2071503761",
+					"member": { "__ref": "Member:411956289" }
+				},
+				"Rsvp:2072103053": {
+					"__typename": "Rsvp",
+					"id": "2072103053",
+					"member": { "__ref": "Member:344101773" }
+				},
+				"Event:314738674": {
+					"__typename": "Event",
+					"id": "314738674",
+					"title": "Nourishing Hope - Online Market Evening Packing (Volunteer) (West Town)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314738674/",
+					"description": "meetup for chicago anime hangouts! hope to have conversations about anime, and manga and more. just show up :D just note that this is the first event focused around volunteering, and helping people, so be prepared to learn more about the non-profit we're working with in addition to the socializing aspect, and getting a meal or dessert afterwards.\n\nNourishing Hope is an established Chicago food pantry, providing free food in a comfortable person-focused environment, with social and mental health services.\n\n**INSTRUCTIONS FOR SIGNING UP TO VOLUNTEER AT BOTTOM**\n\n**description:** come help us pack orders for Nourishing Hope's Online Market! Then we will load orders into the van for distribution. Volunteers are encouraged to wear comfortable clothing and closed toed shoes. Gloves provided at individual shifts.\n\n**schedule:**\n**5:30:** get trained to help load orders and pack for Nourishing Hope.\n**post-meetup:** open to walk to Sabroso! Mexican Grill (624 N Ashland Ave, Chicago, IL 60622 - 8 minute walk away) to grab a light meal, or grab smoothies/dessert nearby.\n\nwe hope to see you there!\n\n**\\-\\-\\-INSTRUCTIONS\\-\\-\\-**\n**Volunteering at Nourishing Hope (formerly Lakeview Pantry):**\nRegister to be a volunteer: **[Form link](https://lakeviewpantry.my.site.com/volunteer/s/group-registration?group_code=3723).**\n\n**Already have a volunteer account?** Login into your personal volunteer site ([link here](https://lakeviewpantry.my.site.com/volunteer/s/group-registration?group_code=3723)), click Volunteer Calendar, and enter the group code: **3723** under \"**I have a Group Code.**\"[ Watch this helpful video!](https://www.youtube.com/watch?v=tou-bRF0i8Y\u0026feature=youtu.be)",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "213744364" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:27815918" },
+					"dateTime": "2026-10-14T17:30:00-05:00",
+					"createdTime": "2026-05-11T14:06:05-04:00",
+					"endTime": "2026-10-14T19:30:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 4 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:521222989" },
+					"displayPhoto": { "__ref": "PhotoInfo:521222989" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 4,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071148586" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071148587" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2071503761" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072103053" }
+							}
+						]
+					},
+					"maxTickets": 10,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Rsvp:2064853510": {
+					"__typename": "Rsvp",
+					"id": "2064853510",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2064853512": {
+					"__typename": "Rsvp",
+					"id": "2064853512",
+					"member": { "__ref": "Member:411956289" }
+				},
+				"Rsvp:2072103062": {
+					"__typename": "Rsvp",
+					"id": "2072103062",
+					"member": { "__ref": "Member:344101773" }
+				},
+				"Event:313672330": {
+					"__typename": "Event",
+					"id": "313672330",
+					"title": "Acquaintances \u0026 Alcohol (Friday Social) @ Headquarters Beercade (River North)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/313672330/",
+					"description": "***Hello old \u0026 new friends!*** We like to unwind on the *last Friday* of each month to do some chillmaxing (*whatever that means*) @ **Headquarters Beercade**!\n\nThis is a casual hangout event to talk with folks about *this* \u0026 *that*, while at a big cool bar that *lets you play arcade games for* ***free***. Even if you're *not* a super big anime nerd, feel free to connect w/ folks on *any* of your hobbies, interests, \u0026 experiences!\n\n**About [Headquarters Beercade](https://www.hqrivernorth.com/)**:\n• A funky arcade bar with loads of *throwback video games* \u0026 *films*, plus *creative craft beers*, *cocktails*, \u0026 *food*.\n• **Bar Reminder**: You will need to bring \u0026 show your ID to staff in order to enter even if you *don't* plan on drinking.\n• **From HQ Staff**: Please use the coat racks instead of leaving jackets lying around, \u0026 don't use the larger tables unless you intend to order drinks/food.\n\n**Schedule**:\n• **7:00pm**: Get your butt over to **Headquarters Beercade** (*don't forget your ID!*)\n• **Post-Event**: Depending on how the group's feeling, we'll typically dip after *\\~2\\~3* hours \u0026 find a cool local place to eat at (like [Griddle 24](https://www.griddle24.com/)).\n• **Also**: If you want to sync up with us pre/post-event, DM us in our...\n• [WhatsApp](https://chat.whatsapp.com/Cfa83H3C76698eQpMx3Icb)\n• or [Discord](https://discord.gg/QRg9duaHwK)\n• or this Meetup chat!\n\n*See you out there!*",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:398986297" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:25143481" },
+					"dateTime": "2026-10-23T19:00:00-05:00",
+					"createdTime": "2026-03-06T16:50:41-05:00",
+					"endTime": "2026-10-23T21:00:00-05:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 3 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": {
+						"__typename": "Series",
+						"description": "Every 4th Friday of the month until November 26, 2026",
+						"weeklyRecurrence": null,
+						"monthlyRecurrence": {
+							"__typename": "MonthlyRecurrenceInfo",
+							"monthlyDayOfWeek": "FRIDAY",
+							"monthlyWeekOfMonth": 4
+						}
+					},
+					"featuredEventPhoto": { "__ref": "PhotoInfo:529644897" },
+					"displayPhoto": { "__ref": "PhotoInfo:529644897" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 3,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2064853510" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2064853512" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072103062" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": null
+				},
+				"Rsvp:2072103188": {
+					"__typename": "Rsvp",
+					"id": "2072103188",
+					"member": { "__ref": "Member:398986297" }
+				},
+				"Rsvp:2072103189": {
+					"__typename": "Rsvp",
+					"id": "2072103189",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Event:314903986": {
+					"__typename": "Event",
+					"id": "314903986",
+					"title": "Bring Your Own Manga Book Club @ Goblin Market (Manga Shop) (Lakeview)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/314903986/",
+					"description": "hi - bring what you've been reading whether it's manga, light novels, manhwa, and more. hope to talk about what we've been reading, exchange recommendations, and more. just show up :D\n\nthis will be a reoccurring monthly event at Goblin Market, a manga shop located in Chicago's Lakeview neighborhood. once you enter, head down to their basement with seating. outside food is allowed but please be respectful of the venue.\n\n\\-\\-\\-\nFrom Goblin Market: for curious minds seeking a curated selection of manga, comics, games and more—Goblin Market is Chicago’s destination for first-timers and enthusiasts alike. Step inside, explore our collection and always ask us questions.\nWe’re delighted you are here.\n\n\\~\\~\\~\nwe hope to see you there!",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "398986297" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:27808280" },
+					"dateTime": "2026-11-01T14:00:00-06:00",
+					"createdTime": "2026-05-22T00:18:00-04:00",
+					"endTime": "2026-11-01T16:00:00-06:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 2 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": {
+						"__typename": "Series",
+						"description": "Every 1st Sunday of the month until January 4, 2027",
+						"weeklyRecurrence": null,
+						"monthlyRecurrence": {
+							"__typename": "MonthlyRecurrenceInfo",
+							"monthlyDayOfWeek": "SUNDAY",
+							"monthlyWeekOfMonth": 1
+						}
+					},
+					"featuredEventPhoto": { "__ref": "PhotoInfo:530495732" },
+					"displayPhoto": { "__ref": "PhotoInfo:530495732" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 2,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072103188" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2072103189" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 23,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318802601" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:316971938" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:320273508" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318614564" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:243805086" }
+							}
+						]
+					}
+				},
+				"Rsvp:2076860500": {
+					"__typename": "Rsvp",
+					"id": "2076860500",
+					"member": { "__ref": "Member:327374368" }
+				},
+				"Rsvp:2076860501": {
+					"__typename": "Rsvp",
+					"id": "2076860501",
+					"member": { "__ref": "Member:412362155" }
+				},
+				"Event:315692223": {
+					"__typename": "Event",
+					"id": "315692223",
+					"title": "Board Games (Dice Dojo) (Edgewater)",
+					"eventUrl": "https://www.meetup.com/chicago-anime-hangouts/events/315692223/",
+					"description": "board game meetup for chicago anime hangouts! hope to play some board games and have conversations about anime, and manga and more. just show up :D\n\ndice dojo has 1000+ games in their demo library. please support them if there’s a game you like and want to purchase.\n\n**feel free to bring what you'd like to play!**\n\nschedule:\n6:00 pm: show up / checkin and get started with board games. their board game night starts at 5:00 and ends at 10:00 pm.\n\nname tags will be brought to indicate who's apart of the meetup.\n\n\\-\\-\\-\n\nhope to see you there!\n\\-\\-\\-\n\nThank you to the '[Chicagoland 20’s and 30’s Young Professionals](https://www.meetup.com/oak-park-west-suburbs-young-professionals/)' Meetup for advice on hosting board games. :D",
+					"isSaved": false,
+					"group": { "__ref": "Group:37536316" },
+					"creatorMember": { "__ref": "Member:327374368" },
+					"eventHosts": [
+						{ "__typename": "EventHost", "memberId": "327374368" },
+						{ "__typename": "EventHost", "memberId": "412362155" }
+					],
+					"feeSettings": null,
+					"venue": { "__ref": "Venue:1027268" },
+					"dateTime": "2026-11-04T18:00:00-06:00",
+					"createdTime": "2026-07-15T07:05:30-04:00",
+					"endTime": "2026-11-04T21:00:00-06:00",
+					"going": { "__typename": "GoingRsvpConnection", "totalCount": 2 },
+					"isAttending": false,
+					"isOnline": false,
+					"eventType": "PHYSICAL",
+					"status": "ACTIVE",
+					"series": null,
+					"featuredEventPhoto": { "__ref": "PhotoInfo:525565790" },
+					"displayPhoto": { "__ref": "PhotoInfo:525565790" },
+					"rsvpState": "JOIN_OPEN",
+					"rsvps({\"first\":5})": {
+						"__typename": "RsvpConnection",
+						"totalCount": 2,
+						"edges": [
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076860500" }
+							},
+							{
+								"__typename": "RsvpEdge",
+								"node": { "__ref": "Rsvp:2076860501" }
+							}
+						]
+					},
+					"maxTickets": 0,
+					"actions": [],
+					"rsvpSettings": {
+						"__typename": "RsvpOpenSettings",
+						"rsvpsClosed": false
+					},
+					"isNetworkEvent": false,
+					"networkEvent": null,
+					"socialLabels": [],
+					"socialProofInsights": {
+						"__typename": "SocialProofInsights",
+						"isTrendingEvent": false,
+						"totalInterestedUsers": 23,
+						"interestedUsersSample": [
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318799047" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:323312186" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318802601" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:316971938" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:320273508" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:318614564" }
+							},
+							{
+								"__typename": "Member",
+								"memberPhoto": { "__ref": "PhotoInfo:243805086" }
+							}
+						]
+					}
+				}
+			},
+			"_sentryTraceData": "d023ec41255a1a064a0a717eb6dea5b3-b11442bd960c885c-0",
+			"_sentryBaggage": "sentry-environment=production,sentry-release=d2c93f8463625ec9695fb5546f9bf91d7a199a19,sentry-public_key=5d12cd2317664353456ab4c40d079af2,sentry-trace_id=d023ec41255a1a064a0a717eb6dea5b3,sentry-org_id=6787,sentry-sampled=false,sentry-sample_rand=0.8717208076226568,sentry-sample_rate=0.05"
+		},
+		"__N_SSP": true
+	},
+	"page": "/[slug]/events",
+	"query": { "slug": "chicago-anime-hangouts" },
+	"buildId": "d2c93f8463625ec9695fb5546f9bf91d7a199a19",
+	"isFallback": false,
+	"isExperimentalCompile": false,
+	"gssp": true,
+	"locale": "en-US",
+	"locales": [
+		"en-US",
+		"en-AU",
+		"de",
+		"de-DE",
+		"es",
+		"es-ES",
+		"fr",
+		"fr-FR",
+		"it",
+		"it-IT",
+		"ja",
+		"ja-JP",
+		"ko",
+		"ko-KR",
+		"nl",
+		"nl-NL",
+		"pl",
+		"pl-PL",
+		"pt",
+		"pt-BR",
+		"ru",
+		"ru-RU",
+		"tr",
+		"tr-TR",
+		"th-TH"
+	],
+	"defaultLocale": "en-US",
+	"scriptLoader": []
+}
