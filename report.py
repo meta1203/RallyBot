@@ -223,7 +223,7 @@ async def issue_warning(
 
 	# post the warning in #general with an @ mention of the warned user so
 	# they are notified. (Discord has no way to send a truly ephemeral message
-	# to another user — ephemeral responses only go to the interaction author —
+	# to another user - ephemeral responses only go to the interaction author -
 	# so the notice is a normal channel message that mentions them.)
 	warning_post = None
 	warning_post_failed = False
@@ -273,7 +273,7 @@ async def issue_warning(
 	if report_sort is not None:
 		followup_embed.add_field(name="Report ID", value=str(report_sort), inline=False)
 	if warning_post_failed:
-		followup_embed.add_field(name="Notice", value="⚠️ Could not post the warning in #general — warning still logged.", inline=False)
+		followup_embed.add_field(name="Notice", value="⚠️ Could not post the warning in #general - warning still logged.", inline=False)
 	elif warning_post is not None:
 		followup_embed.add_field(name="Posted", value=warning_post.jump_url, inline=False)
 
@@ -360,7 +360,7 @@ class BanConfirmModal(discord.ui.Modal, title="Confirm Ban"):
 
 	async def on_submit(self, interaction: discord.Interaction):
 		if self.confirm.value.strip().upper() != "CONFIRM":
-			await interaction.response.send_message("Ban cancelled — confirmation text did not match.", ephemeral=True)
+			await interaction.response.send_message("Ban cancelled - confirmation text did not match.", ephemeral=True)
 			return
 
 		# check if report is still pending

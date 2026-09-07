@@ -1,7 +1,7 @@
 """Forum pilot functionality (experimental; gated behind the FORUM_PILOT env var).
 
-Everything this module does — forum posts for events + the weekly announcements
-digest — only runs when FORUM_PILOT is set to any non-empty value (checked via
+Everything this module does - forum posts for events + the weekly announcements
+digest - only runs when FORUM_PILOT is set to any non-empty value (checked via
 forum_pilot_enabled()). Unset it and restart to roll the pilot back to the old
 at-mention behavior with zero code changes. Forum posts of events that get
 cancelled are cleaned up even with the pilot off, so no orphans are left behind.
@@ -34,7 +34,7 @@ from shared import shared, IN_PERSON_MENTION, ONLINE_MENTION
 
 FORUM_CHANNEL_ID = 1543307748006174920  # #event-chat forum channel
 ANNOUNCEMENTS_CHANNEL_ID = 1244283919218770030  # #announcements
-FORUM_POST_MAX_LEN = 4000  # discord's hard limit for forum post content
+FORUM_POST_MAX_LEN = 2000  # discord's hard limit for forum post content
 
 _forum_channel_cache: discord.ForumChannel | None = None
 
@@ -110,7 +110,7 @@ def _event_forum_body(event: events.MeetupEvent) -> str:
 	# chars for discord scheduled events
 	body_desc = (event.full_description or event.description or "").strip()
 	lines = [
-		f"**When:** {where} — <t:{round(event.start_time.timestamp())}:F>",
+		f"**When:** {where} - <t:{round(event.start_time.timestamp())}:F>",
 		"",
 		body_desc,
 		"",
@@ -165,7 +165,7 @@ async def update_forum_post(event: events.MeetupEvent) -> None:
 		print(f"(quiet mode) would update forum post for {event.sort} | {event.title}")
 		return
 	if not event.forum_thread_id:
-		# no post recorded (created before the pilot, or creation failed) — backfill it
+		# no post recorded (created before the pilot, or creation failed) - backfill it
 		print(f"no forum post recorded for {event.sort} | {event.title}, creating one...")
 		await create_forum_post(event)
 		return
@@ -261,9 +261,9 @@ def _post_link(event: events.MeetupEvent) -> str:
 	return event.link or ""
 
 def _fmt_day(start_time: dt.datetime) -> str:
-	return start_time.strftime("%b - %d")
+	return start_time.strftime("%b %d")
 
-def _kind_message(mention: str, happening: list[events.MeetupEvent], newly: list[events.MeetupEvent]) -> str | None:
+def _planned_events_message(mention: str, happening: list[events.MeetupEvent], newly: list[events.MeetupEvent]) -> str | None:
 	sections = []
 	if happening:
 		sections.append("\n".join(["## What's happening this week:"] +
@@ -273,7 +273,7 @@ def _kind_message(mention: str, happening: list[events.MeetupEvent], newly: list
 			[f"- {_fmt_day(e.start_time)}: [{e.title}]({_post_link(e)})" for e in newly]))
 	if not sections:
 		return None
-	return "\n\n".join([mention] + sections)
+	return "\n".join([mention] + sections)
 
 def _build_digest_messages(now: dt.datetime | None = None) -> list[str]:
 	"""Compose the sunday announcement. Returns only the messages that have
@@ -307,7 +307,7 @@ def _build_digest_messages(now: dt.datetime | None = None) -> list[str]:
 		return []
 	messages = [f"Today is {now.strftime('%B')} {now.day}, {now.year} and here are our CAH event announcements~!"]
 	for kind, mention in (("in-person", IN_PERSON_MENTION), ("online", ONLINE_MENTION)):
-		msg = _kind_message(mention, happening[kind], newly[kind])
+		msg = _planned_events_message(mention, happening[kind], newly[kind])
 		if msg:
 			messages.append(msg)
 	return messages

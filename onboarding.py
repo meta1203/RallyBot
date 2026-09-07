@@ -116,12 +116,12 @@ def _delete_intro_record(user_id: int) -> None:
 async def _intro_record_is_live(guild: discord.Guild, record: Intro) -> bool | None:
 	"""Is the recorded intro message a real, still-visible user post in #intro?
 
-	True  — the recorded message exists, is an ordinary user post, and its
+	True  - the recorded message exists, is an ordinary user post, and its
 	        author is the record's user.
-	False — the record is stale/bogus: the message was deleted, or it was
+	False - the record is stale/bogus: the message was deleted, or it was
 	        never a real post (e.g. a join-system notice recorded by an
 	        earlier version of the intro guard).
-	None  — Discord couldn't be asked right now; callers must treat the
+	None  - Discord couldn't be asked right now; callers must treat the
 	        record as valid (fail closed) rather than wiping data on a
 	        transient error.
 	"""
@@ -196,22 +196,22 @@ async def handle_accept(interaction: discord.Interaction) -> None:
 		return
 	role = await _get_intro_role(guild)
 	if role is None:
-		await interaction.response.send_message("Something went wrong (intro role missing) — please contact a moderator.", ephemeral=True)
+		await interaction.response.send_message("Something went wrong (intro role missing) - please contact a moderator.", ephemeral=True)
 		return
 	if role in member.roles:
 		# double click / role already present: clean up any stale welcome and confirm
 		await _delete_welcome(member.id)
 		await interaction.response.send_message(
-			f"You've already agreed to the rules — go ahead and post your introduction in <#{INTRO_CHANNEL_ID}>!",
+			f"You've already agreed to the rules - go ahead and post your introduction in <#{INTRO_CHANNEL_ID}>!",
 			ephemeral=True,
 		)
 		return
 	record = _get_intro_record(member.id)
 	if record is not None:
 		# a record exists, but is it real? A stale row whose message was
-		# deleted — or a bogus row that actually points at Discord's
+		# deleted - or a bogus row that actually points at Discord's
 		# "<user> joined the server" system notice (its author IS the
-		# joining member) — must not lock the user out of #intro forever.
+		# joining member) - must not lock the user out of #intro forever.
 		live = await _intro_record_is_live(guild, record)
 		if live is False:
 			_delete_intro_record(member.id)
@@ -223,22 +223,22 @@ async def handle_accept(interaction: discord.Interaction) -> None:
 		# rejoined member who already used their one intro: no role, no second intro
 		await _delete_welcome(member.id)
 		await interaction.response.send_message(
-			"Welcome back! You've already posted your introduction, so the intro channel stays locked for you — everything else is open. Enjoy!",
+			"Welcome back! You've already posted your introduction, so the intro channel stays locked for you - everything else is open. Enjoy!",
 			ephemeral=True,
 		)
 		return
 	try:
 		await member.add_roles(role, reason="Accepted the rules")
 	except discord.Forbidden:
-		print(f"ERROR: forbidden while adding intro role to {member.id} — is the bot's role above the intro role?")
-		await interaction.response.send_message("I couldn't assign your intro role — please contact a moderator.", ephemeral=True)
+		print(f"ERROR: forbidden while adding intro role to {member.id} - is the bot's role above the intro role?")
+		await interaction.response.send_message("I couldn't assign your intro role - please contact a moderator.", ephemeral=True)
 		return
 	except Exception as e:
 		print(f"ERROR: failed to add intro role to {member.id}: {e}")
-		await interaction.response.send_message("Something went wrong — please try again in a moment.", ephemeral=True)
+		await interaction.response.send_message("Something went wrong - please try again in a moment.", ephemeral=True)
 		return
 	await interaction.response.send_message(
-		f"Thanks for agreeing to the rules! You can now post **one** introduction in <#{INTRO_CHANNEL_ID}> — "
+		f"Thanks for agreeing to the rules! You can now post **one** introduction in <#{INTRO_CHANNEL_ID}> - "
 		"the posting permission is removed automatically right after your post.",
 		ephemeral=True,
 	)
@@ -447,7 +447,7 @@ async def on_member_join(member: discord.Member):
 	)
 	embed.add_field(
 		name="2 · Introduce yourself",
-		value=f"After agreeing, post your introduction in <#{INTRO_CHANNEL_ID}>. You get one intro post — the permission to post there is removed automatically right after.",
+		value=f"After agreeing, you can post an introduction in <#{INTRO_CHANNEL_ID}> if you'd like. You get one intro post, so make it count!",
 		inline=False,
 	)
 	embed.add_field(
@@ -492,7 +492,7 @@ async def handle_intro_message(message: discord.Message):
 		return
 	# only ordinary user posts can consume the one intro. Discord's
 	# "<user> joined the server" system notices are MESSAGE_CREATE events
-	# whose author is the joining member — without this check they were
+	# whose author is the joining member - without this check they were
 	# recorded as the user's one intro the instant they joined, locking
 	# them out of #intro before they ever typed a word.
 	if message.type not in USER_MESSAGE_TYPES:
@@ -524,7 +524,7 @@ async def handle_intro_message(message: discord.Message):
 				pass
 			except Exception as e:
 				print(f"ERROR: failed to delete repeat intro message {message.id} from {message.author.id}: {e}")
-			await _notify_author(message.author, "You've already posted your introduction in the intro channel — only one intro per person, so this one was removed. If you'd like to share an update, feel free to post elsewhere in the server!")
+			await _notify_author(message.author, "You've already posted your introduction in the intro channel - only one intro per person, so this one was removed. If you'd like to share an update, feel free to post elsewhere in the server!")
 			return
 
 	# first (valid) intro: record it, then remove the intro role
@@ -532,7 +532,7 @@ async def handle_intro_message(message: discord.Message):
 		Intro(sort=message.author.id, message_id=message.id, timestamp=_now_ms()).save()
 	except Exception as e:
 		print(f"ERROR: failed to save intro record for {message.author.id}: {e}")
-		# don't strip the role if we couldn't record the post — otherwise the
+		# don't strip the role if we couldn't record the post - otherwise the
 		# user could end up unable to post at all
 		return
 
@@ -544,7 +544,7 @@ async def handle_intro_message(message: discord.Message):
 				await message.author.remove_roles(role, reason="Posted their intro; one-intro rule")
 				print(f"Removed intro role from {message.author.id} after their intro post")
 			except discord.Forbidden:
-				print(f"ERROR: forbidden while removing intro role from {message.author.id} — is the bot's role above the intro role?")
+				print(f"ERROR: forbidden while removing intro role from {message.author.id} - is the bot's role above the intro role?")
 			except Exception as e:
 				print(f"ERROR: failed to remove intro role from {message.author.id}: {e}")
 	print(f"Recorded intro post {message.id} from {message.author.id}; intro role removed.")
