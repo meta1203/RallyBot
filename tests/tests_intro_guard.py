@@ -8,11 +8,14 @@ they ever typed anything. Also covers tombstone healing (a recorded intro
 whose message was deleted must not lock the user out forever) and guards
 for the previously-correct behaviors.
 
-Run inside the project venv: .venv/bin/python tests_intro_guard.py
+Run inside the project venv: .venv/bin/python tests/tests_intro_guard.py
 """
 import asyncio
 import os
+import sys
 import types
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # quiet mode must be OFF for these tests (welcome sends happen)
 os.environ.pop("QUIET_RALLY", None)

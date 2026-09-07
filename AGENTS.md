@@ -23,11 +23,12 @@ Discord bot for the **chicago-anime-hangouts** Meetup group that mirrors Meetup 
 pip install -r requirements.txt   # or: uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
 python main.py                    # runs the bot; needs DISCORD_TOKEN + AWS creds
 python events.py                  # debug harness: rechecks all tracked events against Meetup (sleeps 5s per event)
+python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py   # offline test scripts (run from repo root; they bootstrap sys.path)
 docker build -t rallybot .        # non-root user; copies the 5 .py files explicitly — add new modules to the Dockerfile COPY line
 docker run -d -e DISCORD_TOKEN=... -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... --name rallybot rallybot
 ```
 
-There is **no test suite and no CI**. Verification = `python -m py_compile *.py` plus import smoke tests with `discord.Client.run` stubbed.
+No CI. Verification = the offline test scripts in `tests/` (above) plus `python -m py_compile *.py`.
 
 ## Configuration
 

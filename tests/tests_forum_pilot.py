@@ -1,6 +1,6 @@
 """Offline verification for the forum pilot (no live token, no ddb, no discord).
 
-Run inside the project venv: .venv/bin/python tests_forum_pilot.py
+Run inside the project venv: .venv/bin/python tests/tests_forum_pilot.py
 Follows the discord-bot-development skill's verification procedure: import
 smoke test with Client.run stubbed, then assert on captured fake-sends.
 Prints a final all-passed marker only when every assertion holds.
@@ -10,6 +10,8 @@ import datetime as dt
 import os
 import sys
 import types
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ---- fake discord layer (must exist before importing bot modules) ----
 captured = {"threads": [], "sends": [], "starter_edits": [], "thread_edits": [], "created_tags": []}
