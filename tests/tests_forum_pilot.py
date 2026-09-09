@@ -120,6 +120,8 @@ class FakeGuild:
 		if ch is None:
 			class _FakeResponse:
 				status = 404
+				reason = "Not Found"
+				headers = {}
 			raise discord.errors.NotFound(_FakeResponse(), "nope")
 		return ch
 
@@ -280,7 +282,7 @@ async def main():
 	check("online msg pings role", msgs[2].startswith(ONLINE_MENTION))
 	check("happening section present", "## What's happening this week:" in msgs[1])
 	check("newly planned section present", "## Newly planned events:" in msgs[1])
-	check("old event listed as happening", "- " + ev_in_old.start_time.strftime("%b - %d") + ": [Anime Night]" in msgs[1])
+	check("old event listed as happening", "- " + ev_in_old.start_time.strftime("%b %d") + ": [Anime Night]" in msgs[1])
 	check("forum post link used", f"https://discord.com/channels/{shared_mod.shared.guild.id}/990000000000000001" in msgs[1])
 	check("new event listed as newly planned", "[New In-Person]" in msgs[1].split("## Newly planned events:")[1])
 	check("old event NOT in newly planned", "[Anime Night]" not in msgs[1].split("## Newly planned events:")[1])
@@ -318,6 +320,68 @@ async def main():
 	finally:
 		events.MeetupEvent.scan = real_scan
 	check("weekly send posts all messages", captured["sends"] == msgs)
+
+	# 11. 30-day hold-back: far-out events get no forum post until they start
+	# in less than a month; the daily check (ensure_forum_post) creates the
+	# post once the event enters the window
+	n_posts = len(captured["threads"])
+	ev_far = make_event(sort=777, title="Far Out Event", start_offset_days=40)
+	check("far-out event not in post window", forum.event_in_post_window(ev_far) is False)
+	tid = await forum.ensure_forum_post(ev_far)
+	check("far-out post held back", tid is None and len(captured["threads"]) == n_posts)
+	check("held-back row keeps no thread id", ev_far.forum_thread_id is None)
+	await forum.update_forum_post(ev_far)
+	check("update path holds back far-out event", len(captured["threads"]) == n_posts)
+	# naive datetimes don't crash the window check (interpreted as utc)
+	ev_far.datetime = ev_far.datetime.replace(tzinfo=None)
+	check("naive datetime handled in window check", forum.event_in_post_window(ev_far) is False)
+	# events with no start time at all are held back
+	ev_far_nostart = make_event(sort=778)
+	ev_far_nostart.start_time = None
+	check("missing start time held back", forum.event_in_post_window(ev_far_nostart) is False)
+	# the daily catch-up creates the post once the event enters the window
+	ev_far.start_time = dt.datetime.now(shared_mod.shared.est) + dt.timedelta(days=3)
+	tid = await forum.ensure_forum_post(ev_far)
+	check("catch-up creates post in window", tid == 990000000000000001 and len(captured["threads"]) == n_posts + 1)
+	check("catch-up stores thread id", ev_far.forum_thread_id == 990000000000000001)
+	# already-posted events are not touched by the catch-up (no duplicate)
+	tid_again = await forum.ensure_forum_post(ev_far)
+	check("posted event untouched by catch-up", tid_again == 990000000000000001 and len(captured["threads"]) == n_posts + 1)
+
+	# 12. startup sync: creates in-window unposted events, skips far-out ones
+	ev_far2 = make_event(sort=788, start_offset_days=45)
+	ev_near = make_event(sort=789, start_offset_days=5)
+	events.MeetupEvent.scan = classmethod(lambda cls, **kw: iter([ev_far2, ev_near]))
+	try:
+		await forum.sync_forum_posts()
+	finally:
+		events.MeetupEvent.scan = real_scan
+	check("sync creates in-window post", ev_near.forum_thread_id == 990000000000000001)
+	check("sync holds back far-out post", ev_far2.forum_thread_id is None)
+
+	# 13. digest: far-out events are never "newly planned"; a held-back event
+	# whose post was just created by the daily catch-up IS announced (detected
+	# via the thread snowflake's creation time)
+	ev_new_far = make_event(sort=790, title="Too Far Out", created_at=now, start_offset_days=60)
+	fresh_thread_snowflake = int((int(now.timestamp() * 1000) - 1420070400000) << 22)
+	ev_released = make_event(sort=791, title="Just Released", created_at=old, forum_thread_id=fresh_thread_snowflake)
+	ev_released.start_time = at(4)
+	events.MeetupEvent.scan = classmethod(lambda cls, **kw: iter([ev_in_old, ev_in_new, ev_on_new, ev_new_far, ev_released]))
+	try:
+		msgs_hold = forum._build_digest_messages(now)
+	finally:
+		events.MeetupEvent.scan = real_scan
+	newly_sec = msgs_hold[1].split("## Newly planned events:")[1]
+	check("far-out event not in newly planned", "[Too Far Out]" not in newly_sec)
+	check("held-back event announced after catch-up", "[Just Released]" in newly_sec)
+	check("old event still not newly planned", "[Anime Night]" not in newly_sec)
+
+	# 14. out-of-band thread deletion: update recreates the post instead of
+	# recursing update -> create -> update (the stale id must be dropped first)
+	gone_thread_ev = make_event(sort=792, forum_thread_id=880000000000000004)
+	n_posts = len(captured["threads"])
+	await forum.update_forum_post(gone_thread_ev)
+	check("404 thread recreated not recursed", len(captured["threads"]) == n_posts + 1 and gone_thread_ev.forum_thread_id == 990000000000000001)
 
 	print("ALL PASSED")
 

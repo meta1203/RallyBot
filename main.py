@@ -92,6 +92,11 @@ async def update_events():
 				print(f"Updated discord event {event.sort} | {event.title}")
 			else:
 				print(f"{event.title} already exists.")
+				# daily catch-up: events first announced more than a month out
+				# only get their forum post once they start in less than a
+				# month (see forum.event_in_post_window / ensure_forum_post)
+				if FORUM_PILOT:
+					await forum.ensure_forum_post(event)
 		else:
 			# has not been created, so create it
 			discord_event = await shared.guild.create_scheduled_event(
@@ -112,7 +117,12 @@ async def update_events():
 	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.est).timestamp() * 1000)):
 		if event.sort not in hashed_ids:
 			print(f"rechecking event {event.sort} | {event.title} ...")
-			await events.check_existing_event(event)
+			# only catch up the forum post when the recheck confirms the event
+			# is still live on meetup (a False means deleted or skipped —
+			# re-posting then would resurrect a cancelled event's post)
+			still_live = await events.check_existing_event(event)
+			if still_live and FORUM_PILOT:
+				await forum.ensure_forum_post(event)
 
 def get_channel_for_ddb_event(event: events.MeetupEvent):
 	if not event:

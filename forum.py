@@ -21,6 +21,13 @@ Each of msg 2/3 has a "What's happening this week" section (events starting in
 the upcoming week, monday through sunday) and a "Newly planned events" section
 (events first scheduled since the last weekly message; each event appears here
 at most once, enforced via the event's created_at timestamp).
+Events that start more than a month out are held back: no forum post is
+created for them and they are not alerted as newly planned in the digest
+until they start in less than 30 days (event_in_post_window). The daily
+update_events check then creates the held-back posts once they enter the
+window (ensure_forum_post). A held-back event is announced in the digest at
+the first weekly run after its post is created (detected via the forum
+thread's snowflake creation time, so no extra ddb field is needed).
 """
 import asyncio
 import datetime as dt
@@ -35,6 +42,7 @@ from shared import shared, IN_PERSON_MENTION, ONLINE_MENTION
 FORUM_CHANNEL_ID = 1543307748006174920  # #event-chat forum channel
 ANNOUNCEMENTS_CHANNEL_ID = 1244283919218770030  # #announcements
 FORUM_POST_MAX_LEN = 2000  # discord's hard limit for forum post content
+FORUM_POST_WINDOW = dt.timedelta(days=30)  # events starting further out are held back
 
 _forum_channel_cache: discord.ForumChannel | None = None
 
@@ -129,6 +137,28 @@ def _event_forum_body(event: events.MeetupEvent) -> str:
 		print(f"WARNING: forum body for {event.sort} | {event.title} exceeded {FORUM_POST_MAX_LEN} chars, truncated")
 	return body
 
+def event_in_post_window(event: events.MeetupEvent) -> bool:
+	"""True when the event starts soon enough (in less than a month) to be
+	posted to the forum / alerted as newly planned in the weekly digest.
+	Far-out events are held back; the daily update_events check posts them
+	once they enter the window (see ensure_forum_post)."""
+	start = event.start_time
+	if not start:
+		return False
+	if not start.tzinfo:
+		# defensive: rows should always carry tz-aware datetimes
+		start = start.replace(tzinfo=dt.timezone.utc)
+	return start < dt.datetime.now(shared.est) + FORUM_POST_WINDOW
+
+async def ensure_forum_post(event: events.MeetupEvent) -> int | None:
+	"""Daily-check catch-up: create the forum post for an already-seen event
+	that is still unposted and has now entered the post window. Events with a
+	post are left untouched (no redundant update API calls) and far-out
+	events stay held back."""
+	if event.forum_thread_id:
+		return int(event.forum_thread_id)
+	return await create_forum_post(event)
+
 async def create_forum_post(event: events.MeetupEvent) -> int | None:
 	"""Create the event's forum post and record its thread id on the event row.
 	Returns the thread id (or None when the post couldn't be created)."""
@@ -137,6 +167,9 @@ async def create_forum_post(event: events.MeetupEvent) -> int | None:
 		# update the existing post instead of creating a duplicate
 		await update_forum_post(event)
 		return int(event.forum_thread_id)
+	if not event_in_post_window(event):
+		print(f"holding back forum post for {event.sort} | {event.title}: starts more than a month out ({event.start_time})")
+		return None
 	if shared.quiet:
 		print(f"(quiet mode) would create forum post for {event.sort} | {event.title}")
 		return None
@@ -165,7 +198,12 @@ async def update_forum_post(event: events.MeetupEvent) -> None:
 		print(f"(quiet mode) would update forum post for {event.sort} | {event.title}")
 		return
 	if not event.forum_thread_id:
-		# no post recorded (created before the pilot, or creation failed) - backfill it
+		# no post recorded (created before the pilot, creation failed, or the
+		# event starts too far out and is being held back) - backfill only
+		# once the event is inside the post window
+		if not event_in_post_window(event):
+			print(f"holding back forum post for {event.sort} | {event.title}: starts more than a month out")
+			return
 		print(f"no forum post recorded for {event.sort} | {event.title}, creating one...")
 		await create_forum_post(event)
 		return
@@ -180,6 +218,10 @@ async def update_forum_post(event: events.MeetupEvent) -> None:
 		thread = None
 	if not isinstance(thread, discord.Thread):
 		print(f"WARNING: forum thread {event.forum_thread_id} for {event.sort} | {event.title} is gone; recreating post")
+		# drop the stale thread id first: with it still set, create_forum_post
+		# routes straight back into this 404 path (update -> create -> update
+		# -> ...) instead of actually creating a fresh post
+		event.forum_thread_id = None
 		await create_forum_post(event)
 		return
 	try:
@@ -221,7 +263,8 @@ async def delete_forum_post(event: events.MeetupEvent) -> None:
 		print(f"ERROR: failed deleting forum post {event.forum_thread_id}:\n{traceback.format_exc()}")
 
 async def sync_forum_posts() -> None:
-	"""Startup sync: make sure every tracked upcoming event has a forum post.
+	"""Startup sync: make sure every tracked upcoming event inside the post
+	window has a forum post.
 	Creates missing ones and refreshes stale ones (e.g. posts written before
 	full_description existed). In-sync posts are left untouched, so this is
 	cheap to run on every startup."""
@@ -232,6 +275,9 @@ async def sync_forum_posts() -> None:
 			filter_condition=events.MeetupEvent.timestamp > now_ms)))
 	for event in upcoming:
 		if not event.forum_thread_id:
+			if not event_in_post_window(event):
+				print(f"holding back forum post for {event.sort} | {event.title}: starts more than a month out")
+				continue
 			print(f"backfilling forum post for {event.sort} | {event.title}")
 			await create_forum_post(event)
 		else:
@@ -253,6 +299,11 @@ def _last_weekly_run(now: dt.datetime) -> dt.datetime:
 	if candidate >= now:
 		candidate -= dt.timedelta(days=7)
 	return candidate
+
+def _snowflake_time(snowflake) -> dt.datetime:
+	"""Creation timestamp of a discord object decoded from its snowflake id
+	(discord epoch 1420070400000, top 42 bits)."""
+	return dt.datetime.fromtimestamp(((int(snowflake) >> 22) + 1420070400000) / 1000, tz=dt.timezone.utc)
 
 def _post_link(event: events.MeetupEvent) -> str:
 	"""Web URL of the event's forum post, falling back to the meetup link."""
@@ -298,7 +349,20 @@ def _build_digest_messages(now: dt.datetime | None = None) -> list[str]:
 			happening[kind].append(event)
 		if event.created_at:
 			created = event.created_at if event.created_at.tzinfo else event.created_at.replace(tzinfo=dt.timezone.utc)
-			if created >= last_run:
+			# an event counts as newly planned from the moment the community can
+			# see it: either it was scheduled since the last digest, or its forum
+			# post was created since then — that second case is how a far-out
+			# event that was held back until it entered the post window gets
+			# announced, at the first digest after the daily check posts it.
+			# The post's creation time is decoded from the thread snowflake, so
+			# no extra ddb field is needed.
+			try:
+				thread_created = _snowflake_time(event.forum_thread_id) if event.forum_thread_id else None
+			except Exception:
+				thread_created = None
+			# far-out events are never alerted (only events starting within the
+			# post window); they surface via the daily check's catch-up
+			if event_in_post_window(event) and (created >= last_run or (thread_created and thread_created >= last_run)):
 				newly[kind].append(event)
 	for lst in list(happening.values()) + list(newly.values()):
 		lst.sort(key=lambda e: e.start_time)
