@@ -98,7 +98,7 @@ class MeetupEvent(RallyBotModel):
 		ddb_event.location = event.location
 		ddb_event.snowflake_id = event.id
 		ddb_event.online = (event.entity_type != discord.EntityType.external)
-		ddb_event.created_at = dt.datetime.now(shared.est)
+		ddb_event.created_at = dt.datetime.now(shared.central_time)
 		ddb_event.save()
 		return ddb_event
 
@@ -226,7 +226,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 			if j_item['status'] != "ACTIVE":
 				# don't do anything with a non-active event
 				continue
-			if dt.datetime.fromisoformat(j_item['dateTime']) < dt.datetime.now(shared.est):
+			if dt.datetime.fromisoformat(j_item['dateTime']) < dt.datetime.now(shared.central_time):
 				# past event: nothing to mirror
 				continue
 
@@ -236,7 +236,7 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 				event = MeetupEvent(sort=guid)
 				# stamp when the event was first scheduled; used by the weekly
 				# digest's "newly planned" section and never updated afterwards
-				event.created_at = dt.datetime.now(shared.est)
+				event.created_at = dt.datetime.now(shared.central_time)
 			except AttributeDeserializationError:
 				# this can happen if the data in ddb is corrupted or in an unexpected format
 				print(f"data for event with guid {guid} is attempting to mitigate...")
@@ -282,7 +282,7 @@ def fetch_meetup_events_rss() -> list[MeetupEvent]:
 				event = MeetupEvent(sort=guid)
 				# stamp when the event was first scheduled; used by the weekly
 				# digest's "newly planned" section and never updated afterwards
-				event.created_at = dt.datetime.now(shared.est)
+				event.created_at = dt.datetime.now(shared.central_time)
 			except AttributeDeserializationError:
 				# this can happen if the data in ddb is corrupted or in an unexpected format
 				print(f"data for event with guid {guid} is attempting to mitigate...")
@@ -379,7 +379,7 @@ def ai_categorize(description: str) -> str:
 
 if __name__ == "__main__":
 	from time import sleep
-	for event in MeetupEvent.scan(index_name="timestamp-index", filter_condition=MeetupEvent.timestamp > int(dt.datetime.now(shared.est).timestamp() * 1000)):
+	for event in MeetupEvent.scan(index_name="timestamp-index", filter_condition=MeetupEvent.timestamp > int(dt.datetime.now(shared.central_time).timestamp() * 1000)):
 		j_item = _meetup_url_to_json(f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/")
 		print(f"DEBUG: rechecked event {event.sort} | {event.title} status: {j_item['status']}")
 		sleep(5)

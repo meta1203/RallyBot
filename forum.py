@@ -148,7 +148,7 @@ def event_in_post_window(event: events.MeetupEvent) -> bool:
 	if not start.tzinfo:
 		# defensive: rows should always carry tz-aware datetimes
 		start = start.replace(tzinfo=dt.timezone.utc)
-	return start < dt.datetime.now(shared.est) + FORUM_POST_WINDOW
+	return start < dt.datetime.now(shared.central_time) + FORUM_POST_WINDOW
 
 async def ensure_forum_post(event: events.MeetupEvent) -> int | None:
 	"""Daily-check catch-up: create the forum post for an already-seen event
@@ -289,7 +289,7 @@ def _next_weekday(now: dt.datetime, weekday: int) -> dt.datetime:
 	"""Midnight CT on the next given weekday (0=monday); today counts."""
 	days_ahead = (weekday - now.weekday()) % 7
 	day = now.date() + dt.timedelta(days=days_ahead)
-	return dt.datetime.combine(day, dt.time.min, tzinfo=shared.est)
+	return dt.datetime.combine(day, dt.time.min, tzinfo=shared.central_time)
 
 def _last_weekly_run(now: dt.datetime) -> dt.datetime:
 	"""The most recent sunday-3pm CT moment strictly before now, used as the
@@ -312,7 +312,9 @@ def _post_link(event: events.MeetupEvent) -> str:
 	return event.link or ""
 
 def _fmt_day(start_time: dt.datetime) -> str:
-	return start_time.strftime("%b %d")
+	# always render the wall-clock day in CT, even when the stored datetime
+	# carries a different offset (e.g. the discord-event path stores UTC)
+	return start_time.astimezone(shared.central_time).strftime("%b %d")
 
 def _planned_events_message(mention: str, happening: list[events.MeetupEvent], newly: list[events.MeetupEvent]) -> str | None:
 	sections = []
@@ -331,7 +333,7 @@ def _build_digest_messages(now: dt.datetime | None = None) -> list[str]:
 	content; an empty list means nothing goes out this week (and then the intro
 	line isn't sent either)."""
 	if now is None:
-		now = dt.datetime.now(shared.est)
+		now = dt.datetime.now(shared.central_time)
 	week_start = _next_weekday(now, 0)  # upcoming monday, midnight
 	week_end = week_start + dt.timedelta(days=7)
 	last_run = _last_weekly_run(now)

@@ -64,7 +64,7 @@ check("venue __ref inlined (name/address/city present)",
 		isinstance(ven, dict) and all(k in ven for k in ('name', 'address', 'city')), repr(ven))
 
 # ---- 2. fetch_meetup_events over the sample ----
-now = datetime.now(timezone.utc).astimezone(shared.shared.est)
+now = datetime.now(timezone.utc).astimezone(shared.shared.central_time)
 active_future_ids = sorted(int(e['id']) for e in sample_events
 		if e['status'] == 'ACTIVE'
 		and datetime.fromisoformat(e['dateTime']) >= now)

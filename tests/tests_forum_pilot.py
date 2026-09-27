@@ -141,7 +141,7 @@ def make_event(sort=111, title="Anime Night", category="watch party", online=Fal
 	ev.description = "A watch party for fans."
 	ev.full_description = full_description if full_description is not None else ev.description
 	ev.link = f"https://www.meetup.com/chicago-anime-hangouts/events/{sort}/"
-	ev.start_time = dt.datetime.now(shared_mod.shared.est) + dt.timedelta(days=start_offset_days)
+	ev.start_time = dt.datetime.now(shared_mod.shared.central_time) + dt.timedelta(days=start_offset_days)
 	ev.category = category
 	ev.online = online
 	ev.forum_thread_id = forum_thread_id
@@ -252,13 +252,16 @@ async def main():
 	check("no duplicate post", len(captured["threads"]) == n_posts)
 
 	# 6. weekly digest shape: intro, one message per kind, sections, links
-	now = dt.datetime.now(shared_mod.shared.est)
+	now = dt.datetime.now(shared_mod.shared.central_time)
 	last_run = forum._last_weekly_run(now)
 	check("last weekly run is a sunday 3pm", last_run.weekday() == 6 and last_run.hour == 15 and last_run < now)
 	week_start = forum._next_weekday(now, 0)
 	week_end = week_start + dt.timedelta(days=7)
 	old = now - dt.timedelta(days=14)
-	fresh = now - dt.timedelta(days=2)
+	# anchor to the computed cutoff, not raw now: on a Sunday run after 3pm the
+	# cutoff is today, and a now-anchored fresh fixture (now-2d) would fall
+	# before it and silently break the "newly planned" assertions
+	fresh = last_run + dt.timedelta(hours=1)
 	def at(day_offset, hour=18):
 		return week_start + dt.timedelta(days=day_offset, hours=hour)
 	# in-person: one happening (old, inside the week window), one newly planned;
@@ -340,7 +343,7 @@ async def main():
 	ev_far_nostart.start_time = None
 	check("missing start time held back", forum.event_in_post_window(ev_far_nostart) is False)
 	# the daily catch-up creates the post once the event enters the window
-	ev_far.start_time = dt.datetime.now(shared_mod.shared.est) + dt.timedelta(days=3)
+	ev_far.start_time = dt.datetime.now(shared_mod.shared.central_time) + dt.timedelta(days=3)
 	tid = await forum.ensure_forum_post(ev_far)
 	check("catch-up creates post in window", tid == 990000000000000001 and len(captured["threads"]) == n_posts + 1)
 	check("catch-up stores thread id", ev_far.forum_thread_id == 990000000000000001)

@@ -13,7 +13,7 @@ ONLINE_MENTION = "<@&1366085997917638826>"
 class Singleton:
 	client: discord.Client = None
 	guild: discord.Guild = None
-	est = ZoneInfo('America/Chicago')
+	central_time = ZoneInfo('America/Chicago')
 	_channels: dict[str, discord.guild.TextChannel] = None
 	recent_messages = deque(maxlen=5)
 

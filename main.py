@@ -114,7 +114,7 @@ async def update_events():
 			await notify_new_event(event)
 	# check for cancelled events and remove them from ddb
 	hashed_ids: set[int] = set(map(lambda event: event.sort, on_meetup))
-	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.est).timestamp() * 1000)):
+	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.central_time).timestamp() * 1000)):
 		if event.sort not in hashed_ids:
 			print(f"rechecking event {event.sort} | {event.title} ...")
 			# only catch up the forum post when the recheck confirms the event
@@ -146,7 +146,7 @@ async def notify_new_event(event: events.MeetupEvent):
 
 async def notify_events():
 	discord_events = await shared.guild.fetch_scheduled_events()
-	now = datetime.datetime.now(shared.est)
+	now = datetime.datetime.now(shared.central_time)
 	for de in discord_events:
 		query = events.MeetupEvent.scan(index_name="snowflake_id-index", filter_condition=events.MeetupEvent.snowflake_id == de.id)
 		# ResultIterator.next() raises StopIteration when nothing matches (e.g.
