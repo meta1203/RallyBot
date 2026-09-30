@@ -23,12 +23,13 @@ Discord bot for the **chicago-anime-hangouts** Meetup group that mirrors Meetup 
 pip install -r requirements.txt   # or: uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
 python main.py                    # runs the bot; needs DISCORD_TOKEN + AWS creds
 python events.py                  # debug harness: rechecks all tracked events against Meetup (sleeps 5s per event)
-python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py   # offline test scripts (run from repo root; they bootstrap sys.path)
+python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py && python tests/apollo_fetch_test.py   # offline test scripts (run from repo root; they bootstrap sys.path)
+.venv/bin/python tests/live_meetup_test.py   # LIVE smoke test: real meetup.com fetch (list page + 2 event pages + rss); no AWS/Discord writes; exit 0 pass / 1 broken / 2 inconclusive
 docker build -t rallybot .        # non-root user; copies the 5 .py files explicitly — add new modules to the Dockerfile COPY line
 docker run -d -e DISCORD_TOKEN=... -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... --name rallybot rallybot
 ```
 
-No CI. Verification = the offline test scripts in `tests/` (above) plus `python -m py_compile *.py`.
+No CI. Verification = the offline test scripts in `tests/` (above) plus `python -m py_compile *.py`. A weekly Hermes cron job ("RallyBot meetup scrape weekly check") runs `tests/live_meetup_test.py` against live Meetup and opens a `fix/meetup-scrape-<date>` branch when it exits 1.
 
 ## Configuration
 
@@ -43,7 +44,7 @@ Read via `os.getenv` only — no dotenv loading, no config file.
 
 ```
 main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, notify_events hourly, weekly digest sundays 3pm CT when FORUM_PILOT), create/update/announce flow, onboarding event hooks
-events.py     MeetupEvent model + RSS scrape → __NEXT_DATA__ JSON → upsert; cancellation checks; AI categorizer
+events.py     MeetupEvent model + list/RSS/page scrape → __NEXT_DATA__ JSON → upsert; cancellation checks; AI categorizer
 forum.py      forum pilot (gated by FORUM_PILOT): event posts in #event-chat forum (create/update/delete + tags), weekly announcements digest builder/sender, backfill for pre-pilot events
 report.py     Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rb warn slash command
 onboarding.py New-user flow: #intro welcome on join, persistent "agree to rules" button in #rules, intro role grant/removal, one-intro-post enforcement
@@ -51,7 +52,7 @@ aws.py        RallyBotModel (PynamoDB base: table RallyBot, us-east-2, keys id+s
 shared.py     Singleton: client, guild, channel-name cache, scheduler, message_channel (dedupe + quiet mode), role mention constants
 ```
 
-Flow: RSS feed → per-event page scrape → PynamoDB upsert → Discord scheduled-event create/edit → forum post in #event-chat (pilot) or at-mention announcement in the category channel (legacy), with online/in-person tagging either way.
+Flow: events list page scrape → PynamoDB upsert → Discord scheduled-event create/edit → forum post in #event-chat (pilot) or at-mention announcement in the category channel (legacy), with online/in-person tagging either way.
 
 ## Conventions & absence notes
 

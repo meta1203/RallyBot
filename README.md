@@ -118,6 +118,8 @@ If `DO_AI_ENDPOINT`/`DO_AI_SECRET` are unset, events are simply categorized as `
 
 `events.py` can also be run directly (`python events.py`) as a debug harness that rechecks every tracked event against Meetup.
 
+`tests/live_meetup_test.py` is a live smoke test for the Meetup fetch — it hits the real meetup.com and never touches DynamoDB or Discord. Run it with `.venv/bin/python tests/live_meetup_test.py` (exit codes: 0 pass, 1 broken fetch, 2 inconclusive). It is also run weekly by a health-check job that opens a fix branch when the fetch breaks.
+
 ### Configuration
 
 The bot is currently hardcoded to:
