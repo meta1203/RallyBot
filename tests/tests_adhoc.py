@@ -230,6 +230,60 @@ async def main():
 	aware = dt.datetime(2026, 11, 5, 12, 0, 0, tzinfo=dt.timezone.utc)
 	check("norm_dt equalizes naive/aware utc", adhoc._norm_dt(naive) == aware and adhoc._norm_dt(None) is None)
 
+	# ---- task 3: llm.ai_extract_event ----
+	import llm
+	real_chat = llm.chat
+	llm.OPENROUTER_API_KEY = "test-key"  # tests stub chat entirely; never hit OpenRouter
+	valid_json = json.dumps({
+		"is_event": True, "title": "Karaoke Night", "start": "2026-11-07T19:00:00-06:00",
+		"end": None, "duration_minutes": None, "location": "Big Mouth Chicago",
+		"online": False, "description": "Sing!", "category": "karaoke", "missing": [],
+	})
+	fenced = "```json\n" + valid_json + "\n```"
+	prose = "Sure! Here is the JSON you asked for:\n" + valid_json + "\nHope that helps!"
+
+	def stub_chat(reply, calls=None):
+		calls = {"n": 0} if calls is None else calls
+		def _chat(messages, timeout=60):
+			calls["n"] += 1
+			return reply() if callable(reply) else reply
+		llm.chat = _chat
+		return calls
+
+	calls = stub_chat(valid_json)
+	res = llm.ai_extract_event("Karaoke Night", "Nov 7, 7pm at Big Mouth Chicago")
+	check("extract parses valid json", isinstance(res, dict) and res["title"] == "Karaoke Night")
+	check("extract makes one call for clean json", calls["n"] == 1)
+
+	calls = stub_chat(fenced)
+	res = llm.ai_extract_event("t", "b")
+	check("extract strips code fences", isinstance(res, dict) and res["is_event"] is True)
+
+	calls = stub_chat(prose)
+	res = llm.ai_extract_event("t", "b")
+	check("extract slices json out of prose", isinstance(res, dict) and res["category"] == "karaoke")
+
+	garbage_calls = stub_chat("this is not json at all, sorry!")
+	res = llm.ai_extract_event("t", "b")
+	check("garbage twice -> None", res is None and garbage_calls["n"] == 2)
+
+	def _raise(messages, timeout=60):
+		raise RuntimeError("network down")
+	llm.chat = _raise
+	res = llm.ai_extract_event("t", "b")
+	llm.chat = real_chat
+	check("transport failure -> None (transient, not missing info)", res is None)
+
+	# the system prompt must interpolate the category list at call time
+	prompt_seen = {}
+	def _capture_chat(messages, timeout=60):
+		prompt_seen["system"] = messages[0]["content"]
+		return valid_json
+	llm.chat = _capture_chat
+	llm.ai_extract_event("t", "b")
+	llm.chat = real_chat
+	check("system prompt carries category list", "karaoke" in prompt_seen.get("system", ""))
+
 	print("ALL PASSED")
 
 asyncio.run(main())
