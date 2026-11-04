@@ -161,6 +161,10 @@ class FakeGuild:
 			return self._announce
 		return self.threads.get(id)
 
+	async def active_threads(self):
+		# mirrors the guild-level REST call the real sweep uses
+		return list(self.threads.values())
+
 	async def fetch_channel(self, id):
 		ch = self.get_channel_or_thread(id)
 		if ch is None:
@@ -582,6 +586,73 @@ async def main():
 	await main.on_raw_thread_delete(FakeRawThreadDelete(910000000000000023, forum.FORUM_CHANNEL_ID))
 	check("thread delete routes to cleanup", cleaned == [910000000000000023])
 
+	adhoc.process_thread = real_process
+	adhoc.cleanup_deleted_post = real_cleanup
+
+	# ---- task 8: startup sweep ----
+	adhoc.SWEEP_DELAY = 0  # no sleeps in tests
+	# stub the scan BEFORE the first sweep: this box has ambient read-only
+	# AWS creds and the real scan would deserialize prod table rows
+	adhoc.ForumEvent.scan = classmethod(lambda cls, **kw: iter(list(forum_rows.values())))
+	# restore the dict-backed stubs the wiring tests replaced
+	def stub_forum_get2(cls, hash_key, sort_key):
+		key = int(sort_key)
+		if key not in forum_rows:
+			raise ForumDNE()
+		return forum_rows[key]
+	adhoc.ForumEvent.get = classmethod(stub_forum_get2)
+	async def _spy_process2(thread, **kw):
+		processed.append(thread.id)
+	adhoc.process_thread = _spy_process2
+	async def _spy_cleanup2(thread_id):
+		cleaned.append(int(thread_id))
+	adhoc.cleanup_deleted_post = _spy_cleanup2
+
+	reset_scenario()
+	g = shared_mod.shared.guild
+	t_active = new_post(910000000000000030)  # registered in guild.threads via new_post
+	t_archived = FakeThread(id=910000000000000031, parent_id=forum.FORUM_CHANNEL_ID)
+	g._forum._archived = [t_archived]
+	processed.clear()
+	await adhoc.startup_sweep()
+	check("sweep processes active + archived threads", sorted(processed) == [910000000000000030, 910000000000000031])
+	check("sweep creates the nonpublic tag", "nonpublic" in captured["created_tags"])
+	g._forum.available_tags = [t for t in g._forum.available_tags if t.name != "nonpublic"]
+	captured["created_tags"].clear()
+	g._forum.available_tags.append(FakeTag("nonpublic", 88))
+	await adhoc.startup_sweep()
+	check("existing nonpublic tag not recreated", captured["created_tags"] == [])
+	g._forum._archived = []
+
+	# reconciliation: rows whose thread is gone get cleaned up, live ones kept
+	reset_scenario()
+	g.threads[910000000000000030] = FakeThread(id=910000000000000030, parent_id=forum.FORUM_CHANNEL_ID)
+	live_row = adhoc.ForumEvent(sort=910000000000000030, thread_id=910000000000000030)
+	gone_row = adhoc.ForumEvent(sort=910000000000000032, thread_id=910000000000000032)
+	forum_rows[910000000000000030] = live_row
+	forum_rows[910000000000000032] = gone_row
+	event_rows.clear()
+	adhoc.ForumEvent.scan = classmethod(lambda cls, **kw: iter([live_row, gone_row]))
+	cleaned.clear()
+	await adhoc.startup_sweep()
+	check("offline-deleted post cleaned up", cleaned == [910000000000000032])
+
+	# inaccessible (403) thread: fail closed, keep the record
+	class _ForbiddenGuild(FakeGuild):
+		async def fetch_channel(self, id):
+			if int(id) == 910000000000000032:
+				raise discord.errors.Forbidden(_not_found_resp, "nope")
+			return await super().fetch_channel(id)
+	saved_guild = shared_mod.shared.guild
+	shared_mod.shared.guild = _ForbiddenGuild(g._forum, g._announce)
+	shared_mod.shared.guild.threads = {910000000000000030: FakeThread(id=910000000000000030, parent_id=forum.FORUM_CHANNEL_ID)}
+	forum_rows[910000000000000032] = gone_row
+	cleaned.clear()
+	await adhoc.startup_sweep()
+	check("403 thread keeps its record (fail closed)", cleaned == [])
+	shared_mod.shared.guild = saved_guild
+
+	adhoc.ForumEvent.get = classmethod(stub_forum_get)
 	adhoc.process_thread = real_process
 	adhoc.cleanup_deleted_post = real_cleanup
 

@@ -251,6 +251,12 @@ async def on_ready():
 		await forum.sync_forum_posts()
 	except Exception as e:
 		print(f"forum post sync failed:\n{get_stacktrace()}")
+	# ad hoc forum events: ensure the nonpublic tag, backfill/analyze all
+	# forum posts (hash-guarded), reconcile rows for offline deletions
+	try:
+		await adhoc.startup_sweep()
+	except Exception as e:
+		print(f"ad hoc event sweep failed:\n{get_stacktrace()}")
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
 

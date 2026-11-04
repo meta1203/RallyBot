@@ -38,6 +38,7 @@ from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAt
 
 NONPUBLIC_TAG_NAME = "nonpublic"
 FORUM_SOURCE = "forum"
+SWEEP_DELAY = 1.0  # seconds between sweep threads (delete/AI rate limits)
 
 
 class ForumEvent(RallyBotModel):
@@ -62,6 +63,72 @@ class ForumEvent(RallyBotModel):
 def _post_link(thread_id) -> str:
 	"""Web URL of the forum post (also used as the ad hoc event's `link`)."""
 	return f"https://discord.com/channels/{shared.guild.id}/{int(thread_id)}"
+
+
+async def startup_sweep() -> None:
+	"""Startup catch-up + one-time backfill: make sure the `nonpublic` tag
+	exists, process every thread in the forum channel (hash-guarded, so
+	already-processed posts are cheap no-ops), and clean up tracked rows
+	whose post was deleted while the bot was offline."""
+	channel = await forum.get_forum_channel()
+	if not channel:
+		print("ERROR: forum channel not found; skipping ad hoc event sweep")
+		return
+	names = {t.name.lower() for t in channel.available_tags}
+	if NONPUBLIC_TAG_NAME not in names:
+		await forum._create_forum_tag(channel, NONPUBLIC_TAG_NAME)
+
+	threads: dict[int, discord.Thread] = {}
+	try:
+		# guild-level REST call; filter to the forum channel
+		for t in await shared.guild.active_threads():
+			if getattr(t, "parent_id", None) == forum.FORUM_CHANNEL_ID:
+				threads[int(t.id)] = t
+	except Exception:
+		print(f"WARN: guild.active_threads() failed:\n{traceback.format_exc()}")
+	try:
+		async for t in channel.archived_threads(limit=None):
+			threads[int(t.id)] = t
+	except Exception:
+		print(f"WARN: archived_threads() failed:\n{traceback.format_exc()}")
+
+	print(f"ad hoc event sweep: processing {len(threads)} forum post(s)")
+	for tid, thread in threads.items():
+		try:
+			await process_thread(thread)
+		except Exception:
+			print(f"ERROR: sweep processing failed for thread {tid}:\n{traceback.format_exc()}")
+		await asyncio.sleep(SWEEP_DELAY)
+
+	# reconcile tracked rows against reality: a row whose thread no longer
+	# fetches (404) means the post was deleted while offline
+	try:
+		rows = await asyncio.to_thread(lambda: list(ForumEvent.scan()))
+	except Exception:
+		print("WARN: ForumEvent scan failed; skipping deleted-post reconciliation")
+		return
+	for row in rows:
+		# the table is single-design: scan deserializes EVERY row (events,
+		# reports, ...) as ForumEvent — only real forum_event rows have a
+		# thread_id, everything else is another partition's data
+		if (row.id or "") != "forum_event" or row.thread_id is None:
+			continue
+		tid = int(row.thread_id)
+		if tid in threads:
+			continue
+		try:
+			await shared.guild.fetch_channel(tid)
+			# fetch succeeded: the thread is alive (e.g. archived but visible)
+		except discord.NotFound:
+			try:
+				await cleanup_deleted_post(tid)
+			except Exception:
+				print(f"ERROR: sweep cleanup failed for thread {tid}:\n{traceback.format_exc()}")
+		except discord.Forbidden:
+			# fail closed: the thread exists but is inaccessible — keep the row
+			print(f"WARN: thread {tid} not accessible; keeping its tracked record")
+		except Exception:
+			print(f"WARN: could not verify thread {tid}; keeping its tracked record")
 
 
 def _starter_content_hash(thread, starter) -> str:
@@ -271,7 +338,7 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 	try:
 		row = await asyncio.to_thread(ForumEvent.get, "forum_event", int(thread.id))
 	except ForumEvent.DoesNotExist:
-		row = ForumEvent(sort=int(thread.id))
+		row = ForumEvent(sort=int(thread.id), thread_id=int(thread.id))
 		row.created_at = dt.datetime.now(shared.central_time)
 	except Exception:
 		print(f"ERROR: loading ForumEvent row for {thread.id}:\n{traceback.format_exc()}")
