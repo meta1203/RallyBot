@@ -134,6 +134,7 @@ class FakeChannel(discord.TextChannel):
 # ---- import the bot modules with fakes in place ----
 import events
 import forum
+import adhoc
 import shared as shared_mod
 
 # never touch real AWS from the test: stub the pynamo save
@@ -211,6 +212,23 @@ async def main():
 	finally:
 		events.MeetupEvent.scan = real_scan
 	check("sync_forum_posts skips ad hoc rows", len(captured["threads"]) == n_threads)
+
+	# ---- task 2: ForumEvent model + helpers ----
+	row = adhoc.ForumEvent(sort=990000000000000001)
+	check("ForumEvent id is forum_event", row.id == "forum_event")
+	t = FakeThread(id=990000000000000001, parent_id=forum.FORUM_CHANNEL_ID, name="My Cool Event", content="hello")
+	t.applied_tags = [FakeTag("nonpublic", 3), FakeTag("gaming", 2)]
+	h1 = adhoc._starter_content_hash(t, t.starter_message)
+	check("hash is deterministic", h1 == adhoc._starter_content_hash(t, t.starter_message))
+	t2 = FakeThread(id=t.id, name=t.name, content="changed")
+	check("hash is content-sensitive", h1 != adhoc._starter_content_hash(t2, t2.starter_message))
+	t3 = FakeThread(id=t.id, name=t.name, content="hello", applied_tags=[FakeTag("gaming", 2)])
+	check("hash is tag-sensitive", h1 != adhoc._starter_content_hash(t3, t3.starter_message))
+	check("nonpublic detected", adhoc._has_nonpublic_tag(t))
+	check("nonpublic absent -> False", not adhoc._has_nonpublic_tag(t3))
+	naive = dt.datetime(2026, 11, 5, 12, 0, 0)
+	aware = dt.datetime(2026, 11, 5, 12, 0, 0, tzinfo=dt.timezone.utc)
+	check("norm_dt equalizes naive/aware utc", adhoc._norm_dt(naive) == aware and adhoc._norm_dt(None) is None)
 
 	print("ALL PASSED")
 
