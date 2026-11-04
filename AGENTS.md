@@ -52,15 +52,15 @@ aws.py        RallyBotModel (PynamoDB base: table RallyBot, us-east-2, keys id+s
 shared.py     Singleton: client, guild, channel-name cache, scheduler, message_channel (dedupe + quiet mode), role mention constants
 ```
 
-Flow: events list page scrape → PynamoDB upsert → Discord scheduled-event create/edit → forum post in #event-chat (pilot) or at-mention announcement in the category channel (legacy), with online/in-person tagging either way.
+Flow: events list page scrape → PynamoDB upsert → Discord scheduled-event create/edit → forum post in #event-chat with online/in-person tagging → weekly announcements digest.
 
 ## Conventions & absence notes
 
 - **AWS infra is not in this repo.** The `RallyBot` table and both GSIs (`timestamp-index` on `timestamp`, `snowflake_id-index` on `snowflake_id`) must be created manually — don't look for Terraform/CloudFormation, and new index queries need a matching GSI.
 - **All deployment identity is hardcoded**: guild ID + role mention IDs in `main.py` (duplicates of `shared.py` constants removed), Meetup group slug in `events.py`, forum + announcements channel IDs in `forum.py`, table/region in `aws.py`, mod role ID in `report.py`. Env vars only carry secrets/toggles.
-- `MeetupEvent` pilot fields: `forum_thread_id` (thread snowflake of the #event-chat post, `null` when unposted) and `created_at` (first-scheduled time; set only on true creation in `events.py` and `from_discord_event`, never refreshed on updates — the weekly digest's "newly planned" section depends on it). No new GSI needed: the digest scans `timestamp-index`.
+- `MeetupEvent` forum fields: `forum_thread_id` (thread snowflake of the #event-chat post, `null` when unposted) and `created_at` (first-scheduled time; set only on true creation in `events.py` and `from_discord_event`, never refreshed on updates — the weekly digest's "newly planned" section depends on it). No new GSI needed: the digest scans `timestamp-index`.
 - **30-day hold-back**: events starting more than a month out get no forum post and no "newly planned" digest alert (`forum.FORUM_POST_WINDOW` / `forum.event_in_post_window`); the daily `update_events` run creates held-back posts via `forum.ensure_forum_post` once they enter the window, and the first digest after that lists them as newly planned (detected via the thread snowflake's creation time, no extra ddb field).
-- **No tests, no CI, no lint config.** Keep changes verified by compile + manual reasoning; don't scaffold a test framework unasked.
+- **No CI, no lint config.** Verification = compile + the offline test scripts in `tests/`; don't scaffold a test framework unasked — the scripts bootstrap sys.path and stub discord/AWS.
 - `requirements.txt` is hand-pinned (`~=`);
 - Meetup payloads: `meetup_event_sample.json` documents the `__NEXT_DATA__` → `props.pageProps.event` shape.
 - Datetimes are stored as UTCDateTimeAttribute + a parallel millisecond `timestamp` number (for the GSI); see `MeetupEvent.start_time` property — keep both in sync when touching event timing.

@@ -22,13 +22,6 @@ intents.members = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-# forum pilot kill-switch: unset FORUM_PILOT to fall back to at-mention
-# announcements in the category channels (see forum.py)
-FORUM_PILOT = forum.forum_pilot_enabled()
-if FORUM_PILOT:
-	print("forum pilot ENABLED: events will be posted to the event-chat forum")
-else:
-	print("forum pilot disabled: using category-channel at-mention announcements")
 
 async def set_globals():
 	shared.client = client
@@ -82,21 +75,16 @@ async def update_events():
 					print(f"Exception occured while updating \n{event} \n{discord_event}\n<- {updates} :\n{get_stacktrace()}")
 					continue
 				category = get_channel_for_ddb_event(event)
-				target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
-				if FORUM_PILOT:
-					# pilot: keep the category channel in sync silently and update
-					# the event's forum post instead of pinging the role
-					await forum.update_forum_post(event)
-				else:
-					await shared.message_channel(category, f"{target_role} {event.title} has been updated.")
+				# keep the category channel in sync silently and update the
+				# event's forum post instead of pinging the role
+				await forum.update_forum_post(event)
 				print(f"Updated discord event {event.sort} | {event.title}")
 			else:
 				print(f"{event.title} already exists.")
 				# daily catch-up: events first announced more than a month out
 				# only get their forum post once they start in less than a
 				# month (see forum.event_in_post_window / ensure_forum_post)
-				if FORUM_PILOT:
-					await forum.ensure_forum_post(event)
+				await forum.ensure_forum_post(event)
 		else:
 			# has not been created, so create it
 			discord_event = await shared.guild.create_scheduled_event(
@@ -121,7 +109,7 @@ async def update_events():
 			# is still live on meetup (a False means deleted or skipped —
 			# re-posting then would resurrect a cancelled event's post)
 			still_live = await events.check_existing_event(event)
-			if still_live and FORUM_PILOT:
+			if still_live:
 				await forum.ensure_forum_post(event)
 
 def get_channel_for_ddb_event(event: events.MeetupEvent):
@@ -135,14 +123,8 @@ def get_channel_for_ddb_event(event: events.MeetupEvent):
 	return category
 
 async def notify_new_event(event: events.MeetupEvent):
-	if FORUM_PILOT:
-		# pilot: post the event to the event-chat forum (tagged + linked)
-		# instead of an at-mention message in the category channel
-		await forum.create_forum_post(event)
-		return
-	category = get_channel_for_ddb_event(event)
-	target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
-	await shared.message_channel(category, f"{target_role} {event.title} has been scheduled for <t:{round(event.start_time.timestamp())}>.")
+	# post the event to the event-chat forum (tagged + linked)
+	await forum.create_forum_post(event)
 
 async def notify_events():
 	discord_events = await shared.guild.fetch_scheduled_events()
@@ -206,15 +188,14 @@ async def on_ready():
 	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30, timezone="America/Chicago"), max_instances=1)
 	# Schedule notify events to run every hour on the hour
 	shared.scheduler.add_job(notify_events, CronTrigger(minute=0), max_instances=1)
-	# forum pilot: weekly announcements digest, sundays 3pm central
-	if FORUM_PILOT:
-		shared.scheduler.add_job(forum.send_weekly_announcements, CronTrigger(day_of_week='sun', hour=15, minute=0, timezone="America/Chicago"), max_instances=1)
-		# create/refresh forum posts for upcoming events (also repairs posts
-		# written before full_description existed)
-		try:
-			await forum.sync_forum_posts()
-		except Exception as e:
-			print(f"forum post sync failed:\n{get_stacktrace()}")
+	# weekly announcements digest, sundays 3pm central
+	shared.scheduler.add_job(forum.send_weekly_announcements, CronTrigger(day_of_week='sun', hour=15, minute=0, timezone="America/Chicago"), max_instances=1)
+	# create/refresh forum posts for upcoming events (also repairs posts
+	# written before full_description existed)
+	try:
+		await forum.sync_forum_posts()
+	except Exception as e:
+		print(f"forum post sync failed:\n{get_stacktrace()}")
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
 

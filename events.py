@@ -124,9 +124,9 @@ class MeetupEvent(RallyBotModel):
 				print(f"discord event {discord_id} for {self.sort} | {self.title} already gone from discord")
 			except Exception as e:
 				print(f"ERROR: Exception while deleting discord event {discord_id} for event {self.sort} | {self.title}\n{get_stacktrace()}")
-		# clean up the event's forum post as well (runs even with the pilot
-		# disabled, so cancelled events don't leave orphaned posts behind);
-		# lazy import avoids a circular import with forum.py
+		# clean up the event's forum post as well, so cancelled events don't
+		# leave orphaned posts behind; lazy import avoids a circular import
+		# with forum.py
 		import forum
 		await forum.delete_forum_post(self)
 		return res
@@ -160,25 +160,32 @@ def _meetup_url_to_json(url: str) -> dict | list | int:
 	response = requests.get(url)
 	if response.status_code != 200:
 		return response.status_code
-	soup = BeautifulSoup(response.text, features="lxml")
-	j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
-	j_item = j_item['props']['pageProps']
-	if 'event' in j_item:
-		return j_item['event']
-	if '__APOLLO_STATE__' in j_item:
-		# the events list page embeds an apollo cache: a flat map of every
-		# normalized entity ("Event:<id>", "Venue:<id>", ...) keyed by type.
-		# collect the Event entities and inline their venue refs so the
-		# payloads match the per-event pageProps.event shape.
-		apollo = j_item['__APOLLO_STATE__']
-		events = [v for v in apollo.values()
-				if isinstance(v, dict) and v.get('__typename') == 'Event']
-		for ev in events:
-			venue = ev.get('venue')
-			if isinstance(venue, dict) and '__ref' in venue and venue['__ref'] in apollo:
-				ev['venue'] = apollo[venue['__ref']]
-		return events
-	return []
+	try:
+		soup = BeautifulSoup(response.text, features="lxml")
+		j_item: dict = json.loads(soup.select_one('script#__NEXT_DATA__').text)
+		j_item = j_item['props']['pageProps']
+		if 'event' in j_item:
+			return j_item['event']
+		if '__APOLLO_STATE__' in j_item:
+			# the events list page embeds an apollo cache: a flat map of every
+			# normalized entity ("Event:<id>", "Venue:<id>", ...) keyed by type.
+			# collect the Event entities and inline their venue refs so the
+			# payloads match the per-event pageProps.event shape.
+			apollo = j_item['__APOLLO_STATE__']
+			events = [v for v in apollo.values()
+					if isinstance(v, dict) and v.get('__typename') == 'Event']
+			for ev in events:
+				venue = ev.get('venue')
+				if isinstance(venue, dict) and '__ref' in venue and venue['__ref'] in apollo:
+					ev['venue'] = apollo[venue['__ref']]
+			return events
+		return []
+	except Exception:
+		# missing __NEXT_DATA__ script tag, unparseable json, unexpected page
+		# shape: fail safe instead of crashing the whole fetch run (callers
+		# treat a non-dict/non-list return as a skipped recheck)
+		print(f"ERROR: could not parse meetup page {url}:\n{get_stacktrace()}")
+		return -1
 
 def update_event_from_json(event: MeetupEvent, j_item: dict):
 	if not event.category:
@@ -249,6 +256,13 @@ def fetch_meetup_events() -> list[MeetupEvent]:
 						event.snowflake_id = int(raw_item['snowflake_id'])
 					if raw_item.get('category'):
 						event.category = raw_item['category']
+					# carry the original created_at across the recreate so the
+					# event doesn't re-appear as "newly planned" in the digest
+					if raw_item.get('created_at'):
+						try:
+							event.created_at = MeetupEvent.created_at.deserialize(raw_item['created_at'])
+						except Exception as e:
+							print(f"WARN: could not salvage created_at for event {guid}: {e}")
 					shared.ddb.delete_raw('event', guid)
 
 			update_event_from_json(event, j_item)
@@ -291,10 +305,17 @@ def fetch_meetup_events_rss() -> list[MeetupEvent]:
 				if not raw_item:
 					print(f"no raw data found for event with guid {guid}, deleting and recreating...")
 				else:
-					if raw_item['snowflake_id']:
+					if raw_item.get('snowflake_id'):
 						event.snowflake_id = int(raw_item['snowflake_id'])
-					if raw_item['category']:
+					if raw_item.get('category'):
 						event.category = raw_item['category']
+					# carry the original created_at across the recreate so the
+					# event doesn't re-appear as "newly planned" in the digest
+					if raw_item.get('created_at'):
+						try:
+							event.created_at = MeetupEvent.created_at.deserialize(raw_item['created_at'])
+						except Exception as e:
+							print(f"WARN: could not salvage created_at for event {guid}: {e}")
 					shared.ddb.delete_raw('event', guid)
 			
 			update_event_from_json(event, j_item)
@@ -381,6 +402,7 @@ if __name__ == "__main__":
 	from time import sleep
 	for event in MeetupEvent.scan(index_name="timestamp-index", filter_condition=MeetupEvent.timestamp > int(dt.datetime.now(shared.central_time).timestamp() * 1000)):
 		j_item = _meetup_url_to_json(f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/")
-		print(f"DEBUG: rechecked event {event.sort} | {event.title} status: {j_item['status']}")
+		status = j_item.get('status') if isinstance(j_item, dict) else j_item
+		print(f"DEBUG: rechecked event {event.sort} | {event.title} status: {status}")
 		sleep(5)
 		# check_existing_event(event)

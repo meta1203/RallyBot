@@ -157,8 +157,6 @@ def check(name, cond):
 	print(f"PASS: {name}")
 
 
-os.environ["FORUM_PILOT"] = "1"
-
 async def main():
 	# 1. create: title, body links, tags
 	ev = make_event()
@@ -308,14 +306,7 @@ async def main():
 	check("online-only week sends 2 messages", len(msgs_online_only) == 2)
 	check("no in-person message", not any(IN_PERSON_MENTION in m for m in msgs_online_only))
 
-	# 9. pilot kill-switch: weekly job is a no-op when FORUM_PILOT is unset
-	del os.environ["FORUM_PILOT"]
-	n_sends = len(captured["sends"])
-	await forum.send_weekly_announcements()
-	check("kill-switch blocks weekly send", len(captured["sends"]) == n_sends)
-	os.environ["FORUM_PILOT"] = "1"
-
-	# 10. live send path posts every message in order (scan stays stubbed —
+	# 9. live send path posts every message in order (scan stays stubbed —
 	# this box has no dynamodb access and must never touch real AWS)
 	events.MeetupEvent.scan = classmethod(lambda cls, **kw: iter([ev_in_old, ev_in_new, ev_on_new]))
 	try:

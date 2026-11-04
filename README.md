@@ -20,14 +20,15 @@ A Discord bot that automatically syncs events from Meetup to Discord scheduled e
 
 ## How It Works
 
-1. **Event fetching** (`events.py`): the bot fetches the RSS feed for the configured Meetup group, then for each item fetches the event page and extracts the full event JSON from the embedded `__NEXT_DATA__` script tag
-2. **Persistence** (`aws.py`): events and reports live in a single DynamoDB table, accessed through the PynamoDB ORM. Each Meetup event is stored under its Meetup guid (sort key) alongside the Discord snowflake id it was published as, so updates and cancellations can be reconciled across both platforms
-3. **Discord integration** (`main.py`): creates new scheduled events, edits changed ones, deletes cancelled ones, and posts announcements to the right channels
+1. **Event fetching** (`events.py`): the bot scrapes the Meetup group's events list page, extracting each event's JSON from the embedded `__NEXT_DATA__` script tag (a legacy RSS → per-event-page path is kept as a fallback)
+2. **Persistence** (`aws.py`): events, reports, and onboarding records live in a single DynamoDB table, accessed through the PynamoDB ORM. Each Meetup event is stored under its Meetup guid (sort key) alongside the Discord snowflake id it was published as, so updates and cancellations can be reconciled across both platforms
+3. **Discord integration** (`main.py`): creates new scheduled events, edits changed ones, deletes cancelled ones, and posts each event to the #event-chat forum (`forum.py`)
 4. **Reporting** (`report.py`): context-menu reports are stored in DynamoDB and surfaced to moderators with action buttons
 
 ### Schedules
 - Event sync runs once at startup, then daily at 12:30 PM (America/Chicago)
 - Notification/reminder checks run hourly, on the hour
+- Weekly announcements digest posts Sundays at 3 PM (America/Chicago)
 
 ## Requirements
 

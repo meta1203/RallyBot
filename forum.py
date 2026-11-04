@@ -1,10 +1,4 @@
-"""Forum pilot functionality (experimental; gated behind the FORUM_PILOT env var).
-
-Everything this module does - forum posts for events + the weekly announcements
-digest - only runs when FORUM_PILOT is set to any non-empty value (checked via
-forum_pilot_enabled()). Unset it and restart to roll the pilot back to the old
-at-mention behavior with zero code changes. Forum posts of events that get
-cancelled are cleaned up even with the pilot off, so no orphans are left behind.
+"""Forum functionality for events.
 
 Events are posted to the #event-chat forum channel:
 - title: "Event: <event title>"
@@ -31,7 +25,6 @@ thread's snowflake creation time, so no extra ddb field is needed).
 """
 import asyncio
 import datetime as dt
-import os
 import traceback
 
 import discord
@@ -44,10 +37,17 @@ ANNOUNCEMENTS_CHANNEL_ID = 1244283919218770030  # #announcements
 FORUM_POST_MAX_LEN = 2000  # discord's hard limit for forum post content
 FORUM_POST_WINDOW = dt.timedelta(days=30)  # events starting further out are held back
 
+FORUM_THREAD_NAME_MAX_LEN = 100  # discord's hard limit for thread names
+
 _forum_channel_cache: discord.ForumChannel | None = None
 
-def forum_pilot_enabled() -> bool:
-	return not not os.getenv('FORUM_PILOT')
+def forum_title(event: events.MeetupEvent) -> str:
+	"""Thread title for the event's forum post, capped at discord's
+	100-char thread-name limit (a too-long name makes create/edit fail)."""
+	title = f"Event: {event.title}"
+	if len(title) > FORUM_THREAD_NAME_MAX_LEN:
+		title = title[0:FORUM_THREAD_NAME_MAX_LEN - 3] + "..."
+	return title
 
 async def get_forum_channel(refresh: bool = False) -> discord.ForumChannel | None:
 	global _forum_channel_cache
@@ -180,7 +180,7 @@ async def create_forum_post(event: events.MeetupEvent) -> int | None:
 	try:
 		tags = await resolve_tags(forum_channel, event)
 		thread, starter = await forum_channel.create_thread(
-			name=f"Event: {event.title}",
+			name=forum_title(event),
 			content=_event_forum_body(event),
 			applied_tags=tags,
 		)
@@ -234,7 +234,7 @@ async def update_forum_post(event: events.MeetupEvent) -> None:
 			starter = await thread.fetch_message(thread.id)
 		if starter.content != body:
 			await starter.edit(content=body)
-		expected_title = f"Event: {event.title}"
+		expected_title = forum_title(event)
 		if thread.name != expected_title:
 			await thread.edit(name=expected_title)
 		current_tag_names = {t.name for t in (thread.applied_tags or [])}
@@ -380,8 +380,6 @@ def _build_digest_messages(now: dt.datetime | None = None) -> list[str]:
 
 async def send_weekly_announcements() -> None:
 	"""Scheduled job: post the weekly digest to the announcements channel."""
-	if not forum_pilot_enabled():
-		return
 	# the pynamo scan inside is blocking network I/O; keep it off the event loop
 	messages = await asyncio.to_thread(_build_digest_messages)
 	if not messages:
