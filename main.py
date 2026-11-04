@@ -104,6 +104,10 @@ async def update_events():
 	hashed_ids: set[int] = set(map(lambda event: event.sort, on_meetup))
 	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.central_time).timestamp() * 1000)):
 		if event.sort not in hashed_ids:
+			if (event.source or "meetup") == "forum":
+				# ad hoc event (extracted from a forum post): nothing to
+				# recheck against meetup — the record is forum-managed
+				continue
 			print(f"rechecking event {event.sort} | {event.title} ...")
 			# only catch up the forum post when the recheck confirms the event
 			# is still live on meetup (a False means deleted or skipped —

@@ -41,6 +41,12 @@ class MeetupEvent(RallyBotModel):
 	# untruncated meetup description; `description` is capped at 999 chars for
 	# discord scheduled events, but forum posts want the full text
 	full_description = UnicodeAttribute(null=True)
+	# where the record came from: "meetup" (default) or "forum" (ad hoc event
+	# extracted from a user post in #event-chat; sort key == thread snowflake,
+	# link points at the forum post, no discord scheduled event is created).
+	# Rows written before this field existed deserialize as None, so guards
+	# must use `(event.source or "meetup")`
+	source = UnicodeAttribute(default="meetup")
 
 	# timestamp properties for backward compatibility
 	@property
@@ -327,6 +333,10 @@ def fetch_meetup_events_rss() -> list[MeetupEvent]:
 	return ret
 
 async def check_existing_event(event: MeetupEvent):
+	if (event.source or "meetup") != "meetup":
+		# ad hoc record (extracted from a forum post): there is no meetup page
+		# to recheck, and a fetch would 404-delete the record
+		return True
 	url = f"https://www.meetup.com/chicago-anime-hangouts/events/{event.sort}/"
 	# the meetup scrape (and the AI categorizer inside update_event_from_json)
 	# are blocking requests; keep them off the event loop

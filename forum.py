@@ -162,6 +162,11 @@ async def ensure_forum_post(event: events.MeetupEvent) -> int | None:
 async def create_forum_post(event: events.MeetupEvent) -> int | None:
 	"""Create the event's forum post and record its thread id on the event row.
 	Returns the thread id (or None when the post couldn't be created)."""
+	if (event.source or "meetup") == "forum":
+		# ad hoc event: the forum post already exists and is user-owned —
+		# the bot must never create/rewrite it (this guard covers every
+		# call path: notify_new_event, ensure_forum_post, update_forum_post)
+		return None
 	if event.forum_thread_id:
 		# already posted (e.g. discord event recreated after out-of-band deletion);
 		# update the existing post instead of creating a duplicate
@@ -274,6 +279,9 @@ async def sync_forum_posts() -> None:
 		events.MeetupEvent.scan(index_name="timestamp-index",
 			filter_condition=events.MeetupEvent.timestamp > now_ms)))
 	for event in upcoming:
+		if (event.source or "meetup") == "forum":
+			# ad hoc event: its post already exists (user-owned); skip silently
+			continue
 		if not event.forum_thread_id:
 			if not event_in_post_window(event):
 				print(f"holding back forum post for {event.sort} | {event.title}: starts more than a month out")
