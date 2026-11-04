@@ -71,10 +71,8 @@ def fake_get(*args, **kwargs):
 events.MeetupEvent.get = fake_get
 
 # hermetic + quiet: stub the categorizer (not part of the fetch path) so an
-# AI call is impossible even if DO_AI_* env vars are set on this box, and the
+# AI call is impossible even if OPENROUTER_API_KEY is set on this box, and the
 # output stays free of one "defaulting to 'other'" line per event
-events.DO_AI_ENDPOINT = None
-events.DO_AI_SECRET = None
 
 
 def _stub_categorize(description):
