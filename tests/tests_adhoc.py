@@ -48,6 +48,9 @@ class FakeStarter:
 		if "content" in kw:
 			self.content = kw["content"]
 
+	async def delete(self, *a, **kw):
+		captured["deleted_replies"].append(getattr(self, "id", None))
+
 
 class FakeThread(discord.Thread):
 	# shadow the base class' read-only properties with plain attributes
@@ -223,7 +226,7 @@ async def main():
 	t2 = FakeThread(id=t.id, name=t.name, content="changed")
 	check("hash is content-sensitive", h1 != adhoc._starter_content_hash(t2, t2.starter_message))
 	t3 = FakeThread(id=t.id, name=t.name, content="hello", applied_tags=[FakeTag("gaming", 2)])
-	check("hash is tag-sensitive", h1 != adhoc._starter_content_hash(t3, t3.starter_message))
+	check("hash ignores tag changes", h1 == adhoc._starter_content_hash(t3, t3.starter_message))
 	check("nonpublic detected", adhoc._has_nonpublic_tag(t))
 	check("nonpublic absent -> False", not adhoc._has_nonpublic_tag(t3))
 	naive = dt.datetime(2026, 11, 5, 12, 0, 0)
@@ -283,6 +286,232 @@ async def main():
 	llm.ai_extract_event("t", "b")
 	llm.chat = real_chat
 	check("system prompt carries category list", "karaoke" in prompt_seen.get("system", ""))
+
+	# ---- tasks 4-6: status replies, process_thread pipeline, nonpublic ----
+	# stub all pynamo access: rows live in plain dicts
+	forum_rows = {}
+	event_rows = {}
+	deleted_event_sorts = []
+	deleted_rows = []
+	ForumDNE = adhoc.ForumEvent.DoesNotExist
+	EventDNE = events.MeetupEvent.DoesNotExist
+
+	def stub_forum_get(cls, hash_key, sort_key):
+		key = int(sort_key)
+		if key not in forum_rows:
+			raise ForumDNE()
+		return forum_rows[key]
+	adhoc.ForumEvent.get = classmethod(stub_forum_get)
+	def _forum_save(self, *a, **kw):
+		forum_rows[int(self.sort)] = self
+	adhoc.ForumEvent.save = _forum_save
+	def _forum_delete(self, *a, **kw):
+		deleted_rows.append(int(self.sort))
+		forum_rows.pop(int(self.sort), None)
+	adhoc.ForumEvent.delete = _forum_delete
+	def _event_get(cls, hash_key, sort_key):
+		key = int(sort_key)
+		if key not in event_rows:
+			raise EventDNE()
+		return event_rows[key]
+	events.MeetupEvent.get = classmethod(_event_get)
+	def _event_save(self, *a, **kw):
+		event_rows[int(self.sort)] = self
+	events.MeetupEvent.save = _event_save
+	def _event_delete(self, *a, **kw):
+		deleted_event_sorts.append(int(self.sort))
+		event_rows.pop(int(self.sort), None)
+	events.MeetupEvent.delete = _event_delete
+
+	real_extract = llm.ai_extract_event
+	ai_responses = []
+	def _fake_extract(title, body):
+		captured["ai_calls"] += 1
+		if not ai_responses:
+			raise AssertionError("unexpected AI call")
+		return ai_responses.pop(0)
+	llm.ai_extract_event = _fake_extract
+
+	def make_extraction(**over):
+		base = {"is_event": True, "title": "Board Game Night", "start": "2026-11-10T19:00:00-06:00",
+			"end": None, "duration_minutes": None, "location": "The Game Room", "online": False,
+			"description": "Bring your favorite games.", "category": "gaming", "missing": []}
+		base.update(over)
+		return base
+
+	def reset_scenario():
+		forum_rows.clear(); event_rows.clear()
+		deleted_event_sorts.clear(); deleted_rows.clear()
+		ai_responses.clear()
+		captured["sends"].clear(); captured["deleted_replies"].clear()
+		captured["ai_calls"] = 0
+		shared_mod.shared.guild.threads.clear()
+
+	def new_post(tid, content="Come play board games Friday 7pm at The Game Room!", tags=(), edited_at=None, owner=5550001, name="Board Game Night"):
+		t = FakeThread(id=tid, parent_id=forum.FORUM_CHANNEL_ID, name=name, content=content, applied_tags=tags, owner_id=owner, edited_at=edited_at)
+		shared_mod.shared.guild.threads[tid] = t
+		return t
+
+	# -- valid post -> event record + added reply --
+	reset_scenario()
+	t = new_post(910000000000000001)
+	ai_responses.append(make_extraction())
+	await adhoc.process_thread(t)
+	row = forum_rows[t.id]
+	ev = event_rows[t.id]
+	check("row created with state event", row.state == "event" and row.event_sort == t.id)
+	check("event row written with source forum", ev.source == "forum" and ev.sort == t.id)
+	check("event link is the forum post", ev.link == f"https://discord.com/channels/{shared_mod.shared.guild.id}/{t.id}")
+	start = dt.datetime.fromisoformat("2026-11-10T19:00:00-06:00")
+	check("1-hour default endtime", ev.endtime == start + dt.timedelta(hours=1))
+	check("created_at stamped", ev.created_at is not None)
+	check("no scheduled event / no forum thread id", int(ev.snowflake_id) == 0 and ev.forum_thread_id is None)
+	check("added reply pings author + nonpublic hint", len(captured["sends"]) == 1 and "<@5550001>" in captured["sends"][0][1] and "nonpublic" in captured["sends"][0][1])
+	check("reply id tracked on row", row.reply_message_id is not None)
+	check("last_extraction stored", json.loads(row.last_extraction)["title"] == "Board Game Night")
+	check("one AI call", captured["ai_calls"] == 1)
+	created_at_1 = ev.created_at
+
+	# -- unchanged post retrigger: no AI call, no new reply --
+	await adhoc.process_thread(t)
+	check("no AI call on unchanged post", captured["ai_calls"] == 1)
+	check("retrigger keeps created_at", event_rows[t.id].created_at == created_at_1)
+	check("no duplicate reply", len(captured["sends"]) == 1)
+
+	# -- edited_at change with identical content still reanalyzes --
+	t.starter_message.edited_at = dt.datetime.now(dt.timezone.utc)
+	ai_responses.append(make_extraction(title="Board Game Night v2"))
+	await adhoc.process_thread(t)
+	check("edited_at change triggers reanalysis", captured["ai_calls"] == 2)
+	check("recompute updates the record", event_rows[t.id].title == "Board Game Night v2")
+	check("recompute preserves created_at", event_rows[t.id].created_at == created_at_1)
+
+	# -- below the floor: start missing --
+	reset_scenario()
+	t = new_post(910000000000000002)
+	ai_responses.append(make_extraction(start=None, missing=["start"]))
+	await adhoc.process_thread(t)
+	row = forum_rows[t.id]
+	check("missing start -> no event row", t.id not in event_rows and row.state == "missing_info")
+	check("missing start reply lists the field", any("start date/time" in c for _, c in captured["sends"]))
+
+	# -- below the floor: location missing --
+	reset_scenario()
+	t = new_post(910000000000000003)
+	ai_responses.append(make_extraction(location=None, missing=["location"]))
+	await adhoc.process_thread(t)
+	check("missing location -> no event row", t.id not in event_rows and forum_rows[t.id].state == "missing_info")
+	check("missing location reply lists the field", any("location" in c for _, c in captured["sends"]))
+
+	# -- not an event: silent --
+	reset_scenario()
+	t = new_post(910000000000000004, content="just chatting about the new episode")
+	ai_responses.append({"is_event": False})
+	await adhoc.process_thread(t)
+	check("not_event state, no reply", forum_rows[t.id].state == "not_event" and captured["sends"] == [])
+	check("not_event drops stale record + old reply", t.id not in event_rows and forum_rows[t.id].reply_message_id is None)
+
+	# -- transient AI failure: silent, retryable --
+	reset_scenario()
+	t = new_post(910000000000000005)
+	ai_responses.append(None)
+	await adhoc.process_thread(t)
+	check("transient failure: no reply, row unsaved", captured["sends"] == [] and t.id not in forum_rows)
+
+	# -- edit below the floor deletes the stale record --
+	reset_scenario()
+	t = new_post(910000000000000006)
+	ai_responses.append(make_extraction())
+	await adhoc.process_thread(t)
+	t.starter_message.content = "moved, details TBD"
+	t.starter_message.edited_at = dt.datetime.now(dt.timezone.utc)
+	ai_responses.append(make_extraction(location=None, missing=["location"]))
+	await adhoc.process_thread(t)
+	check("edit below floor deletes event record", t.id not in event_rows and forum_rows[t.id].state == "missing_info")
+	check("missing-info reply replaces added reply", len(captured["sends"]) == 2 and len(captured["deleted_replies"]) == 1)
+
+	# -- past-event guard: no reanalysis after the event started --
+	reset_scenario()
+	t = new_post(910000000000000007)
+	past_start = (dt.datetime.now(shared_mod.shared.central_time) - dt.timedelta(days=2)).isoformat()
+	ai_responses.append(make_extraction(start=past_start))
+	await adhoc.process_thread(t)
+	n_calls = captured["ai_calls"]
+	t.starter_message.content = "bump, see you all!"
+	t.starter_message.edited_at = dt.datetime.now(dt.timezone.utc)
+	await adhoc.process_thread(t)
+	check("past event not reanalyzed", captured["ai_calls"] == n_calls)
+	check("past event record kept", t.id in event_rows)
+
+	# -- bot-owned posts are skipped --
+	reset_scenario()
+	class _User:
+		id = 42
+	class _Client:
+		user = _User()
+	shared_mod.shared.client = _Client()
+	t = new_post(910000000000000008, owner=42)
+	await adhoc.process_thread(t)
+	check("bot-owned post skipped", captured["ai_calls"] == 0 and t.id not in forum_rows)
+	shared_mod.shared.client = None
+
+	# -- wrong channel is skipped --
+	reset_scenario()
+	t = FakeThread(id=910000000000000009, parent_id=999)
+	await adhoc.process_thread(t)
+	check("non-forum thread ignored", captured["ai_calls"] == 0 and 910000000000000009 not in forum_rows)
+
+	# -- nonpublic: add -> delete + once-per-application reply --
+	reset_scenario()
+	t = new_post(910000000000000010, tags=[FakeTag("gaming", 2)])
+	ai_responses.append(make_extraction())
+	await adhoc.process_thread(t)
+	t.applied_tags = [FakeTag("gaming", 2), FakeTag("nonpublic", 99)]
+	await adhoc.process_thread(t)
+	check("nonpublic deletes event record", t.id not in event_rows and deleted_event_sorts == [t.id])
+	check("nonpublic reply posted", any("`nonpublic` tag" in c for _, c in captured["sends"]))
+	check("nonpublic_seen set", forum_rows[t.id].nonpublic_seen is True and forum_rows[t.id].state == "nonpublic")
+	n_sends = len(captured["sends"])
+	await adhoc.process_thread(t)
+	check("no duplicate nonpublic reply", len(captured["sends"]) == n_sends)
+
+	# -- nonpublic: remove -> recreate without an AI call --
+	t.applied_tags = [FakeTag("gaming", 2)]
+	await adhoc.process_thread(t)
+	check("tag removal recreates record", t.id in event_rows and forum_rows[t.id].state == "event")
+	check("recreation used no AI call", captured["ai_calls"] == 1)
+	check("recreation posts the added reply again", len(captured["sends"]) == n_sends + 1)
+	check("nonpublic_seen reset", forum_rows[t.id].nonpublic_seen is False)
+
+	# -- nonpublic: re-add alerts again (once per application) --
+	t.applied_tags = [FakeTag("gaming", 2), FakeTag("nonpublic", 99)]
+	await adhoc.process_thread(t)
+	check("re-added tag alerts again", len(captured["sends"]) == n_sends + 2 and t.id not in event_rows)
+
+	# -- nonpublic on a fresh post: reply only --
+	reset_scenario()
+	t = new_post(910000000000000011, tags=[FakeTag("nonpublic", 99)])
+	await adhoc.process_thread(t)
+	check("nonpublic fresh post: reply only, no record", t.id not in event_rows and forum_rows[t.id].state == "nonpublic" and len(captured["sends"]) == 1)
+
+	# -- nonpublic on a past event's post still deletes the record --
+	reset_scenario()
+	t = new_post(910000000000000012)
+	ai_responses.append(make_extraction(start=past_start))
+	await adhoc.process_thread(t)
+	t.applied_tags = [FakeTag("nonpublic", 99)]
+	await adhoc.process_thread(t)
+	check("past event record deleted on nonpublic", t.id not in event_rows)
+
+	# -- cleanup_deleted_post --
+	reset_scenario()
+	t = new_post(910000000000000013)
+	ai_responses.append(make_extraction())
+	await adhoc.process_thread(t)
+	await adhoc.cleanup_deleted_post(t.id)
+	check("cleanup deletes rows", t.id not in forum_rows and t.id not in event_rows and deleted_rows == [t.id])
+	await adhoc.cleanup_deleted_post(999999999999999999)
+	check("cleanup of unknown id is a no-op", deleted_rows == [t.id])
 
 	print("ALL PASSED")
 
