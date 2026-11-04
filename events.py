@@ -19,7 +19,7 @@ from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAt
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
 
-categories = ["book club", "conventions", "food", "gaming", "karaoke", "outdoor", "watch party", "volunteering", "other"]
+from llm import ai_categorize, categories
 
 class MeetupEvent(RallyBotModel):
 	title = UnicodeAttribute(null=True)
@@ -354,49 +354,6 @@ async def check_existing_event(event: MeetupEvent):
 	await asyncio.to_thread(update_event_from_json, event, j_item)
 	event.save()
 	return True
-
-DO_AI_ENDPOINT = os.getenv('DO_AI_ENDPOINT')
-DO_AI_SECRET = os.getenv('DO_AI_SECRET')
-
-def ai_categorize(description: str) -> str:
-	if not DO_AI_ENDPOINT or not DO_AI_SECRET:
-		print("DigitalOcean AI endpoint/secret not set, defaulting to 'other' category.")
-		return 'other'
-	headers = {
-		"Content-Type": "application/json",
-		"Authorization": f"Bearer {DO_AI_SECRET}"
-	}
-	payload = {
-		"messages": [
-			{
-				"role": "user",
-				"content": f"{description}\n\nCategories: {', '.join(categories)}"
-			}
-		],
-		"stream": False,
-		"include_functions_info": False,
-		"include_retrieval_info": False,
-		"include_guardrails_info": False
-	}
-	response = requests.post(f"{DO_AI_ENDPOINT}/api/v1/chat/completions", json=payload, headers=headers)
-	response.raise_for_status()  # Raise an exception for HTTP errors
-	message = response.json()['choices'][0]['message']
-	cat = message['content'].lower()
-	if cat not in categories:
-		payload["messages"].append(message)
-		payload["messages"].append({
-			"role": "user",
-			"content": f"{cat} is not a valid answer. select the best category from the following list: {', '.join(categories)}"
-		})
-		print(f"invalid category {cat}, retrying...")
-		response = requests.post(f"{DO_AI_ENDPOINT}/api/v1/chat/completions", json=payload, headers=headers)
-		response.raise_for_status()  # Raise an exception for HTTP errors
-		message = response.json()['choices'][0]['message']
-		cat = message['content'].lower()
-		if cat not in categories:
-			# failed again, just use the "other" category
-			cat = "other"
-	return cat
 
 if __name__ == "__main__":
 	from time import sleep
