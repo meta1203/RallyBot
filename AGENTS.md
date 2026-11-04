@@ -9,7 +9,7 @@ Discord bot for the **chicago-anime-hangouts** Meetup group that mirrors Meetup 
 - **Scrape-first, no Meetup API key.** Events come from embedded `script#__NEXT_DATA__` JSON on Meetup pages: the production fetch (`fetch_meetup_events` in `events.py`) reads the events list page's apollo state, cancellation rechecks read single-event pages, and `fetch_meetup_events_rss` keeps the legacy RSS → per-event-page path. This is intentionally fragile-but-accepted; it's a known trade-off, not something to "fix" casually.
 - **Dual-write consistency**: every mutation touches both sides (DDB row + Discord event) with per-side error handling — a Discord-side failure must not abort the DDB write and vice versa.
 - **Announcements are deduped and silencable**: `shared.message_channel` keeps a 5-message deque to prevent duplicate pings; `QUIET_RALLY` env var turns every send into a log-only dry run.
-- **Keep blocking I/O off the event loop.** All `requests` calls (Meetup scrape, AI categorizer) must run via `asyncio.to_thread` from async call sites — direct blocking calls stall discord.py heartbeats.
+- **Keep blocking I/O off the event loop.** All `requests` calls (Meetup scrape, `llm.ai_categorize`) must run via `asyncio.to_thread` from async call sites — direct blocking calls stall discord.py heartbeats.
 
 ## Tech stack
 
@@ -25,8 +25,8 @@ python main.py                    # runs the bot; needs DISCORD_TOKEN + AWS cred
 python events.py                  # debug harness: rechecks all tracked events against Meetup (sleeps 5s per event)
 python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py && python tests/apollo_fetch_test.py   # offline test scripts (run from repo root; they bootstrap sys.path)
 .venv/bin/python tests/live_meetup_test.py   # LIVE smoke test: real meetup.com fetch (list page + 2 event pages + rss); no AWS/Discord writes; exit 0 pass / 1 broken / 2 inconclusive
-docker build -t rallybot .        # non-root user; copies the 7 .py files explicitly — add new modules to the Dockerfile COPY line
-docker run -d -e DISCORD_TOKEN=... -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... --name rallybot rallybot
+docker build -t rallybot .        # non-root user; copies the 8 .py files explicitly — add new modules to the Dockerfile COPY line
+docker run -d -e DISCORD_TOKEN=... -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... -e OPENROUTER_API_KEY=... --name rallybot rallybot
 ```
 
 No CI. Verification = the offline test scripts in `tests/` (above) plus `python -m py_compile *.py`. A weekly Hermes cron job ("RallyBot meetup scrape weekly check") runs `tests/live_meetup_test.py` against live Meetup and opens a `fix/meetup-scrape-<date>` branch when it exits 1.
@@ -36,7 +36,8 @@ No CI. Verification = the offline test scripts in `tests/` (above) plus `python 
 Read via `os.getenv` only — no dotenv loading, no config file.
 
 - Required: `DISCORD_TOKEN`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (`AWS_SESSION_TOKEN` for temp creds)
-- `DO_AI_ENDPOINT` / `DO_AI_SECRET` — DigitalOcean inference endpoint for event categorization; unset ⇒ everything lands in category `other` (logged, not fatal)
+- `OPENROUTER_API_KEY` — OpenRouter API key for AI features (event categorization); unset ⇒ everything lands in category `other` (logged, not fatal)
+- `OPENROUTER_MODEL` — OpenRouter model ID (default `deepseek/deepseek-v4.1-flash`)
 - `MOD_CHANNEL` — channel name for report notifications (default `moderator-only`)
 - `QUIET_RALLY` — any non-empty value ⇒ silent/dry-run mode
 
@@ -44,7 +45,8 @@ Read via `os.getenv` only — no dotenv loading, no config file.
 
 ```
 main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, notify_events hourly, weekly announcements digest sundays 3pm CT), create/update/forum flow, onboarding event hooks
-events.py     MeetupEvent model + list/RSS/page scrape → __NEXT_DATA__ JSON → upsert; cancellation checks; AI categorizer
+events.py     MeetupEvent model + list/RSS/page scrape → __NEXT_DATA__ JSON → upsert; cancellation checks
+llm.py        reusable OpenRouter client: chat() helper + event categorizer (system prompt, categories, retry→other fallback)
 forum.py      event posts in the #event-chat forum (create/update/delete + tags), weekly announcements digest builder/sender, startup post sync/backfill
 report.py     Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rb warn slash command
 onboarding.py New-user flow: #intro welcome on join, persistent "agree to rules" button in #rules, intro role grant/removal, one-intro-post enforcement
