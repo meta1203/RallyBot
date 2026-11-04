@@ -11,7 +11,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN adduser --disabled-password --gecos "" appuser
 
 # Install lxml parser for BeautifulSoup
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# apt sources switched to https: a transparent middlebox on this host's docker
+# bridge network redirects plain-HTTP debian repo traffic to a login page
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && apt-get install -y --no-install-recommends \
     libxml2-dev \
     libxslt-dev \
     && apt-get clean \
