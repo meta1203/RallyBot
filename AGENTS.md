@@ -25,7 +25,7 @@ python main.py                    # runs the bot; needs DISCORD_TOKEN + AWS cred
 python events.py                  # debug harness: rechecks all tracked events against Meetup (sleeps 5s per event)
 python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py && python tests/apollo_fetch_test.py   # offline test scripts (run from repo root; they bootstrap sys.path)
 .venv/bin/python tests/live_meetup_test.py   # LIVE smoke test: real meetup.com fetch (list page + 2 event pages + rss); no AWS/Discord writes; exit 0 pass / 1 broken / 2 inconclusive
-docker build -t rallybot .        # non-root user; copies the 5 .py files explicitly — add new modules to the Dockerfile COPY line
+docker build -t rallybot .        # non-root user; copies the 7 .py files explicitly — add new modules to the Dockerfile COPY line
 docker run -d -e DISCORD_TOKEN=... -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... --name rallybot rallybot
 ```
 
@@ -43,9 +43,9 @@ Read via `os.getenv` only — no dotenv loading, no config file.
 ## Architecture
 
 ```
-main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, notify_events hourly, weekly digest sundays 3pm CT when FORUM_PILOT), create/update/announce flow, onboarding event hooks
+main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, notify_events hourly, weekly announcements digest sundays 3pm CT), create/update/forum flow, onboarding event hooks
 events.py     MeetupEvent model + list/RSS/page scrape → __NEXT_DATA__ JSON → upsert; cancellation checks; AI categorizer
-forum.py      forum pilot (gated by FORUM_PILOT): event posts in #event-chat forum (create/update/delete + tags), weekly announcements digest builder/sender, backfill for pre-pilot events
+forum.py      event posts in the #event-chat forum (create/update/delete + tags), weekly announcements digest builder/sender, startup post sync/backfill
 report.py     Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rb warn slash command
 onboarding.py New-user flow: #intro welcome on join, persistent "agree to rules" button in #rules, intro role grant/removal, one-intro-post enforcement
 aws.py        RallyBotModel (PynamoDB base: table RallyBot, us-east-2, keys id+sort); raw boto3 get/delete helpers
