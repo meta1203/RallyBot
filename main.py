@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 
 from shared import shared, IN_PERSON_MENTION, ONLINE_MENTION
+import adhoc
 import events
 import forum
 import report
@@ -171,6 +172,56 @@ async def on_message(message: discord.Message):
 	# primary gate; this catches role re-grants and races)
 	if message.channel.id == onboarding.INTRO_CHANNEL_ID:
 		await onboarding.handle_intro_message(message)
+
+@client.event
+async def on_thread_create(thread: discord.Thread):
+	# ad hoc events: user-created event posts in #event-chat are analyzed
+	# and (when they carry enough info) mirrored into ddb for cah.moe
+	try:
+		await adhoc.process_thread(thread)
+	except Exception as e:
+		print(f"ERROR: ad hoc event processing failed for thread {thread.id}:\n{get_stacktrace()}")
+
+@client.event
+async def on_raw_thread_update(payload: discord.RawThreadUpdateEvent):
+	# catches tag add/remove (nonpublic), archive/unarchive and name edits —
+	# including threads missing from the cache (raw.thread may be None)
+	if payload.parent_id != forum.FORUM_CHANNEL_ID:
+		return
+	try:
+		thread = shared.guild.get_channel_or_thread(payload.thread_id) \
+			or await shared.guild.fetch_channel(payload.thread_id)
+		if isinstance(thread, discord.Thread):
+			await adhoc.process_thread(thread)
+	except discord.errors.NotFound:
+		pass  # thread deleted before we could look at it; on_raw_thread_delete handles it
+	except Exception as e:
+		print(f"ERROR: ad hoc event update failed for thread {payload.thread_id}:\n{get_stacktrace()}")
+
+@client.event
+async def on_raw_message_edit(payload: discord.RawMessageUpdateEvent):
+	# a forum post's starter message id == its thread id: that equality
+	# identifies a post-body edit (replies inside the thread are ignored —
+	# only the post body is analyzed). Uncached threads are skipped; the
+	# startup sweep picks up any missed edits.
+	if payload.message_id != payload.channel_id or not payload.guild_id:
+		return
+	try:
+		thread = shared.guild.get_channel_or_thread(payload.channel_id)
+		if isinstance(thread, discord.Thread) and thread.parent_id == forum.FORUM_CHANNEL_ID:
+			await adhoc.process_thread(thread)
+	except Exception as e:
+		print(f"ERROR: ad hoc event reanalysis failed for thread {payload.channel_id}:\n{get_stacktrace()}")
+
+@client.event
+async def on_raw_thread_delete(payload: discord.RawThreadDeleteEvent):
+	# deleted forum post -> drop the tracking row + its event record. Called
+	# unconditionally: cleanup_deleted_post is gated on the ForumEvent row's
+	# existence, so non-event-chat deletions are a cheap no-op.
+	try:
+		await adhoc.cleanup_deleted_post(payload.thread_id)
+	except Exception as e:
+		print(f"ERROR: ad hoc event cleanup failed for thread {payload.thread_id}:\n{get_stacktrace()}")
 
 @client.event
 async def on_ready():

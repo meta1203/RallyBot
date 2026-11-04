@@ -513,6 +513,78 @@ async def main():
 	await adhoc.cleanup_deleted_post(999999999999999999)
 	check("cleanup of unknown id is a no-op", deleted_rows == [t.id])
 
+	# ---- task 7: real-time event wiring in main.py ----
+	import main
+	real_process = adhoc.process_thread
+	real_cleanup = adhoc.cleanup_deleted_post
+	processed = []
+	cleaned = []
+	async def _spy_process(thread, **kw):
+		processed.append(thread.id)
+	async def _spy_cleanup(thread_id):
+		cleaned.append(int(thread_id))
+	adhoc.process_thread = _spy_process
+	adhoc.cleanup_deleted_post = _spy_cleanup
+
+	class FakeRawThreadUpdate(discord.RawThreadUpdateEvent):
+		def __init__(self, thread_id, parent_id):
+			self.thread_id = thread_id
+			self.parent_id = parent_id
+	class FakeRawMessageEdit(discord.RawMessageUpdateEvent):
+		def __init__(self, message_id, channel_id, guild_id=1219601473948614737):
+			self.message_id = message_id
+			self.channel_id = channel_id
+			self.guild_id = guild_id
+	class FakeRawThreadDelete(discord.RawThreadDeleteEvent):
+		def __init__(self, thread_id, parent_id):
+			self.thread_id = thread_id
+			self.parent_id = parent_id
+
+	# thread create delegates (parent filtering lives in process_thread)
+	await main.on_thread_create(FakeThread(id=910000000000000020, parent_id=forum.FORUM_CHANNEL_ID))
+	await main.on_thread_create(FakeThread(id=910000000000000021, parent_id=999))
+	check("thread_create delegates all threads", processed == [910000000000000020, 910000000000000021])
+
+	# raw thread update fetches (cached or not) and routes by parent
+	shared_mod.shared.guild.threads[910000000000000020] = FakeThread(id=910000000000000020, parent_id=forum.FORUM_CHANNEL_ID)
+	processed.clear()
+	await main.on_raw_thread_update(FakeRawThreadUpdate(910000000000000020, forum.FORUM_CHANNEL_ID))
+	await main.on_raw_thread_update(FakeRawThreadUpdate(910000000000000022, 999))
+	check("thread_update routes by parent", processed == [910000000000000020])
+
+	# uncached thread: fetch_channel resolves via the FakeGuild's registry
+	processed.clear()
+	t_uncached = FakeThread(id=910000000000000023, parent_id=forum.FORUM_CHANNEL_ID)
+	shared_mod.shared.guild.threads[910000000000000023] = t_uncached
+	await main.on_raw_thread_update(FakeRawThreadUpdate(910000000000000023, forum.FORUM_CHANNEL_ID))
+	check("thread_update handles uncached threads", processed == [910000000000000023])
+	# a truly unknown thread 404s on fetch and is swallowed, not raised
+	class _MissingGuild(FakeGuild):
+		async def fetch_channel(self, id):
+			raise discord.errors.NotFound(_not_found_resp, "nope")
+	shared_mod.shared.guild = _MissingGuild(shared_mod.shared.guild._forum, shared_mod.shared.guild._announce)
+	shared_mod.shared.guild.threads = {}
+	await main.on_raw_thread_update(FakeRawThreadUpdate(910000000000000024, forum.FORUM_CHANNEL_ID))
+	check("404 on thread fetch is swallowed", processed == [910000000000000023])
+	shared_mod.shared.guild = FakeGuild(shared_mod.shared.guild._forum, shared_mod.shared.guild._announce)
+	shared_mod.shared.guild.threads[910000000000000023] = t_uncached
+
+	# starter edit (message_id == channel_id) reanalyzes; replies don't
+	processed.clear()
+	await main.on_raw_message_edit(FakeRawMessageEdit(910000000000000023, 910000000000000023))
+	check("starter edit triggers reanalysis", processed == [910000000000000023])
+	await main.on_raw_message_edit(FakeRawMessageEdit(770000000000000001, 910000000000000023))
+	check("reply edit ignored", processed == [910000000000000023])
+	await main.on_raw_message_edit(FakeRawMessageEdit(910000000000000023, 910000000000000023, guild_id=None))
+	check("guild-less edit ignored", processed == [910000000000000023])
+
+	# thread delete routes to cleanup
+	await main.on_raw_thread_delete(FakeRawThreadDelete(910000000000000023, forum.FORUM_CHANNEL_ID))
+	check("thread delete routes to cleanup", cleaned == [910000000000000023])
+
+	adhoc.process_thread = real_process
+	adhoc.cleanup_deleted_post = real_cleanup
+
 	print("ALL PASSED")
 
 asyncio.run(main())
