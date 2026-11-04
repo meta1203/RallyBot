@@ -39,6 +39,42 @@ class Welcome(RallyBotModel):
 		self.id = "welcome"
 
 
+class RulesMessage(RallyBotModel):
+	"""The one rules-acceptance button message in #rules (partition 'rules', sort = 0).
+
+	DynamoDB is the source of truth for which message is canonical (same
+	pattern as Welcome/Intro): the startup check trusts this pointer first,
+	so an unpinned message or a transient pins() failure can never cause a
+	repost.
+	"""
+	message_id = NumberAttribute(null=True)
+
+	def __init__(self, **kwargs) -> None:
+		super().__init__(**kwargs)
+		self.id = "rules"
+
+
+RULES_RECORD_SORT = 0
+
+
+def _get_rules_record() -> RulesMessage | None:
+	try:
+		return RulesMessage.get("rules", RULES_RECORD_SORT)
+	except RulesMessage.DoesNotExist:
+		return None
+	except Exception as e:
+		print(f"ERROR: failed to look up rules message record: {e}")
+		return None
+
+
+def _save_rules_record(message_id: int) -> None:
+	try:
+		RulesMessage(sort=RULES_RECORD_SORT, message_id=message_id).save()
+		print(f"Recorded rules message {message_id} in ddb")
+	except Exception as e:
+		print(f"ERROR: failed to save rules message record for {message_id}: {e}")
+
+
 async def _get_intro_role(guild: discord.Guild) -> discord.Role | None:
 	role = guild.get_role(INTRO_ROLE_ID)
 	if role is None:
@@ -50,16 +86,63 @@ async def _get_intro_role(guild: discord.Guild) -> discord.Role | None:
 	return role
 
 
-def _has_intro_record(user_id: int) -> bool:
-	"""True if this user has already posted their one intro (source of truth: ddb)."""
+# ordinary user-authored messages; anything else (system notices etc.) is
+# never counted as someone's one intro. Discord posts "<user> joined the
+# server" notices in a channel with the joining member as the message's
+# author, so a bare "is this message in #intro" check is not enough.
+USER_MESSAGE_TYPES = (discord.MessageType.default, discord.MessageType.reply)
+
+
+def _get_intro_record(user_id: int) -> Intro | None:
+	"""The user's intro row, or None if they have none (lookup errors count as none)."""
 	try:
-		Intro.get("intro", user_id)
-		return True
+		return Intro.get("intro", user_id)
 	except Intro.DoesNotExist:
-		return False
+		return None
 	except Exception as e:
 		print(f"ERROR: failed to look up intro record for {user_id}: {e}")
+		return None
+
+
+def _delete_intro_record(user_id: int) -> None:
+	"""Best-effort removal of a stale/bogus intro row (logged, non-fatal)."""
+	try:
+		Intro(sort=user_id).delete()
+		print(f"Deleted stale intro record for {user_id}")
+	except Exception as e:
+		print(f"ERROR: failed to delete stale intro record for {user_id}: {e}")
+
+
+async def _intro_record_is_live(guild: discord.Guild, record: Intro) -> bool | None:
+	"""Is the recorded intro message a real, still-visible user post in #intro?
+
+	True  - the recorded message exists, is an ordinary user post, and its
+	        author is the record's user.
+	False - the record is stale/bogus: the message was deleted, or it was
+	        never a real post (e.g. a join-system notice recorded by an
+	        earlier version of the intro guard).
+	None  - Discord couldn't be asked right now; callers must treat the
+	        record as valid (fail closed) rather than wiping data on a
+	        transient error.
+	"""
+	user_id = record.sort
+	try:
+		channel = guild.get_channel_or_thread(INTRO_CHANNEL_ID) or await guild.fetch_channel(INTRO_CHANNEL_ID)
+	except Exception as e:
+		print(f"ERROR: could not resolve intro channel {INTRO_CHANNEL_ID} to verify intro record for {user_id}: {e}")
+		return None
+	try:
+		message = await channel.fetch_message(int(record.message_id))
+	except discord.NotFound:
 		return False
+	except Exception as e:
+		print(f"ERROR: failed to fetch recorded intro message {record.message_id} for {user_id}: {e}")
+		return None
+	if message.type not in USER_MESSAGE_TYPES:
+		return False
+	if message.author and message.author.id != user_id:
+		return False
+	return True
 
 
 async def _notify_author(member: discord.Member, text: str) -> None:
@@ -113,36 +196,49 @@ async def handle_accept(interaction: discord.Interaction) -> None:
 		return
 	role = await _get_intro_role(guild)
 	if role is None:
-		await interaction.response.send_message("Something went wrong (intro role missing) — please contact a moderator.", ephemeral=True)
+		await interaction.response.send_message("Something went wrong (intro role missing) - please contact a moderator.", ephemeral=True)
 		return
 	if role in member.roles:
 		# double click / role already present: clean up any stale welcome and confirm
 		await _delete_welcome(member.id)
 		await interaction.response.send_message(
-			f"You've already agreed to the rules — go ahead and post your introduction in <#{INTRO_CHANNEL_ID}>!",
+			f"You've already agreed to the rules - go ahead and post your introduction in <#{INTRO_CHANNEL_ID}>!",
 			ephemeral=True,
 		)
 		return
-	if _has_intro_record(member.id):
+	record = _get_intro_record(member.id)
+	if record is not None:
+		# a record exists, but is it real? A stale row whose message was
+		# deleted - or a bogus row that actually points at Discord's
+		# "<user> joined the server" system notice (its author IS the
+		# joining member) - must not lock the user out of #intro forever.
+		live = await _intro_record_is_live(guild, record)
+		if live is False:
+			_delete_intro_record(member.id)
+			record = None
+		elif live is None:
+			# can't verify right now: stay locked rather than wipe data
+			print(f"WARN: could not verify intro record for {member.id}; treating as already-posted")
+	if record is not None:
 		# rejoined member who already used their one intro: no role, no second intro
 		await _delete_welcome(member.id)
 		await interaction.response.send_message(
-			"Welcome back! You've already posted your introduction, so the intro channel stays locked for you — everything else is open. Enjoy!",
+			"Welcome back! You've already posted your introduction, so the intro channel stays locked for you - everything else is open. Enjoy!",
 			ephemeral=True,
 		)
 		return
 	try:
 		await member.add_roles(role, reason="Accepted the rules")
 	except discord.Forbidden:
-		print(f"ERROR: forbidden while adding intro role to {member.id} — is the bot's role above the intro role?")
-		await interaction.response.send_message("I couldn't assign your intro role — please contact a moderator.", ephemeral=True)
+		print(f"ERROR: forbidden while adding intro role to {member.id} - is the bot's role above the intro role?")
+		await interaction.response.send_message("I couldn't assign your intro role - please contact a moderator.", ephemeral=True)
 		return
 	except Exception as e:
 		print(f"ERROR: failed to add intro role to {member.id}: {e}")
-		await interaction.response.send_message("Something went wrong — please try again in a moment.", ephemeral=True)
+		await interaction.response.send_message("Something went wrong - please try again in a moment.", ephemeral=True)
 		return
 	await interaction.response.send_message(
-		f"Thanks for agreeing to the rules! You can now post **one** introduction in <#{INTRO_CHANNEL_ID}> — "
+		f"Thanks for agreeing to the rules! You can now post **one** introduction in <#{INTRO_CHANNEL_ID}> - "
 		"the posting permission is removed automatically right after your post.",
 		ephemeral=True,
 	)
@@ -171,8 +267,67 @@ def _has_accept_button(message: discord.Message) -> bool:
 	return False
 
 
+RULES_HISTORY_SCAN_LIMIT = 100
+
+
+def _is_rules_message(client: discord.Client, message: discord.Message) -> bool:
+	"""True if this message is one of the bot's rules-acceptance messages."""
+	return message.author.id == client.user.id and _has_accept_button(message)
+
+
+async def _fetch_message_if_alive(channel: discord.TextChannel, message_id: int) -> discord.Message | None:
+	"""Fetch a message by id; None if it was deleted (or can't be retrieved)."""
+	try:
+		return await channel.fetch_message(message_id)
+	except discord.NotFound:
+		return None
+	except Exception as e:
+		print(f"ERROR: failed to fetch rules message {message_id}: {e}")
+		return None
+
+
+async def _scan_rules_messages(client: discord.Client, channel: discord.TextChannel) -> list[discord.Message]:
+	"""Find ALL of the bot's rules-acceptance messages (pins + recent history), oldest first."""
+	found: dict[int, discord.Message] = {}
+	try:
+		async for message in channel.pins():
+			if _is_rules_message(client, message):
+				found[message.id] = message
+	except Exception as e:
+		print(f"WARN: failed to check pinned messages in rules channel: {e}")
+	try:
+		async for message in channel.history(limit=RULES_HISTORY_SCAN_LIMIT):
+			if _is_rules_message(client, message):
+				found[message.id] = message
+	except Exception as e:
+		print(f"WARN: failed to scan recent history in rules channel: {e}")
+	return [found[key] for key in sorted(found)]
+
+
+async def _delete_duplicate_rules_messages(duplicates: list[discord.Message]) -> None:
+	"""Remove extra copies of the rules message left behind by earlier reposts."""
+	for dup in duplicates:
+		if shared.quiet:
+			print(f"(quiet) would delete duplicate rules message {dup.id}")
+			continue
+		try:
+			await dup.delete()
+			print(f"Deleted duplicate rules message {dup.id}")
+		except discord.NotFound:
+			pass  # already gone
+		except Exception as e:
+			print(f"WARN: failed to delete duplicate rules message {dup.id}: {e}")
+
+
 async def ensure_rules_message(client: discord.Client, guild: discord.Guild) -> None:
-	"""Make sure a rules-acceptance button message is pinned in #rules (idempotent)."""
+	"""Make sure a rules-acceptance button message exists in #rules (idempotent).
+
+	The ddb pointer (RulesMessage) is the source of truth: if the recorded
+	message is still alive we keep it and never repost, even if it was
+	unpinned. A missing/dead pointer falls back to scanning pins and recent
+	history for a surviving copy, and only then posts fresh. Extra copies
+	from earlier reposts are deleted.
+	"""
 	if shared.quiet:
 		print("(quiet) skipping rules-acceptance message check")
 		return
@@ -181,18 +336,50 @@ async def ensure_rules_message(client: discord.Client, guild: discord.Guild) -> 
 	except Exception as e:
 		print(f"ERROR: could not resolve rules channel {RULES_CHANNEL_ID}: {e}")
 		return
-	try:
-		for message in await channel.pins():
-			if message.author.id == client.user.id and _has_accept_button(message):
-				return  # already in place
-	except Exception as e:
-		print(f"WARN: failed to check pinned messages in rules channel: {e}")
-	try:
-		message = await channel.send(RULES_MESSAGE, view=RulesAcceptView())
-		await message.pin(reason="RallyBot: rules acceptance button")
-		print(f"Posted rules acceptance message: {message.jump_url}")
-	except Exception as e:
-		print(f"ERROR: failed to post rules acceptance message: {e}")
+
+	canonical: discord.Message | None = None
+	record = _get_rules_record()
+	if record and record.message_id:
+		canonical = await _fetch_message_if_alive(channel, int(record.message_id))
+		if canonical is None:
+			print(f"Recorded rules message {record.message_id} is gone; looking for a replacement...")
+
+	if canonical is None:
+		# recovery: adopt an existing copy before posting a new one
+		candidates = await _scan_rules_messages(client, channel)
+		if candidates:
+			canonical = candidates[0]
+			_save_rules_record(canonical.id)
+			print(f"Recovered existing rules acceptance message: {canonical.jump_url}")
+			await _delete_duplicate_rules_messages(candidates[1:])
+		else:
+			try:
+				canonical = await channel.send(RULES_MESSAGE, view=RulesAcceptView())
+			except Exception as e:
+				print(f"ERROR: failed to post rules acceptance message: {e}")
+				return
+			# record the pointer before pinning: a failed pin (e.g. the 50-pin
+			# cap) must not make the next startup think the message is missing
+			_save_rules_record(canonical.id)
+			try:
+				await canonical.pin(reason="RallyBot: rules acceptance button")
+			except Exception as e:
+				print(f"WARN: rules message posted but could not be pinned ({e}): {canonical.jump_url}")
+			print(f"Posted rules acceptance message: {canonical.jump_url}")
+		return
+
+	# canonical message survived: keep it, re-pin if it lost its pin,
+	# and sweep up any duplicate copies from previous reposts
+	if not canonical.pinned:
+		try:
+			await canonical.pin(reason="RallyBot: re-pinning rules acceptance button")
+			print(f"Re-pinned rules acceptance message: {canonical.jump_url}")
+		except Exception as e:
+			print(f"WARN: could not re-pin rules message {canonical.id}: {e}")
+	duplicates = [m for m in await _scan_rules_messages(client, channel) if m.id != canonical.id]
+	if duplicates:
+		print(f"Found {len(duplicates)} duplicate rules message(s); cleaning up...")
+		await _delete_duplicate_rules_messages(duplicates)
 
 
 async def ensure_intro_permissions(client: discord.Client, guild: discord.Guild) -> None:
@@ -230,10 +417,19 @@ async def on_member_join(member: discord.Member):
 	"""Welcome the new member in #intro and remember the message for later cleanup."""
 	if member.bot:
 		return
-	if _has_intro_record(member.id):
-		# one intro per lifetime: no welcome needed for rejoining members
-		print(f"{member} rejoined and has already introduced themselves; skipping welcome")
-		return
+	intro_record = _get_intro_record(member.id)
+	if intro_record is not None:
+		live = await _intro_record_is_live(member.guild, intro_record)
+		if live is False:
+			# the recorded "intro" was a system-message tombstone or the
+			# message has since been deleted: heal and welcome them normally
+			_delete_intro_record(member.id)
+			print(f"{member} had a stale intro record; cleared it and welcoming normally")
+		else:
+			# one intro per lifetime: no welcome needed for rejoining members
+			# (fail closed when the record can't be verified)
+			print(f"{member} rejoined and has already introduced themselves; skipping welcome")
+			return
 	# remove a stale welcome from a previous join before sending a fresh one
 	await _delete_welcome(member.id)
 	if shared.quiet:
@@ -251,7 +447,7 @@ async def on_member_join(member: discord.Member):
 	)
 	embed.add_field(
 		name="2 · Introduce yourself",
-		value=f"After agreeing, post your introduction in <#{INTRO_CHANNEL_ID}>. You get one intro post — the permission to post there is removed automatically right after.",
+		value=f"After agreeing, you can post an introduction in <#{INTRO_CHANNEL_ID}> if you'd like. You get one intro post, so make it count!",
 		inline=False,
 	)
 	embed.add_field(
@@ -294,8 +490,16 @@ async def handle_intro_message(message: discord.Message):
 	"""
 	if message.author.bot:
 		return
-	member = message.author
+	# only ordinary user posts can consume the one intro. Discord's
+	# "<user> joined the server" system notices are MESSAGE_CREATE events
+	# whose author is the joining member - without this check they were
+	# recorded as the user's one intro the instant they joined, locking
+	# them out of #intro before they ever typed a word.
+	if message.type not in USER_MESSAGE_TYPES:
+		return
 	if not isinstance(message.author, discord.Member):
+		return
+	if message.guild is None:
 		return
 	# staff bypass: admins and moderators manage the space, they don't get
 	# their messages deleted
@@ -303,24 +507,32 @@ async def handle_intro_message(message: discord.Message):
 	if perms.administrator or perms.manage_messages or perms.moderate_members:
 		return
 
-	already_posted = _has_intro_record(message.author.id)
-	if already_posted:
-		# they already used their one intro: delete the repeat and explain
-		try:
-			await message.delete()
-		except discord.NotFound:
-			pass
-		except Exception as e:
-			print(f"ERROR: failed to delete repeat intro message {message.id} from {message.author.id}: {e}")
-		await _notify_author(message.author, "You've already posted your introduction in the intro channel — only one intro per person, so this one was removed. If you'd like to share an update, feel free to post elsewhere in the server!")
-		return
+	intro_record = _get_intro_record(message.author.id)
+	if intro_record is not None:
+		live = await _intro_record_is_live(message.guild, intro_record)
+		if live is False:
+			# stale/bogus row (message deleted, or a system-notice tombstone):
+			# heal it and let this genuine post count as their one intro
+			_delete_intro_record(message.author.id)
+			print(f"Healed stale intro record for {message.author.id}; allowing this post")
+		else:
+			# they already used their one intro: delete the repeat and explain
+			# (fail closed if the record can't be verified right now)
+			try:
+				await message.delete()
+			except discord.NotFound:
+				pass
+			except Exception as e:
+				print(f"ERROR: failed to delete repeat intro message {message.id} from {message.author.id}: {e}")
+			await _notify_author(message.author, "You've already posted your introduction in the intro channel - only one intro per person, so this one was removed. If you'd like to share an update, feel free to post elsewhere in the server!")
+			return
 
 	# first (valid) intro: record it, then remove the intro role
 	try:
 		Intro(sort=message.author.id, message_id=message.id, timestamp=_now_ms()).save()
 	except Exception as e:
 		print(f"ERROR: failed to save intro record for {message.author.id}: {e}")
-		# don't strip the role if we couldn't record the post — otherwise the
+		# don't strip the role if we couldn't record the post - otherwise the
 		# user could end up unable to post at all
 		return
 
@@ -332,7 +544,7 @@ async def handle_intro_message(message: discord.Message):
 				await message.author.remove_roles(role, reason="Posted their intro; one-intro rule")
 				print(f"Removed intro role from {message.author.id} after their intro post")
 			except discord.Forbidden:
-				print(f"ERROR: forbidden while removing intro role from {message.author.id} — is the bot's role above the intro role?")
+				print(f"ERROR: forbidden while removing intro role from {message.author.id} - is the bot's role above the intro role?")
 			except Exception as e:
 				print(f"ERROR: failed to remove intro role from {message.author.id}: {e}")
 	print(f"Recorded intro post {message.id} from {message.author.id}; intro role removed.")

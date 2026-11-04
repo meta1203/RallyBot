@@ -1,8 +1,9 @@
 import discord
 from discord import app_commands
 
-from shared import shared
+from shared import shared, IN_PERSON_MENTION, ONLINE_MENTION
 import events
+import forum
 import report
 import onboarding
 
@@ -21,8 +22,6 @@ intents.members = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-IN_PERSON_MENTION = "<@&1366086187906895923>"
-ONLINE_MENTION = "<@&1366085997917638826>"
 
 async def set_globals():
 	shared.client = client
@@ -76,11 +75,16 @@ async def update_events():
 					print(f"Exception occured while updating \n{event} \n{discord_event}\n<- {updates} :\n{get_stacktrace()}")
 					continue
 				category = get_channel_for_ddb_event(event)
-				target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
-				await shared.message_channel(category, f"{target_role} {event.title} has been updated.")
+				# keep the category channel in sync silently and update the
+				# event's forum post instead of pinging the role
+				await forum.update_forum_post(event)
 				print(f"Updated discord event {event.sort} | {event.title}")
 			else:
 				print(f"{event.title} already exists.")
+				# daily catch-up: events first announced more than a month out
+				# only get their forum post once they start in less than a
+				# month (see forum.event_in_post_window / ensure_forum_post)
+				await forum.ensure_forum_post(event)
 		else:
 			# has not been created, so create it
 			discord_event = await shared.guild.create_scheduled_event(
@@ -98,10 +102,15 @@ async def update_events():
 			await notify_new_event(event)
 	# check for cancelled events and remove them from ddb
 	hashed_ids: set[int] = set(map(lambda event: event.sort, on_meetup))
-	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.est).timestamp() * 1000)):
+	for event in events.MeetupEvent.scan(index_name="timestamp-index", filter_condition=events.MeetupEvent.timestamp > int(datetime.datetime.now(shared.central_time).timestamp() * 1000)):
 		if event.sort not in hashed_ids:
 			print(f"rechecking event {event.sort} | {event.title} ...")
-			await events.check_existing_event(event)
+			# only catch up the forum post when the recheck confirms the event
+			# is still live on meetup (a False means deleted or skipped —
+			# re-posting then would resurrect a cancelled event's post)
+			still_live = await events.check_existing_event(event)
+			if still_live:
+				await forum.ensure_forum_post(event)
 
 def get_channel_for_ddb_event(event: events.MeetupEvent):
 	if not event:
@@ -114,13 +123,12 @@ def get_channel_for_ddb_event(event: events.MeetupEvent):
 	return category
 
 async def notify_new_event(event: events.MeetupEvent):
-	category = get_channel_for_ddb_event(event)
-	target_role = ONLINE_MENTION if event.online else IN_PERSON_MENTION
-	await shared.message_channel(category, f"{target_role} {event.title} has been scheduled for <t:{round(event.start_time.timestamp())}>.")
+	# post the event to the event-chat forum (tagged + linked)
+	await forum.create_forum_post(event)
 
 async def notify_events():
 	discord_events = await shared.guild.fetch_scheduled_events()
-	now = datetime.datetime.now(shared.est)
+	now = datetime.datetime.now(shared.central_time)
 	for de in discord_events:
 		query = events.MeetupEvent.scan(index_name="snowflake_id-index", filter_condition=events.MeetupEvent.snowflake_id == de.id)
 		# ResultIterator.next() raises StopIteration when nothing matches (e.g.
@@ -180,6 +188,14 @@ async def on_ready():
 	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30, timezone="America/Chicago"), max_instances=1)
 	# Schedule notify events to run every hour on the hour
 	shared.scheduler.add_job(notify_events, CronTrigger(minute=0), max_instances=1)
+	# weekly announcements digest, sundays 3pm central
+	shared.scheduler.add_job(forum.send_weekly_announcements, CronTrigger(day_of_week='sun', hour=15, minute=0, timezone="America/Chicago"), max_instances=1)
+	# create/refresh forum posts for upcoming events (also repairs posts
+	# written before full_description existed)
+	try:
+		await forum.sync_forum_posts()
+	except Exception as e:
+		print(f"forum post sync failed:\n{get_stacktrace()}")
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
 
