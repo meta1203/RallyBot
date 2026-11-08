@@ -778,6 +778,100 @@ async def main():
 	check("fill job adds nothing beyond the refill", len(occs4) == len(occs3))
 	check("fill job leaves created_at off refilled rows", all(e.created_at is None for e in (gone1, gone2)))
 
+	# ---- task 13: ordinal monthly ("first Tuesday of every month") ----
+	check("parse ordinal monthly", adhoc._parse_recurrence({"kind": "monthly", "ordinal": "first", "weekday": "tuesday", "time": "19:00"}) == {"kind": "monthly", "hour": 19, "minute": 0, "tz": "America/Chicago", "ordinal": 1, "weekday": 1})
+	check("parse last-friday monthly", adhoc._parse_recurrence({"kind": "monthly", "ordinal": "last", "weekday": "friday", "time": "18:30"}) == {"kind": "monthly", "hour": 18, "minute": 30, "tz": "America/Chicago", "ordinal": "last", "weekday": 4})
+	check("parse monthly without day or ordinal rejected", adhoc._parse_recurrence({"kind": "monthly", "time": "19:00"}) is None)
+	check("parse bogus ordinal rejected", adhoc._parse_recurrence({"kind": "monthly", "ordinal": "zeroth", "weekday": 1, "time": "19:00"}) is None)
+	# first Tuesday: Nov 3 2026 already passed on Nov 4 -> next is Dec 1
+	nft = adhoc._next_occurrence({"kind": "monthly", "ordinal": 1, "weekday": 1, "hour": 19, "minute": 0}, wed_noon)
+	check("first Tuesday rolls to next month", nft == dt.datetime(2026, 12, 1, 19, 0, tzinfo=ct))
+	nlf = adhoc._next_occurrence({"kind": "monthly", "ordinal": "last", "weekday": 4, "hour": 19, "minute": 0}, wed_noon)
+	check("last Friday of the month", nlf == dt.datetime(2026, 11, 27, 19, 0, tzinfo=ct))
+	# Dec 2026 has only four Fridays; a 5th-Friday rule skips to Jan 29 2027
+	n5 = adhoc._next_occurrence({"kind": "monthly", "ordinal": 5, "weekday": 4, "hour": 19, "minute": 0}, dt.datetime(2026, 12, 1, 12, 0, tzinfo=ct))
+	check("5th weekday skips month without one", n5 == dt.datetime(2027, 1, 29, 19, 0, tzinfo=ct))
+	check("ordinal description", adhoc._recurrence_description({"kind": "monthly", "ordinal": 1, "weekday": 1}) == "monthly event on the first Tuesdays")
+	check("last description", adhoc._recurrence_description({"kind": "monthly", "ordinal": "last", "weekday": 4}) == "monthly event on the last Fridays")
+	# horizon: first-Tuesday rule from Nov 4 -> Dec 1 is inside, Jan 5 outside
+	dates_ft = adhoc._upcoming_occurrence_dates({"kind": "monthly", "ordinal": 1, "weekday": 1, "hour": 19, "minute": 0}, wed_noon, wed_noon + adhoc.OCCURRENCE_HORIZON)
+	check("first-Tuesday horizon keeps next occurrence", dates_ft == [dt.datetime(2026, 12, 1, 19, 0, tzinfo=ct)])
+
+	# full pipeline: a first-Tuesday standing post materializes Dec 1
+	reset_scenario()
+	t = new_post(910000000000000050, name="Northwest Burbs Monthly Noodle Tour", content="First Tuesday of every month, 7pm, rotating northwest suburbs!")
+	ai_responses.append(make_extraction(title="Northwest Burbs Monthly Noodle Tour", start="2026-12-01T19:00:00-06:00", recurrence={"kind": "monthly", "ordinal": "first", "weekday": "tuesday", "time": "19:00"}))
+	await adhoc.process_thread(t)
+	occs5 = [ev for ev in event_rows.values() if ev.source == "forum" and int(ev.snowflake_id or 0) == t.id]
+	check("first-Tuesday series materialized", len(occs5) == 1 and occs5[0].start_time == dt.datetime(2026, 12, 1, 19, 0, tzinfo=ct))
+	check("ordinal reply states the interpretation", any("monthly event on the first Tuesdays at 7:00 PM" in c for _, c in captured["sends"]))
+
+	# ---- task 13b: missing-info post + nonpublic tag -> reply (regression) ----
+	# (the deployed bug: the raw-thread-update handler read the stale cached
+	# thread, saw no tag, and silently skipped the notice)
+	reset_scenario()
+	t = new_post(910000000000000053, name="Noodle Tour (missing location)", content="First Tuesday of every month, 7pm, somewhere in the northwest burbs!")
+	ai_responses.append(make_extraction(title="Northwest Burbs Monthly Noodle Tour", location=None, missing=["location"]))
+	await adhoc.process_thread(t)
+	noodle_row = forum_rows[t.id]
+	check("precondition: row is missing_info", noodle_row.state == "missing_info" and noodle_row.nonpublic_seen is False)
+	t.applied_tags = [FakeTag("gaming", 2), FakeTag("nonpublic", 99)]
+	await adhoc.process_thread(t)
+	check("nonpublic reply after missing-info state", any("`nonpublic` tag" in c for _, c in captured["sends"]))
+	check("nonpublic_seen set after missing-info", forum_rows[t.id].nonpublic_seen is True and forum_rows[t.id].state == "nonpublic")
+
+	# failed send does not swallow the once-per-application notice
+	reset_scenario()
+	t = new_post(910000000000000051)
+	ai_responses.append(make_extraction(location=None, missing=["location"]))
+	await adhoc.process_thread(t)
+	check("precondition: missing-info row", forum_rows[t.id].state == "missing_info")
+	t.applied_tags = [FakeTag("nonpublic", 99)]
+	async def _failing_send(content):
+		raise RuntimeError("discord hiccup")
+	t.send = _failing_send
+	await adhoc.process_thread(t)
+	check("failed send leaves nonpublic_seen unset", forum_rows[t.id].nonpublic_seen is False)
+	del t.send  # drop the failing instance-attr override; class method restored
+	await adhoc.process_thread(t)
+	check("next trigger retries the notice", any("`nonpublic` tag" in c for _, c in captured["sends"]))
+	check("flag set on the successful retry", forum_rows[t.id].nonpublic_seen is True)
+
+	# ---- task 13c: raw-thread-update handler must fetch FRESH thread data ----
+	import main as main_mod
+	class _StaleGuild(FakeGuild):
+		"""Registry (cache) holds the pre-tag thread; fetch_channel returns
+		the post-tag reality — mirrors discord.py dispatching raw events
+		before updating the cache."""
+		def __init__(self, forum_channel, announce_channel, fresh_thread, stale_thread):
+			super().__init__(forum_channel, announce_channel)
+			self.threads[stale_thread.id] = stale_thread
+			self._fresh = fresh_thread
+		async def fetch_channel(self, id):
+			if int(id) == self._fresh.id:
+				return self._fresh
+			return await super().fetch_channel(id)
+	stale_thread = FakeThread(id=910000000000000052, parent_id=forum.FORUM_CHANNEL_ID, applied_tags=[FakeTag("gaming", 2)])
+	fresh_thread = FakeThread(id=910000000000000052, parent_id=forum.FORUM_CHANNEL_ID, applied_tags=[FakeTag("gaming", 2), FakeTag("nonpublic", 99)])
+	saved_guild2 = shared_mod.shared.guild
+	shared_mod.shared.guild = _StaleGuild(saved_guild2._forum, saved_guild2._announce, fresh_thread, stale_thread)
+	forum_rows[910000000000000052] = adhoc.ForumEvent(sort=910000000000000052, thread_id=910000000000000052)
+	forum_rows[910000000000000052].state = "event"
+	forum_rows[910000000000000052].nonpublic_seen = False
+	spy_seen = []
+	_real_pt = adhoc.process_thread
+	async def _pt_spy(thread, **kw):
+		spy_seen.append([x.name for x in thread.applied_tags])
+	adhoc.process_thread = _pt_spy
+	class FakeRawThreadUpdate2(discord.RawThreadUpdateEvent):
+		def __init__(self, thread_id, parent_id):
+			self.thread_id = thread_id
+			self.parent_id = parent_id
+	await main_mod.on_raw_thread_update(FakeRawThreadUpdate2(910000000000000052, forum.FORUM_CHANNEL_ID))
+	adhoc.process_thread = _real_pt
+	shared_mod.shared.guild = saved_guild2
+	check("handler fetches fresh thread (not stale cache)", spy_seen == [["gaming", "nonpublic"]])
+
 	print("ALL PASSED")
 
 asyncio.run(main())

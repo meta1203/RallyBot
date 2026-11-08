@@ -184,13 +184,14 @@ async def on_thread_create(thread: discord.Thread):
 
 @client.event
 async def on_raw_thread_update(payload: discord.RawThreadUpdateEvent):
-	# catches tag add/remove (nonpublic), archive/unarchive and name edits —
-	# including threads missing from the cache (raw.thread may be None)
+	# catches tag add/remove (nonpublic), archive/unarchive and name edits.
+	# Always REST-fetch the thread: the library dispatches raw_thread_update
+	# BEFORE updating the cache, so a cached thread here still carries the
+	# pre-update applied_tags and a stale read silently skips tag handling.
 	if payload.parent_id != forum.FORUM_CHANNEL_ID:
 		return
 	try:
-		thread = shared.guild.get_channel_or_thread(payload.thread_id) \
-			or await shared.guild.fetch_channel(payload.thread_id)
+		thread = await shared.guild.fetch_channel(payload.thread_id)
 		if isinstance(thread, discord.Thread):
 			await adhoc.process_thread(thread)
 	except discord.errors.NotFound:
@@ -207,7 +208,7 @@ async def on_raw_message_edit(payload: discord.RawMessageUpdateEvent):
 	if payload.message_id != payload.channel_id or not payload.guild_id:
 		return
 	try:
-		thread = shared.guild.get_channel_or_thread(payload.channel_id)
+		thread = await shared.guild.fetch_channel(payload.channel_id)
 		if isinstance(thread, discord.Thread) and thread.parent_id == forum.FORUM_CHANNEL_ID:
 			await adhoc.process_thread(thread)
 	except Exception as e:

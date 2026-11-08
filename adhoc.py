@@ -174,10 +174,12 @@ def _norm_dt(value):
 MISSING_FIELD_LABELS = {"start": "start date/time", "location": "location"}
 
 
-async def post_status_reply(thread: discord.Thread, row: ForumEvent, content: str):
+async def post_status_reply(thread: discord.Thread, row: ForumEvent, content: str) -> bool:
 	"""Delete the row's previous status reply (if any), post the new one, and
-	record the new message id on the row (caller persists the row). Silent
-	no-op send in quiet mode; the ddb bookkeeping still happens."""
+	record the new message id on the row (caller persists the row). Returns
+	True when a send happened or quiet mode is on; False when the send
+	failed (callers use this to avoid persisting once-only bookkeeping —
+	e.g. nonpublic_seen — that would suppress the retry)."""
 	if row.reply_message_id:
 		try:
 			old = await thread.fetch_message(int(row.reply_message_id))
@@ -188,12 +190,14 @@ async def post_status_reply(thread: discord.Thread, row: ForumEvent, content: st
 			print(f"ERROR: deleting old status reply {row.reply_message_id} in {thread.id}:\n{traceback.format_exc()}")
 	if shared.quiet:
 		print(f"(quiet mode) would post status reply in {thread.id}: {content!r}")
-		return
+		return True
 	try:
 		msg = await thread.send(content)
 		row.reply_message_id = msg.id
+		return True
 	except Exception:
 		print(f"ERROR: posting status reply in {thread.id}:\n{traceback.format_exc()}")
+		return False
 
 
 async def _clear_status_reply(thread: discord.Thread, row: ForumEvent):
@@ -336,13 +340,49 @@ def _parse_recurrence(raw) -> dict | None:
 		rule["weekday"] = weekday
 	else:
 		day_of_month = raw.get("day_of_month")
-		if isinstance(day_of_month, bool) or not isinstance(day_of_month, int) or not (1 <= day_of_month <= 31):
+		ordinal = raw.get("ordinal")
+		if day_of_month is not None:
+			if isinstance(day_of_month, bool) or not isinstance(day_of_month, int) or not (1 <= day_of_month <= 31):
+				return None
+			rule["day_of_month"] = day_of_month
+		elif ordinal is not None:
+			# monthly-by-weekday pattern, e.g. "first Tuesday of every month"
+			if isinstance(ordinal, str):
+				ordinal = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "last": "last"}.get(ordinal.strip().lower())
+			if ordinal is None or (ordinal != "last" and (isinstance(ordinal, bool) or not isinstance(ordinal, int) or not (1 <= ordinal <= 5))):
+				return None
+			weekday = raw.get("weekday")
+			if isinstance(weekday, str):
+				name = weekday.strip().lower()
+				weekday = WEEKDAY_NAMES.index(name) if name in WEEKDAY_NAMES else None
+			if isinstance(weekday, bool) or not isinstance(weekday, int) or not (0 <= weekday <= 6):
+				return None
+			rule["ordinal"] = ordinal
+			rule["weekday"] = weekday
+		else:
 			return None
-		rule["day_of_month"] = day_of_month
 	anchor = raw.get("anchor")
 	if isinstance(anchor, str) and anchor.strip():
 		rule["anchor"] = anchor.strip()
 	return rule
+
+
+def _nth_weekday_date(year: int, month: int, ordinal, weekday: int) -> dt.date | None:
+	"""Date of the ordinal-th given weekday of the month (ordinal 1-5 or
+	'last'); None when the month has no such occurrence (e.g. a 5th Friday)."""
+	if ordinal == "last":
+		if month == 12:
+			d = dt.date(year, 12, 31)
+		else:
+			d = dt.date(year, month + 1, 1) - dt.timedelta(days=1)
+		while d.weekday() != weekday:
+			d -= dt.timedelta(days=1)
+		return d
+	d = dt.date(year, month, 1)
+	d += dt.timedelta(days=(weekday - d.weekday()) % 7 + 7 * (ordinal - 1))
+	if d.month != month:
+		return None  # the month lacks a 5th occurrence of that weekday
+	return d
 
 
 def _next_occurrence(rule: dict, after: dt.datetime) -> dt.datetime | None:
@@ -372,8 +412,22 @@ def _next_occurrence(rule: dict, after: dt.datetime) -> dt.datetime | None:
 				candidate += dt.timedelta(days=1)
 		return candidate
 	# monthly: next month that actually has the day (no clamping — a
-	# "monthly on the 31st" simply skips shorter months)
-	day_of_month = rule["day_of_month"]
+	# "monthly on the 31st" simply skips shorter months, and a "fifth
+	# Tuesday" skips months that only have four Tuesdays)
+	day_of_month = rule.get("day_of_month")
+	if day_of_month is None:
+		ordinal, target_weekday = rule["ordinal"], rule["weekday"]
+		year, month = after.year, after.month
+		for _ in range(48):
+			day_date = _nth_weekday_date(year, month, ordinal, target_weekday)
+			if day_date is not None:
+				candidate = dt.datetime.combine(day_date, at_time, tzinfo=tz)
+				if candidate > after:
+					return candidate
+			month += 1
+			if month == 13:
+				month, year = 1, year + 1
+		return None
 	year, month = after.year, after.month
 	for _ in range(48):
 		try:
@@ -422,6 +476,9 @@ def _recurrence_description(rule: dict) -> str:
 		return f"weekly event on {WEEKDAY_NAMES[rule['weekday']].capitalize()}s"
 	if kind == "biweekly":
 		return f"biweekly event on {WEEKDAY_NAMES[rule['weekday']].capitalize()}s"
+	if "ordinal" in rule:
+		name = {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth"}.get(rule["ordinal"], "last")
+		return f"monthly event on the {name} {WEEKDAY_NAMES[rule['weekday']].capitalize()}s"
 	return f"monthly event on day {rule['day_of_month']}"
 
 
@@ -618,19 +675,21 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 	if _has_nonpublic_tag(thread):
 		if row.nonpublic_seen:
 			return  # already alerted for this application of the tag
-		row.nonpublic_seen = True
 		row.state = "nonpublic"
 		await _delete_event_record(row)
 		await _delete_all_occurrences(int(thread.id))
 		# keep last_analyzed_hash: the tag-removal fast path compares the
 		# hash against it to rebuild without an AI call
+		# reply BEFORE persisting nonpublic_seen: if the send fails, the
+		# flag stays unset and the next trigger re-alerts instead of the
+		# notice being swallowed by the once-per-application rule
+		replied = await post_status_reply(thread, row, f"{_mention(thread)} this post has the `nonpublic` tag, so it won't be shown on cah.moe.")
+		if replied:
+			row.nonpublic_seen = True
 		try:
 			await asyncio.to_thread(row.save)
 		except Exception:
 			print(f"ERROR: saving ForumEvent row {thread.id}:\n{traceback.format_exc()}")
-			return
-		await post_status_reply(thread, row, f"{_mention(thread)} this post has the `nonpublic` tag, so it won't be shown on cah.moe.")
-		await asyncio.to_thread(row.save)
 		return
 	elif row.nonpublic_seen:
 		# the tag was just removed: fall through and recreate the record

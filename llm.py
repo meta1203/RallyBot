@@ -32,7 +32,7 @@ EXTRACT_SYSTEM_PROMPT = (
 	'"online": <bool>, '
 	'"description": <string — the event description; prefer the post\'s own wording>, '
 	'"category": <one of: {CATEGORIES}>, '
-	'"recurrence": <null for one-off events; otherwise an object describing the repeating schedule of a recurring/standing event: {"kind": "weekly" or "biweekly" or "monthly", "weekday": <0=Monday through 6=Sunday, required for weekly and biweekly>, "day_of_month": <1-31, required for monthly>, "time": <"HH:MM" 24-hour local time, America/Chicago>}>'
+	'"recurrence": <null for one-off events; otherwise an object describing the repeating schedule of a recurring/standing event: {"kind": "weekly" or "biweekly" or "monthly", "weekday": <0=Monday through 6=Sunday, required for weekly and biweekly>, "day_of_month": <1-31, required for monthly events pinned to a DATE, e.g. "monthly on the 15th">, "ordinal": <"first", "second", "third", "fourth", "fifth" or "last" — required TOGETHER with "weekday" for monthly events pinned to a WEEKDAY PATTERN, e.g. "the first Tuesday of every month" or "the last Friday">, "time": <"HH:MM" 24-hour local time, America/Chicago>}>'
 	', '
 	'"missing": <list — which of "start" and/or "location" could not be determined; empty list when both are known>}\n'
 	"For a recurring/standing post, \"start\" must be the NEXT occurrence's date/time (today's date is given in the message)."
