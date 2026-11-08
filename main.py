@@ -14,6 +14,7 @@ import asyncio
 import os
 import datetime
 from traceback import format_exc as get_stacktrace
+from pynamodb.exceptions import AttributeDeserializationError
 
 intents = discord.Intents.default()
 # required intents for the bot to function
@@ -140,7 +141,14 @@ async def notify_events():
 		# ResultIterator.next() raises StopIteration when nothing matches (e.g.
 		# discord events that were created manually), which used to kill the
 		# entire notification run, so use a non-throwing next() instead
-		ddb_event: events.MeetupEvent | None = next(iter(query), None)
+		try:
+			ddb_event: events.MeetupEvent | None = next(iter(query), None)
+		except (AttributeDeserializationError, ValueError):
+			# a single malformed row must not kill the run; log loudly and
+			# treat the event as untracked-malformed (skip, don't adopt —
+			# adopting would overwrite the row we can't even read)
+			print(f"ERROR: ddb row for discord event {de.id} failed to deserialize:\n{get_stacktrace()}")
+			continue
 		if ddb_event is None:
 			# not tracked in ddb: adopt (and announce) scheduled events, skip the rest
 			if de.status == discord.EventStatus.scheduled:
