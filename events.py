@@ -1,6 +1,6 @@
 import asyncio
 
-from aws import RallyBotModel
+from aws import RallyBotModel, LegacyUTCDateTimeAttribute
 from shared import shared
 
 import discord
@@ -15,7 +15,7 @@ import json
 from decimal import Decimal
 from traceback import format_exc as get_stacktrace
 from pynamodb.exceptions import AttributeDeserializationError, DeleteError
-from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAttribute, BooleanAttribute
+from pynamodb.attributes import UnicodeAttribute, NumberAttribute, BooleanAttribute
 
 guid_finder = re.compile("https://www.meetup.com/chicago-anime-hangouts/events/([0-9]+)/")
 
@@ -25,8 +25,8 @@ class MeetupEvent(RallyBotModel):
 	title = UnicodeAttribute(null=True)
 	description = UnicodeAttribute(null=True)
 	link = UnicodeAttribute(null=True)
-	datetime = UTCDateTimeAttribute(null=True)
-	endtime = UTCDateTimeAttribute(null=True)
+	datetime = LegacyUTCDateTimeAttribute(null=True)
+	endtime = LegacyUTCDateTimeAttribute(null=True)
 	timestamp = NumberAttribute(null=True)
 	location = UnicodeAttribute(null=True)
 	snowflake_id = NumberAttribute(default=0)
@@ -37,7 +37,7 @@ class MeetupEvent(RallyBotModel):
 	# scheduled (for the weekly digest's "newly planned" section) and is never
 	# updated after creation
 	forum_thread_id = NumberAttribute(null=True)
-	created_at = UTCDateTimeAttribute(null=True)
+	created_at = LegacyUTCDateTimeAttribute(null=True)
 	# untruncated meetup description; `description` is capped at 999 chars for
 	# discord scheduled events, but forum posts want the full text
 	full_description = UnicodeAttribute(null=True)

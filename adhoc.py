@@ -31,10 +31,10 @@ import discord
 import events
 import forum
 import llm
-from aws import RallyBotModel
+from aws import RallyBotModel, LegacyUTCDateTimeAttribute
 from shared import shared
 
-from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAttribute, BooleanAttribute
+from pynamodb.attributes import UnicodeAttribute, NumberAttribute, BooleanAttribute
 
 NONPUBLIC_TAG_NAME = "nonpublic"
 FORUM_SOURCE = "forum"
@@ -51,12 +51,12 @@ class ForumEvent(RallyBotModel):
 	missing_fields = UnicodeAttribute(null=True)  # comma-joined floor fields for the missing-info reply
 	last_extraction = UnicodeAttribute(null=True)  # JSON of the last resolved extraction (enables no-AI recreation)
 	last_analyzed_hash = UnicodeAttribute(null=True)  # sha256 of name + starter content + sorted tag ids
-	last_edited_at = UTCDateTimeAttribute(null=True)  # discord's own edited_timestamp at last analysis
-	last_analyzed_at = UTCDateTimeAttribute(null=True)
+	last_edited_at = LegacyUTCDateTimeAttribute(null=True)  # discord's own edited_timestamp at last analysis
+	last_analyzed_at = LegacyUTCDateTimeAttribute(null=True)
 	reply_message_id = NumberAttribute(null=True)  # the bot's current status reply in the thread
 	recurrence = UnicodeAttribute(null=True)  # JSON rule for recurring posts; null = one-off
 	nonpublic_seen = BooleanAttribute(default=False)  # True once the skip reply fired for the current tag application
-	created_at = UTCDateTimeAttribute(null=True)
+	created_at = LegacyUTCDateTimeAttribute(null=True)
 
 	def __init__(self, **kwargs) -> None:
 		super().__init__(**kwargs)
