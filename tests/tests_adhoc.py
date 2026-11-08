@@ -322,10 +322,25 @@ async def main():
 	def _event_save(self, *a, **kw):
 		event_rows[int(self.sort)] = self
 	events.MeetupEvent.save = _event_save
-	def _event_delete(self, *a, **kw):
+	async def _event_delete(self, *a, **kw):
 		deleted_event_sorts.append(int(self.sort))
 		event_rows.pop(int(self.sort), None)
 	events.MeetupEvent.delete = _event_delete
+	# scan stub: snowflake_id-index lookups filter event_rows by the
+	# condition's value (fc.values = (Path, {'N': '<int>'})); anything else
+	# returns all rows (timestamp-index digest scans etc. are re-stubbed
+	# per-scenario where needed)
+	def _scan_stub(cls, **kw):
+		fc = kw.get("filter_condition")
+		if kw.get("index_name") == "snowflake_id-index" and fc is not None:
+			try:
+				tid = int(fc.values[1].value["N"])  # Value.value = {'N': '<int>'}
+			except Exception:
+				tid = None
+			return iter([ev for ev in list(event_rows.values())
+				if ev.source == "forum" and int(ev.snowflake_id or 0) == tid])
+		return iter(list(event_rows.values()))
+	events.MeetupEvent.scan = classmethod(_scan_stub)
 
 	real_extract = llm.ai_extract_event
 	ai_responses = []
@@ -655,6 +670,113 @@ async def main():
 	adhoc.ForumEvent.get = classmethod(stub_forum_get)
 	adhoc.process_thread = real_process
 	adhoc.cleanup_deleted_post = real_cleanup
+
+	# ---- tasks 10-12: recurrence & occurrence materialization ----
+	# (the task-8 reconciliation test left a fixed scan stub behind; point it
+	# back at the live forum_rows dict for this section)
+	adhoc.ForumEvent.scan = classmethod(lambda cls, **kw: iter(list(forum_rows.values())))
+	# parsing / validation
+	check("recurrence: weekly from weekday name", adhoc._parse_recurrence({"kind": "weekly", "weekday": "friday", "time": "19:00"}) == {"kind": "weekly", "weekday": 4, "hour": 19, "minute": 0, "tz": "America/Chicago"})
+	check("recurrence: stored-rule shape accepted", adhoc._parse_recurrence({"kind": "biweekly", "weekday": 2, "hour": 18, "minute": 30, "anchor": "2026-11-04T18:30:00-06:00"}) is not None)
+	check("recurrence: bad kind rejected", adhoc._parse_recurrence({"kind": "daily", "weekday": 1, "time": "19:00"}) is None)
+	check("recurrence: bad time rejected", adhoc._parse_recurrence({"kind": "weekly", "weekday": 1, "time": "25:00"}) is None)
+	check("recurrence: missing weekday rejected", adhoc._parse_recurrence({"kind": "weekly", "time": "19:00"}) is None)
+	check("recurrence: monthly day range enforced", adhoc._parse_recurrence({"kind": "monthly", "day_of_month": 40, "time": "19:00"}) is None)
+	check("recurrence: non-dict rejected", adhoc._parse_recurrence("every friday lol") is None)
+
+	# next-occurrence math (America/Chicago)
+	ct = shared_mod.shared.central_time
+	wed_noon = dt.datetime(2026, 11, 4, 12, 0, tzinfo=ct)
+	nf = adhoc._next_occurrence({"kind": "weekly", "weekday": 4, "hour": 19, "minute": 0}, wed_noon)
+	check("next weekly occurrence", nf == dt.datetime(2026, 11, 6, 19, 0, tzinfo=ct))
+	fri_night = dt.datetime(2026, 11, 6, 20, 0, tzinfo=ct)
+	nf2 = adhoc._next_occurrence({"kind": "weekly", "weekday": 4, "hour": 19, "minute": 0}, fri_night)
+	check("same-day past time rolls a week", nf2 == dt.datetime(2026, 11, 13, 19, 0, tzinfo=ct))
+	nb = adhoc._next_occurrence({"kind": "biweekly", "weekday": 4, "hour": 19, "minute": 0, "anchor": "2026-11-06T19:00:00-06:00"}, fri_night)
+	check("biweekly stays on anchor phase", nb == dt.datetime(2026, 11, 20, 19, 0, tzinfo=ct))
+	nm = adhoc._next_occurrence({"kind": "monthly", "day_of_month": 31, "hour": 19, "minute": 0}, dt.datetime(2027, 1, 31, 20, 0, tzinfo=ct))
+	check("monthly skips months lacking the day", nm == dt.datetime(2027, 3, 31, 19, 0, tzinfo=ct))
+
+	# occurrence sort keys: unique per thread+minute, chronological, in a
+	# band clear of meetup guids and discord snowflakes
+	s_a = adhoc._occurrence_sort(nf, 111)
+	s_b = adhoc._occurrence_sort(nf, 222)
+	check("occurrence sort unique per thread", s_a != s_b)
+	check("occurrence sort chronological", s_a < adhoc._occurrence_sort(nf2, 111))
+	check("occurrence sort in its own band", 1e11 < s_a < 7e17)
+
+	# full pipeline: weekly post materializes through the horizon
+	reset_scenario()
+	t = new_post(910000000000000040, name="Weekly Anime Night", content="Every Friday 7pm at the shop!")
+	now = dt.datetime.now(shared_mod.shared.central_time)
+	rule = adhoc._parse_recurrence({"kind": "weekly", "weekday": "friday", "time": "19:00"})
+	expected_dates = adhoc._upcoming_occurrence_dates(rule, now, now + adhoc.OCCURRENCE_HORIZON)
+	check("horizon yields several weekly dates", len(expected_dates) >= 4)
+	ai_responses.append(make_extraction(title="Weekly Anime Night", start=expected_dates[0].isoformat(), recurrence={"kind": "weekly", "weekday": "friday", "time": "19:00"}))
+	await adhoc.process_thread(t)
+	row = forum_rows[t.id]
+	occs = [ev for ev in event_rows.values() if ev.source == "forum" and int(ev.snowflake_id or 0) == t.id]
+	check("weekly series materialized through horizon", len(occs) == len(expected_dates))
+	check("first occurrence is the next friday", min(ev.start_time for ev in occs) == expected_dates[0])
+	check("occurrence rows in the event partition", all(ev.id == "event" for ev in occs))
+	check("occurrence timestamps synced", all(int(ev.timestamp) == int(ev.start_time.timestamp() * 1000) for ev in occs))
+	check("occurrence endtime keeps series duration", all(ev.endtime == ev.start_time + dt.timedelta(hours=1) for ev in occs))
+	check("created_at only on the first occurrence", sum(1 for ev in occs if ev.created_at is not None) == 1)
+	check("event_sort points at the next occurrence", row.event_sort == adhoc._occurrence_sort(expected_dates[0], t.id))
+	check("recurring reply states the interpretation", any("weekly event on Fridays" in c and "7:00 PM" in c for _, c in captured["sends"]))
+	check("recurrence stored on the row", json.loads(row.recurrence)["kind"] == "weekly")
+	check("stored extraction carries the rule", json.loads(row.last_extraction)["recurrence"]["kind"] == "weekly")
+	# idempotent: unchanged post reprocessed -> no new rows, no new AI call
+	n_rows = len(event_rows)
+	await adhoc.process_thread(t)
+	check("unchanged recurring post does nothing", len(event_rows) == n_rows and captured["ai_calls"] == 1)
+
+	# schedule change via edit: past rows stay (history), future rebuilt
+	first_ev = min(occs, key=lambda e: e.start_time)
+	first_ev.start_time = now - dt.timedelta(days=1)
+	first_ev.timestamp = int(first_ev.start_time.timestamp() * 1000)
+	first_ev.endtime = first_ev.start_time + dt.timedelta(hours=1)
+	t.starter_message.content = "Correction: we meet every MONDAY 7pm at the shop!"
+	t.starter_message.edited_at = dt.datetime.now(dt.timezone.utc)
+	next_monday = adhoc._next_occurrence({"kind": "weekly", "weekday": 0, "hour": 19, "minute": 0}, dt.datetime.now(shared_mod.shared.central_time))
+	ai_responses.append(make_extraction(title="Weekly Anime Night", start=next_monday.isoformat(), recurrence={"kind": "weekly", "weekday": "monday", "time": "19:00"}))
+	await adhoc.process_thread(t)
+	occs2 = [ev for ev in event_rows.values() if ev.source == "forum" and int(ev.snowflake_id or 0) == t.id]
+	check("past occurrence kept on schedule change", first_ev.sort in {e.sort for e in occs2})
+	now2 = dt.datetime.now(shared_mod.shared.central_time)
+	future2 = [e for e in occs2 if e.start_time > now2]
+	check("future occurrences rebuilt on the new weekday", future2 and all(e.start_time.weekday() == 0 for e in future2))
+	check("recurring edit reanalyzes (past-guard exempt)", captured["ai_calls"] == 2)
+
+	# nonpublic on a recurring post removes the whole series (past + future)
+	t.applied_tags = [FakeTag("gaming", 2), FakeTag("nonpublic", 99)]
+	await adhoc.process_thread(t)
+	check("nonpublic removes the whole series", not any(int(ev.snowflake_id or 0) == t.id for ev in event_rows.values()))
+	n_sends_recurring = len(captured["sends"])
+	# tag removal re-materializes the series with no AI call
+	t.applied_tags = [FakeTag("gaming", 2)]
+	await adhoc.process_thread(t)
+	occs3 = [ev for ev in event_rows.values() if ev.source == "forum" and int(ev.snowflake_id or 0) == t.id]
+	rule3 = adhoc._parse_recurrence(json.loads(forum_rows[t.id].recurrence))
+	_now3 = dt.datetime.now(shared_mod.shared.central_time)
+	expected3 = adhoc._upcoming_occurrence_dates(rule3, _now3, _now3 + adhoc.OCCURRENCE_HORIZON)
+	check("tag removal re-materializes the series", len(occs3) == len(expected3) and forum_rows[t.id].state == "event")
+	check("series rebuild used no AI call", captured["ai_calls"] == 2)
+
+	# daily fill job: a gap in the future window (e.g. the bot was offline
+	# while occurrences slipped past) gets refilled from the stored rule
+	by_start = sorted(occs3, key=lambda e: e.start_time)
+	gone1, gone2 = by_start[-2], by_start[-1]
+	del event_rows[gone1.sort]
+	del event_rows[gone2.sort]
+	await adhoc.materialize_future_occurrences()
+	occs4 = [ev for ev in event_rows.values() if ev.source == "forum" and int(ev.snowflake_id or 0) == t.id]
+	now4 = dt.datetime.now(shared_mod.shared.central_time)
+	future4 = [e for e in occs4 if e.start_time > now4]
+	check("fill job restores the future window", len(future4) == len(expected3))
+	check("fill job recreates the missing occurrences", {gone1.sort, gone2.sort} <= {e.sort for e in occs4})
+	check("fill job adds nothing beyond the refill", len(occs4) == len(occs3))
+	check("fill job leaves created_at off refilled rows", all(e.created_at is None for e in (gone1, gone2)))
 
 	print("ALL PASSED")
 

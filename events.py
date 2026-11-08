@@ -121,8 +121,10 @@ class MeetupEvent(RallyBotModel):
 			return None
 		# also delete the corresponding discord event, fetching it live instead
 		# of relying on the cache: uncached events used to blow up on None here
-		# and silently leave the discord event behind
-		if discord_id:
+		# and silently leave the discord event behind. forum-source rows have
+		# no scheduled event (snowflake_id is 0 or the owning thread id) and
+		# no forum post of their own — skip both side-arms entirely.
+		if discord_id and (self.source or "meetup") == "meetup":
 			try:
 				devent = await shared.guild.fetch_scheduled_event(discord_id)
 				await devent.delete()

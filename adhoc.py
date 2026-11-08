@@ -39,6 +39,8 @@ from pynamodb.attributes import UnicodeAttribute, NumberAttribute, UTCDateTimeAt
 NONPUBLIC_TAG_NAME = "nonpublic"
 FORUM_SOURCE = "forum"
 SWEEP_DELAY = 1.0  # seconds between sweep threads (delete/AI rate limits)
+OCCURRENCE_HORIZON = dt.timedelta(days=30)  # recurring series stay materialized this far out
+WEEKDAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
 class ForumEvent(RallyBotModel):
@@ -52,6 +54,7 @@ class ForumEvent(RallyBotModel):
 	last_edited_at = UTCDateTimeAttribute(null=True)  # discord's own edited_timestamp at last analysis
 	last_analyzed_at = UTCDateTimeAttribute(null=True)
 	reply_message_id = NumberAttribute(null=True)  # the bot's current status reply in the thread
+	recurrence = UnicodeAttribute(null=True)  # JSON rule for recurring posts; null = one-off
 	nonpublic_seen = BooleanAttribute(default=False)  # True once the skip reply fired for the current tag application
 	created_at = UTCDateTimeAttribute(null=True)
 
@@ -129,6 +132,13 @@ async def startup_sweep() -> None:
 			print(f"WARN: thread {tid} not accessible; keeping its tracked record")
 		except Exception:
 			print(f"WARN: could not verify thread {tid}; keeping its tracked record")
+
+	# keep every recurring series' calendar filled through the horizon
+	# (pure date math — no AI; also runs daily at 12:45 CT)
+	try:
+		await materialize_future_occurrences()
+	except Exception:
+		print(f"ERROR: occurrence fill failed during sweep:\n{traceback.format_exc()}")
 
 
 def _starter_content_hash(thread, starter) -> str:
@@ -283,6 +293,264 @@ def _event_from_resolved(resolved: dict, thread_id: int, created_at=None) -> eve
 	return ev
 
 
+# ---- recurrence & occurrences (see the plan's v2 addendum) ----
+# Standing posts materialize one MeetupEvent row per occurrence: past rows
+# are kept as calendar history (immutable), future rows are filled through
+# the 30-day horizon. All date math is America/Chicago; no AI involved.
+
+def _parse_recurrence(raw) -> dict | None:
+	"""Validate + normalize an LLM recurrence (or an already-stored rule).
+	Accepts the raw extraction shape ({"kind", "weekday"/"day_of_month",
+	"time": "HH:MM"}) and the stored rule shape ({"kind", "hour", "minute",
+	"anchor"}). Returns None for anything malformed — the post is then
+	treated as one-off rather than rolling wrong dates forever."""
+	if not isinstance(raw, dict):
+		return None
+	kind = str(raw.get("kind") or "").strip().lower()
+	if kind not in ("weekly", "biweekly", "monthly"):
+		return None
+	hour = raw.get("hour")
+	minute = raw.get("minute")
+	if not isinstance(hour, int) or isinstance(hour, bool) or not isinstance(minute, int) or isinstance(minute, bool):
+		parsed_time = None
+		time_s = str(raw.get("time") or "").strip()
+		for fmt in ("%H:%M", "%I:%M %p", "%I:%M%p"):
+			try:
+				parsed_time = dt.datetime.strptime(time_s, fmt)
+				break
+			except ValueError:
+				continue
+		if parsed_time is None:
+			return None
+		hour, minute = parsed_time.hour, parsed_time.minute
+	if not (0 <= hour <= 23 and 0 <= minute <= 59):
+		return None
+	rule = {"kind": kind, "hour": hour, "minute": minute, "tz": "America/Chicago"}
+	if kind in ("weekly", "biweekly"):
+		weekday = raw.get("weekday")
+		if isinstance(weekday, str):
+			name = weekday.strip().lower()
+			weekday = WEEKDAY_NAMES.index(name) if name in WEEKDAY_NAMES else None
+		if isinstance(weekday, bool) or not isinstance(weekday, int) or not (0 <= weekday <= 6):
+			return None
+		rule["weekday"] = weekday
+	else:
+		day_of_month = raw.get("day_of_month")
+		if isinstance(day_of_month, bool) or not isinstance(day_of_month, int) or not (1 <= day_of_month <= 31):
+			return None
+		rule["day_of_month"] = day_of_month
+	anchor = raw.get("anchor")
+	if isinstance(anchor, str) and anchor.strip():
+		rule["anchor"] = anchor.strip()
+	return rule
+
+
+def _next_occurrence(rule: dict, after: dt.datetime) -> dt.datetime | None:
+	"""The next occurrence of the rule strictly after `after` (America/Chicago)."""
+	tz = shared.central_time
+	if after.tzinfo is None:
+		after = after.replace(tzinfo=dt.timezone.utc)
+	after = after.astimezone(tz)
+	at_time = dt.time(rule["hour"], rule["minute"])
+	kind = rule["kind"]
+	if kind in ("weekly", "biweekly"):
+		candidate = dt.datetime.combine(after.date(), at_time, tzinfo=tz)
+		if candidate <= after:
+			candidate += dt.timedelta(days=1)
+		while candidate.weekday() != rule["weekday"]:
+			candidate += dt.timedelta(days=1)
+		if kind == "biweekly":
+			# on-phase via the immutable anchor date (the rule's first
+			# occurrence); without an anchor, phase from `after` itself
+			anchor = after.date()
+			if rule.get("anchor"):
+				try:
+					anchor = dt.datetime.fromisoformat(rule["anchor"]).date()
+				except ValueError:
+					pass
+			while (candidate.date() - anchor).days % 14 != 0:
+				candidate += dt.timedelta(days=1)
+		return candidate
+	# monthly: next month that actually has the day (no clamping — a
+	# "monthly on the 31st" simply skips shorter months)
+	day_of_month = rule["day_of_month"]
+	year, month = after.year, after.month
+	for _ in range(48):
+		try:
+			day_date = dt.date(year, month, day_of_month)
+		except ValueError:
+			day_date = None  # e.g. Feb 30 — skip the month
+		if day_date is not None:
+			candidate = dt.datetime.combine(day_date, at_time, tzinfo=tz)
+			if candidate > after:
+				return candidate
+		month += 1
+		if month == 13:
+			month, year = 1, year + 1
+	return None
+
+
+def _upcoming_occurrence_dates(rule: dict, now: dt.datetime, horizon: dt.datetime) -> list[dt.datetime]:
+	"""Occurrences from `now` through `horizon`, plus the very next one even
+	when it lies beyond the horizon (a monthly event may sit 31 days out)."""
+	dates = []
+	after = now
+	for _ in range(62):  # unreachable cap; horizon-bounded in practice
+		next_date = _next_occurrence(rule, after)
+		if next_date is None:
+			break
+		if not dates or next_date <= horizon:
+			dates.append(next_date)
+		if next_date > horizon:
+			break
+		after = next_date
+	return dates
+
+
+def _occurrence_sort(start: dt.datetime, thread_id: int) -> int:
+	"""Unique numeric sort key for an occurrence row:
+	(start_ms << 16) | (thread_id & 0xFFFF). Chronologically ordered,
+	decodeable, and clear of both the meetup-guid (<1e10) and the
+	Discord-snowflake (>=~7e17 for anything 2021+) bands of id='event'."""
+	ms = int(start.timestamp() * 1000)
+	return (ms << 16) | (int(thread_id) & 0xFFFF)
+
+
+def _recurrence_description(rule: dict) -> str:
+	kind = rule["kind"]
+	if kind == "weekly":
+		return f"weekly event on {WEEKDAY_NAMES[rule['weekday']].capitalize()}s"
+	if kind == "biweekly":
+		return f"biweekly event on {WEEKDAY_NAMES[rule['weekday']].capitalize()}s"
+	return f"monthly event on day {rule['day_of_month']}"
+
+
+def _fmt_rule_time(rule: dict) -> str:
+	hour = rule["hour"]
+	return f"{hour % 12 or 12}:{rule['minute']:02d} {'AM' if hour < 12 else 'PM'}"
+
+
+def _occurrence_end(resolved: dict, start: dt.datetime) -> dt.datetime:
+	"""Each occurrence keeps the series' duration (end - start of the
+	resolved next occurrence; the resolver guarantees end >= start)."""
+	base_start = dt.datetime.fromisoformat(resolved["start"])
+	base_end = dt.datetime.fromisoformat(resolved["end"])
+	return start + (base_end - base_start)
+
+
+async def _load_occurrences(thread_id: int) -> list[events.MeetupEvent]:
+	"""All event rows belonging to a forum thread, via the existing
+	snowflake_id-index GSI (occurrence rows carry snowflake_id = thread id)."""
+	try:
+		return await asyncio.to_thread(lambda: list(events.MeetupEvent.scan(
+			index_name="snowflake_id-index",
+			filter_condition=events.MeetupEvent.snowflake_id == int(thread_id))))
+	except Exception:
+		print(f"ERROR: scanning occurrence rows for thread {thread_id}:\n{traceback.format_exc()}")
+		return []
+
+
+async def _delete_all_occurrences(thread_id: int) -> None:
+	"""Delete every occurrence row of a thread — past and future (nonpublic
+	tag / post deletion remove the series' whole public trace)."""
+	for ev in await _load_occurrences(thread_id):
+		if (ev.source or "meetup") != FORUM_SOURCE:
+			# paranoia: a scheduled-event snowflake can never equal a thread
+			# id, but never delete a meetup-mirrored row on a guess
+			continue
+		try:
+			await ev.delete()
+		except Exception:
+			print(f"ERROR: deleting occurrence {ev.sort} for thread {thread_id}:\n{traceback.format_exc()}")
+
+
+async def _delete_future_occurrences(thread_id: int) -> None:
+	"""Delete only FUTURE occurrence rows (edits recompute the schedule;
+	past rows are immutable history)."""
+	now = dt.datetime.now(shared.central_time)
+	for ev in await _load_occurrences(thread_id):
+		if (ev.source or "meetup") != FORUM_SOURCE:
+			continue
+		start = ev.start_time
+		if start and start > now:
+			try:
+				await ev.delete()
+			except Exception:
+				print(f"ERROR: deleting future occurrence {ev.sort} for thread {thread_id}:\n{traceback.format_exc()}")
+
+
+async def _materialize_occurrences(row: ForumEvent, resolved: dict, thread_id: int) -> int | None:
+	"""Create any missing occurrence rows for a recurring series through the
+	30-day horizon (the next occurrence is always created, even beyond it).
+	Idempotent: rows are matched by their encoded sort key. Past rows are
+	never touched (history immutable). Returns the sort key of the earliest
+	future occurrence (row.event_sort), or None."""
+	rule = resolved.get("recurrence")
+	if not isinstance(rule, dict):
+		return None
+	now = dt.datetime.now(shared.central_time)
+	horizon = now + OCCURRENCE_HORIZON
+	dates = _upcoming_occurrence_dates(rule, now, horizon)
+	if not dates:
+		print(f"WARN: recurrence for thread {thread_id} produced no upcoming dates; skipping materialization")
+		return None
+	existing = await _load_occurrences(thread_id)
+	existing_sorts = {int(ev.sort) for ev in existing}
+	series_is_new = not existing and not row.event_sort
+	for date in dates:
+		sort_key = _occurrence_sort(date, thread_id)
+		if sort_key in existing_sorts:
+			continue
+		ev = _event_from_resolved(resolved, thread_id)
+		ev.sort = sort_key
+		ev.start_time = date  # setter keeps datetime + timestamp in sync
+		ev.endtime = _occurrence_end(resolved, date)
+		ev.snowflake_id = thread_id  # per-thread lookup via snowflake_id-index
+		# only the series' very first occurrence row carries created_at —
+		# the digest's "newly planned" must fire once per series, not once
+		# per occurrence
+		ev.created_at = dt.datetime.now(shared.central_time) if series_is_new else None
+		series_is_new = False
+		try:
+			await asyncio.to_thread(ev.save)
+		except Exception:
+			print(f"ERROR: saving occurrence {sort_key} for thread {thread_id}:\n{traceback.format_exc()}")
+			continue
+		existing_sorts.add(sort_key)
+	return _occurrence_sort(dates[0], thread_id)
+
+
+async def materialize_future_occurrences() -> None:
+	"""Daily job: fill every tracked recurring series' calendar through the
+	30-day horizon. Pure date math from the stored rule — no AI, no post
+	reanalysis (only post edits change a series' rule; history stays
+	immutable). Also runs from the startup sweep."""
+	try:
+		rows = await asyncio.to_thread(lambda: list(ForumEvent.scan()))
+	except Exception:
+		print("ERROR: ForumEvent scan failed; skipping occurrence fill")
+		return
+	for row in rows:
+		if (row.id or "") != "forum_event" or row.thread_id is None:
+			continue
+		if (row.state or "") != "event" or not row.recurrence:
+			continue
+		try:
+			resolved = json.loads(row.last_extraction) if row.last_extraction else None
+		except Exception:
+			resolved = None
+		if not isinstance(resolved, dict):
+			print(f"WARN: thread {row.thread_id} has a recurrence but no usable stored extraction; skipping fill")
+			continue
+		try:
+			sort_key = await _materialize_occurrences(row, resolved, int(row.thread_id))
+			if sort_key and sort_key != row.event_sort:
+				row.event_sort = sort_key
+				await asyncio.to_thread(row.save)
+		except Exception:
+			print(f"ERROR: occurrence fill failed for thread {row.thread_id}:\n{traceback.format_exc()}")
+
+
 async def _load_event(sort: int) -> events.MeetupEvent | None:
 	try:
 		return await asyncio.to_thread(events.MeetupEvent.get, "event", int(sort))
@@ -318,6 +586,7 @@ async def cleanup_deleted_post(thread_id: int) -> None:
 		return  # transient ddb hiccup — a later sweep retries
 	try:
 		await _delete_event_record(row)
+		await _delete_all_occurrences(int(thread_id))
 		await asyncio.to_thread(row.delete)
 	except Exception:
 		print(f"ERROR: cleaning up ForumEvent row for deleted post {thread_id}:\n{traceback.format_exc()}")
@@ -352,6 +621,7 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 		row.nonpublic_seen = True
 		row.state = "nonpublic"
 		await _delete_event_record(row)
+		await _delete_all_occurrences(int(thread.id))
 		# keep last_analyzed_hash: the tag-removal fast path compares the
 		# hash against it to rebuild without an AI call
 		try:
@@ -385,8 +655,10 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 		await asyncio.to_thread(row.save)  # persist any nonpublic flag reset
 		return
 
-	# ---- past-event guard: never reanalyze/recompute a started event ----
-	if row.event_sort:
+	# ---- past-event guard: never reanalyze/recompute a STARTED event ----
+	# (one-off rows only — a recurring series' schedule legitimately changes
+	# via edits, and its past rows stay untouched as immutable history)
+	if row.event_sort and row.recurrence is None:
 		existing = await _load_event(int(row.event_sort))
 		if existing and existing.start_time and existing.start_time <= dt.datetime.now(shared.central_time):
 			row.last_analyzed_hash = content_hash
@@ -425,6 +697,7 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 	if not is_event:
 		# not an event post: drop any stale record + the now-misleading reply
 		await _delete_event_record(row)
+		await _delete_all_occurrences(int(thread.id))
 		await _clear_status_reply(thread, row)
 		row.state = "not_event"
 		row.last_extraction = None
@@ -444,7 +717,27 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 		await asyncio.to_thread(row.save)
 		return
 
-	# valid: upsert the event record, preserving created_at on recompute
+	# valid: upsert the event record(s)
+	rule = _parse_recurrence(extraction.get("recurrence"))
+	if rule and "anchor" not in rule:
+		# biweekly phase anchor: the rule's first resolved occurrence; kept
+		# immutable so later fills/edits stay on the same every-other-week
+		rule["anchor"] = resolved["start"]
+	resolved["recurrence"] = rule
+	row.recurrence = json.dumps(rule) if rule else None
+	if rule:
+		# recurring series: history is immutable — drop FUTURE occurrence
+		# rows and re-materialize them from the (possibly changed) rule;
+		# the next occurrence is always created, even beyond the horizon
+		await _delete_future_occurrences(int(thread.id))
+		row.event_sort = await _materialize_occurrences(row, resolved, int(thread.id))
+		row.state = "event"
+		row.missing_fields = None
+		row.last_extraction = json.dumps(resolved)
+		await post_status_reply(thread, row, f"{_mention(thread)} saw your post and added your event to cah.moe — it's on the calendar as a **{_recurrence_description(rule)} at {_fmt_rule_time(rule)}** with the next month of dates listed. If that's not right, edit the post and I'll fix it! If you'd rather it NOT appear on the website, add the `nonpublic` tag to this post and I'll remove it.")
+		await asyncio.to_thread(row.save)
+		return
+	# one-off: upsert the single record, preserving created_at on recompute
 	existing = await _load_event(int(thread.id))
 	created_at = existing.created_at if existing else dt.datetime.now(shared.central_time)
 	ev = _event_from_resolved(resolved, thread.id, created_at=created_at)

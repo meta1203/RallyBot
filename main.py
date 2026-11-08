@@ -241,6 +241,9 @@ async def on_ready():
 
 	# Schedule update_events to run daily at 12:30 PM
 	shared.scheduler.add_job(update_events, CronTrigger(hour=12, minute=30, timezone="America/Chicago"), max_instances=1)
+	# fill recurring ad hoc series' calendars through the 30-day horizon
+	# (pure date math; runs right after the meetup sync)
+	shared.scheduler.add_job(adhoc.materialize_future_occurrences, CronTrigger(hour=12, minute=45, timezone="America/Chicago"), max_instances=1)
 	# Schedule notify events to run every hour on the hour
 	shared.scheduler.add_job(notify_events, CronTrigger(minute=0), max_instances=1)
 	# weekly announcements digest, sundays 3pm central
