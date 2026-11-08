@@ -1,6 +1,8 @@
 import os
 import json
 import requests
+import datetime as dt
+from zoneinfo import ZoneInfo
 from traceback import format_exc as get_stacktrace
 
 # single-tenant hardcoded constants: one OpenRouter account, one default model;
@@ -30,7 +32,10 @@ EXTRACT_SYSTEM_PROMPT = (
 	'"online": <bool>, '
 	'"description": <string — the event description; prefer the post\'s own wording>, '
 	'"category": <one of: {CATEGORIES}>, '
-	'"missing": <list — which of "start" and/or "location" could not be determined; empty list when both are known>}'
+	'"recurrence": <null for one-off events; otherwise an object describing the repeating schedule of a recurring/standing event: {"kind": "weekly" or "biweekly" or "monthly", "weekday": <0=Monday through 6=Sunday, required for weekly and biweekly>, "day_of_month": <1-31, required for monthly>, "time": <"HH:MM" 24-hour local time, America/Chicago>}>'
+	', '
+	'"missing": <list — which of "start" and/or "location" could not be determined; empty list when both are known>}\n'
+	"For a recurring/standing post, \"start\" must be the NEXT occurrence's date/time (today's date is given in the message)."
 )
 # the extraction floor: a record is only created when both are known
 EXTRACT_REQUIRED_FIELDS = ("start", "location")
@@ -80,7 +85,10 @@ def ai_extract_event(post_title: str, post_body: str) -> dict | None:
 		},
 		{
 			"role": "user",
-			"content": f"Post title: {post_title}\n\nPost body:\n{post_body}",
+			"content": (
+				f"Today's date and time: {dt.datetime.now(ZoneInfo('America/Chicago')).strftime('%A, %B %d, %Y, %I:%M %p %Z')}. "
+				f"Post title: {post_title}\n\nPost body:\n{post_body}"
+			),
 		},
 	]
 	for _attempt in range(2):
