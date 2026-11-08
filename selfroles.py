@@ -111,6 +111,8 @@ class SelfRolePicker(discord.ui.View):
 		by_category: dict[str, list[discord.Role]],
 		exclusive: set[str],
 		member_role_ids: set[int],
+		origin: discord.Interaction | None = None,
+		chain: dict | None = None,
 	):
 		super().__init__(timeout=300)
 		self.guild = guild
@@ -118,12 +120,29 @@ class SelfRolePicker(discord.ui.View):
 		self.by_category = by_category
 		self.exclusive = exclusive
 		self.member_role_ids = set(member_role_ids)
+		# on_timeout cleanup: every rebuild in one picker session shares a chain
+		# dict whose "view" entry points at the CURRENT picker; only the current
+		# one may delete the ephemeral message (an old, superseded view firing
+		# its timeout later must not yank the message from its replacement)
+		self._origin = origin
+		self._chain = chain if chain is not None else {"view": self}
 		for i, (category, roles) in enumerate(by_category.items()):
 			if i >= MAX_CATEGORIES:
 				break
 			select = SelfRoleSelect(category, roles, category in exclusive, self.member_role_ids)
 			select.row = i
 			self.add_item(select)
+
+	async def on_timeout(self):
+		"""Delete the ephemeral picker when it expires so no dead dropdowns linger."""
+		if self._chain.get("view") is not self:
+			return  # superseded by a newer picker in the same session
+		if self._origin is None:
+			return
+		try:
+			await self._origin.delete_original_response()
+		except discord.HTTPException:
+			pass  # already dismissed/deleted by the user, or webhook token expired
 
 	async def apply_selection(self, interaction: discord.Interaction, select: SelfRoleSelect):
 		category_ids = {role.id for role in self.by_category.get(select.category, [])}
@@ -170,7 +189,12 @@ class SelfRolePicker(discord.ui.View):
 
 	def _rebuild(self) -> "SelfRolePicker":
 		"""A fresh picker reflecting the member's (updated) roles."""
-		return SelfRolePicker(self.guild, self.member, self.by_category, self.exclusive, self.member_role_ids)
+		refreshed = SelfRolePicker(
+			self.guild, self.member, self.by_category, self.exclusive, self.member_role_ids,
+			origin=self._origin, chain=self._chain,
+		)
+		self._chain["view"] = refreshed
+		return refreshed
 
 	def _content(self) -> str:
 		return "Your roles are up to date. Adjust the menus any time — changes apply as soon as you pick."
@@ -235,7 +259,7 @@ async def roles_command(interaction: discord.Interaction):
 	picker_categories, overflowed = _categories_for_picker(display_categories)
 	for category, count in overflowed:
 		await _warn_category_overflow(category, count)
-	view = SelfRolePicker(guild, interaction.user, picker_categories, exclusive, {r.id for r in interaction.user.roles})
+	view = SelfRolePicker(guild, interaction.user, picker_categories, exclusive, {r.id for r in interaction.user.roles}, origin=interaction)
 	await interaction.response.send_message(content=view._content(), view=view, ephemeral=True)
 
 

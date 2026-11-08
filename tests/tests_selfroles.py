@@ -391,6 +391,53 @@ check("mod alert mentions moderator role", all(selfroles.MODERATOR_MENTION in ms
 sent = inter.response.sends[0]
 check("oversized picker still renders 25", len(sent["view"].children[0].to_component_dict()["options"]) == 25)
 
+# ================= 14. timeout cleanup deletes the ephemeral reply =================
+reset_store()
+roles = [FakeRole(1, "Blue", 5), FakeRole(2, "Red", 6)]
+guild = FakeGuild(roles)
+member = FakeMember([1])
+
+def make_origin():
+	orig = make_interaction(member, guild)
+	orig.deleted = []
+	async def delete_original_response():
+		orig.deleted.append(True)
+	orig.delete_original_response = delete_original_response
+	return orig
+
+# a live picker times out -> message deleted
+origin = make_origin()
+view = selfroles.SelfRolePicker(guild, member, {"colors": roles}, set(), {1}, origin=origin)
+asyncio.run(view.on_timeout())
+check("timeout deletes the ephemeral message", len(origin.deleted) == 1, f"{origin.deleted}")
+
+# a superseded picker's timeout must NOT delete its replacement's message
+origin = make_origin()
+view = selfroles.SelfRolePicker(guild, member, {"colors": roles}, set(), {1}, origin=origin)
+select = view.children[0]
+select._values = ["2"]
+inter = make_interaction(member, guild)
+asyncio.run(view.apply_selection(inter, select))  # re-renders -> new view in the chain
+asyncio.run(view.on_timeout())  # old view expires late
+check("superseded picker leaves message alone", len(origin.deleted) == 0, f"{origin.deleted}")
+refreshed = inter.response.edits[0]["view"]
+asyncio.run(refreshed.on_timeout())
+check("current picker's timeout deletes", len(origin.deleted) == 1, f"{origin.deleted}")
+
+# user already dismissed the message -> delete raises, swallowed
+origin = make_origin()
+async def boom():
+	raise discord.NotFound(types.SimpleNamespace(status=404, reason="Not Found"), "Unknown Message")
+origin.delete_original_response = boom
+view = selfroles.SelfRolePicker(guild, member, {"colors": roles}, set(), {1}, origin=origin)
+asyncio.run(view.on_timeout())
+check("already-dismissed message: swallow NotFound", True)  # reaching here = no exception escaped
+
+# pickers without an origin interaction (tests/edge) just do nothing
+view = selfroles.SelfRolePicker(guild, member, {"colors": roles}, set(), {1})
+asyncio.run(view.on_timeout())
+check("origin-less picker no-ops on timeout", True)
+
 # ================= done =================
 print(f"\n{'ALL PASSED' if FAIL == 0 else 'FAILURES'}: {PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)
