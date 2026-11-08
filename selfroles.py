@@ -22,6 +22,7 @@ import discord
 from discord import app_commands
 from aws import RallyBotModel
 from shared import shared
+from discord.ui import ActionRow, TextDisplay
 from pynamodb.attributes import BooleanAttribute, NumberAttribute, UnicodeAttribute
 
 MODERATOR_MENTION = "<@&1225935511785570425>"
@@ -102,8 +103,14 @@ class SelfRoleSelect(discord.ui.Select):
 			await view.apply_selection(interaction, self)
 
 
-class SelfRolePicker(discord.ui.View):
-	"""Ephemeral role picker; applies diffs on every selection, then re-renders."""
+class SelfRolePicker(discord.ui.LayoutView):
+	"""Ephemeral role picker; applies diffs on every selection, then re-renders.
+
+	Uses a Components-V2 layout so each select menu gets a text label above it
+	(a plain View can only put text in the single top content block).
+	"""
+	DEFAULT_STATUS = "Your roles are up to date. Adjust the menus any time — changes apply as soon as you pick."
+
 	def __init__(
 		self,
 		guild: discord.Guild,
@@ -113,6 +120,7 @@ class SelfRolePicker(discord.ui.View):
 		member_role_ids: set[int],
 		origin: discord.Interaction | None = None,
 		chain: dict | None = None,
+		status: str | None = None,
 	):
 		super().__init__(timeout=300)
 		self.guild = guild
@@ -120,18 +128,23 @@ class SelfRolePicker(discord.ui.View):
 		self.by_category = by_category
 		self.exclusive = exclusive
 		self.member_role_ids = set(member_role_ids)
+		self._status = status or self.DEFAULT_STATUS
 		# on_timeout cleanup: every rebuild in one picker session shares a chain
 		# dict whose "view" entry points at the CURRENT picker; only the current
 		# one may delete the ephemeral message (an old, superseded view firing
 		# its timeout later must not yank the message from its replacement)
 		self._origin = origin
 		self._chain = chain if chain is not None else {"view": self}
+		self.add_item(TextDisplay(self._status))
 		for i, (category, roles) in enumerate(by_category.items()):
 			if i >= MAX_CATEGORIES:
 				break
+			label = f"**{category}** — pick one:" if category in exclusive else f"**{category}:**"
+			self.add_item(TextDisplay(label))
 			select = SelfRoleSelect(category, roles, category in exclusive, self.member_role_ids)
-			select.row = i
-			self.add_item(select)
+			row = ActionRow()
+			row.add_item(select)
+			self.add_item(row)
 
 	async def on_timeout(self):
 		"""Delete the ephemeral picker when it expires so no dead dropdowns linger."""
@@ -148,10 +161,8 @@ class SelfRolePicker(discord.ui.View):
 		category_ids = {role.id for role in self.by_category.get(select.category, [])}
 		selected = {int(v) for v in select.values}
 		if select.exclusive and len(selected) > 1:
-			await interaction.response.edit_message(
-				content=f"⚠️ Only **one** {select.category} role can be worn at a time — pick a single role.",
-				view=self,
-			)
+			warned = self._rebuild(status=f"⚠️ Only **one** {select.category} role can be worn at a time — pick a single role.")
+			await interaction.response.edit_message(view=warned)
 			return
 		current_in_category = category_ids & self.member_role_ids
 		to_add = [self.guild.get_role(rid) for rid in selected - current_in_category]
@@ -160,7 +171,7 @@ class SelfRolePicker(discord.ui.View):
 		to_remove = [role for role in to_remove if role is not None]
 		member = self.member
 		if not isinstance(member, discord.Member):
-			await interaction.response.edit_message(content="⚠️ Something went wrong — please run /roles again.", view=self)
+			await interaction.response.edit_message(view=self._rebuild(status="⚠️ Something went wrong — please run /rally roles again."))
 			return
 		errors: list[str] = []
 		try:
@@ -181,23 +192,23 @@ class SelfRolePicker(discord.ui.View):
 			print(f"ERROR: /roles remove failed for {member}: {e}")
 		# track the new state locally instead of trusting the cache to have caught up
 		self.member_role_ids = (self.member_role_ids - {r.id for r in to_remove}) | {r.id for r in to_add}
-		refreshed = self._rebuild()
 		if errors:
-			await interaction.response.edit_message(content="⚠️ " + " ".join(errors), view=refreshed)
+			refreshed = self._rebuild(status="⚠️ " + " ".join(errors))
 		else:
-			await interaction.response.edit_message(content=self._content(), view=refreshed)
+			refreshed = self._rebuild()
+		await interaction.response.edit_message(view=refreshed)
 
-	def _rebuild(self) -> "SelfRolePicker":
+	def _rebuild(self, status: str | None = None) -> "SelfRolePicker":
 		"""A fresh picker reflecting the member's (updated) roles."""
 		refreshed = SelfRolePicker(
 			self.guild, self.member, self.by_category, self.exclusive, self.member_role_ids,
-			origin=self._origin, chain=self._chain,
+			origin=self._origin, chain=self._chain, status=status,
 		)
 		self._chain["view"] = refreshed
 		return refreshed
 
 	def _content(self) -> str:
-		return "Your roles are up to date. Adjust the menus any time — changes apply as soon as you pick."
+		return self._status
 
 
 async def _warn_category_overflow(category: str, count: int):
@@ -269,7 +280,8 @@ async def roles_command(interaction: discord.Interaction):
 	for category, count in overflowed:
 		await _warn_category_overflow(category, count)
 	view = SelfRolePicker(guild, interaction.user, picker_categories, exclusive, {r.id for r in interaction.user.roles}, origin=interaction)
-	await interaction.response.send_message(content=view._content(), view=view, ephemeral=True)
+	# Components-V2 message: all text lives in TextDisplays, no content field
+	await interaction.response.send_message(view=view, ephemeral=True)
 
 
 def _can_manage(interaction: discord.Interaction) -> bool:

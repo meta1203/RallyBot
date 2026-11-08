@@ -186,6 +186,15 @@ def reset_store():
 	mod_alerts.clear()
 
 
+def selects_of(view):
+	"""Selects live inside ActionRows in the Components-V2 layout."""
+	return [row.children[0] for row in view.children if isinstance(row, discord.ui.ActionRow)]
+
+
+def labels_of(view):
+	return [c.content for c in view.children if isinstance(c, discord.ui.TextDisplay)]
+
+
 # ================= 1. resolve_selfroles: grouping, sorting, dead-role healing =================
 asyncio.get_event_loop().run_until_complete(asyncio.sleep(0))  # ensure a loop exists
 
@@ -210,17 +219,18 @@ guild = FakeGuild(roles)
 member = FakeMember([1])  # already wearing Blue
 by_cat = {"colors": roles}
 view = selfroles.SelfRolePicker(guild, member, by_cat, {"colors"}, {1})
-payloads = [c.to_component_dict() for c in view.children]
-check("one select rendered", len(payloads) == 1, f"{len(payloads)}")
-sel = payloads[0]
+selects = selects_of(view)
+check("one select rendered", len(selects) == 1, f"{len(selects)}")
+sel = selects[0].to_component_dict()
 check("placeholder marks exclusive", "pick one" in sel["placeholder"], sel["placeholder"])
 check("max_values == option count", sel["max_values"] == 3, f"{sel['max_values']}")
 defaults = [o["default"] for o in sel["options"]]
 check("worn role is default-selected", defaults == [True, False, False], f"{defaults}")
 check("option values are role ids", [o["value"] for o in sel["options"]] == ["1", "2", "3"], f"{sel['options'][0]['value']}")
+check("category label above the menu", labels_of(view) == [view.DEFAULT_STATUS, "**colors** — pick one:"], f"{labels_of(view)}")
 
 # ================= 3. diff application on selection =================
-select = view.children[0]
+select = selects[0]
 # discord.py 2.7.x: Select.values reads a per-interaction contextvar and falls
 # back to the constructor-stored _values; the fallback is what a fake sets
 select._values = ["2"]  # wants Red instead of Blue
@@ -228,27 +238,28 @@ inter = make_interaction(member, guild)
 asyncio.run(view.apply_selection(inter, select))
 check("worn role removed", member.removed == [1], f"{member.removed}")
 check("new role added", member.added == [2], f"{member.added}")
-check("no error content", "⚠️" not in (inter.response.edits[0]["content"] or ""), inter.response.edits[0]["content"])
 refreshed = inter.response.edits[0]["view"]
-check("view rebuilt with new defaults", [o["default"] for o in refreshed.children[0].to_component_dict()["options"]] == [False, True, False])
+check("v2 edit carries no content field", "content" not in inter.response.edits[0], f"{list(inter.response.edits[0])}")
+check("status header clean after success", refreshed._status == refreshed.DEFAULT_STATUS, refreshed._status)
+check("view rebuilt with new defaults", [o["default"] for o in selects_of(refreshed)[0].to_component_dict()["options"]] == [False, True, False])
 
 # ================= 4. exclusive category rejects multi-pick =================
 reset_store()
 member = FakeMember([])
 view = selfroles.SelfRolePicker(guild, member, {"colors": roles}, {"colors"}, set())
-select = view.children[0]
+select = selects_of(view)[0]
 select._values = ["1", "2"]
 inter = make_interaction(member, guild)
 asyncio.run(view.apply_selection(inter, select))
 check("exclusive multi-pick: nothing added", member.added == [], f"{member.added}")
 check("exclusive multi-pick: nothing removed", member.removed == [], f"{member.removed}")
-check("exclusive warning shown", "one" in inter.response.edits[0]["content"], inter.response.edits[0]["content"])
+check("exclusive warning shown", "one" in inter.response.edits[0]["view"]._status, inter.response.edits[0]["view"]._status)
 
 # ================= 5. non-exclusive category allows multiple =================
 reset_store()
 member = FakeMember([])
 view = selfroles.SelfRolePicker(guild, member, {"games": roles}, set(), set())
-select = view.children[0]
+select = selects_of(view)[0]
 select._values = ["1", "2"]
 inter = make_interaction(member, guild)
 asyncio.run(view.apply_selection(inter, select))
@@ -258,11 +269,11 @@ check("non-exclusive multi-pick allowed", sorted(member.added) == [1, 2], f"{mem
 reset_store()
 member = FakeMember([], member_type="forbidden")
 view = selfroles.SelfRolePicker(guild, member, {"colors": roles}, set(), set())
-select = view.children[0]
+select = selects_of(view)[0]
 select._values = ["2"]
 inter = make_interaction(member, guild)
 asyncio.run(view.apply_selection(inter, select))
-check("forbidden surfaces a warning", "⚠️" in inter.response.edits[0]["content"], inter.response.edits[0]["content"])
+check("forbidden surfaces a warning", "⚠️" in inter.response.edits[0]["view"]._status, inter.response.edits[0]["view"]._status)
 
 # ================= 7. >25 roles in a category: truncate + mod alert =================
 reset_store()
@@ -272,7 +283,7 @@ picker_categories, overflowed = selfroles._categories_for_picker({"colors": many
 check("truncated to 25 options", len(picker_categories["colors"]) == 25, f"{len(picker_categories['colors'])}")
 check("overflow flagged", overflowed == [("colors", 27)], f"{overflowed}")
 view = selfroles.SelfRolePicker(guild, FakeMember([]), picker_categories, set(), set())
-sel_payload = view.children[0].to_component_dict()
+sel_payload = selects_of(view)[0].to_component_dict()
 check("serialized select capped at 25", len(sel_payload["options"]) == 25, f"{len(sel_payload['options'])}")
 
 # ================= 8. /roles command: empty whitelist, picker send =================
@@ -295,8 +306,9 @@ asyncio.run(selfroles.roles_command.callback(inter))
 sent = inter.response.sends[0]
 check("picker sent", sent.get("view") is not None, "no view")
 check("picker is ephemeral", sent["ephemeral"] is True)
-check("two category selects", len(sent["view"].children) == 2, f"{len(sent['view'].children)}")
-check("select rows in order", [c.row for c in sent["view"].children] == [0, 1], f"{[c.row for c in sent['view'].children]}")
+check("two category selects", len(selects_of(sent["view"])) == 2, f"{len(selects_of(sent['view']))}")
+check("v2 send has no content field", "content" not in sent, f"{list(sent)}")
+check("labels in order", labels_of(sent["view"]) == [sent["view"].DEFAULT_STATUS, "**colors** — pick one:", "**games:**"], f"{labels_of(sent['view'])}")
 
 # ================= 9. admin gate =================
 admin = FakeMember([])
@@ -390,7 +402,7 @@ check("overflow mod alert sent", any("colors" in msg and "27" in msg for _, msg 
 check("mod alert goes to #mod-organizer", all(ch == selfroles.MOD_ORGANIZER_CHANNEL for ch, _ in mod_alerts), f"{mod_alerts}")
 check("mod alert mentions moderator role", all(selfroles.MODERATOR_MENTION in msg for _, msg in mod_alerts), f"{mod_alerts}")
 sent = inter.response.sends[0]
-check("oversized picker still renders 25", len(sent["view"].children[0].to_component_dict()["options"]) == 25)
+check("oversized picker still renders 25", len(selects_of(sent["view"])[0].to_component_dict()["options"]) == 25)
 
 # ================= 14. timeout cleanup deletes the ephemeral reply =================
 reset_store()
@@ -415,7 +427,7 @@ check("timeout deletes the ephemeral message", len(origin.deleted) == 1, f"{orig
 # a superseded picker's timeout must NOT delete its replacement's message
 origin = make_origin()
 view = selfroles.SelfRolePicker(guild, member, {"colors": roles}, set(), {1}, origin=origin)
-select = view.children[0]
+select = selects_of(view)[0]
 select._values = ["2"]
 inter = make_interaction(member, guild)
 asyncio.run(view.apply_selection(inter, select))  # re-renders -> new view in the chain
