@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 
-from shared import shared, IN_PERSON_MENTION, ONLINE_MENTION
+from shared import shared
 import adhoc
 import events
 import forum
@@ -133,9 +133,14 @@ async def notify_new_event(event: events.MeetupEvent):
 	# post the event to the event-chat forum (tagged + linked)
 	await forum.create_forum_post(event)
 
-async def notify_events():
+async def adopt_scheduled_events():
+	"""Hourly sweep: discord scheduled events that aren't tracked in ddb
+	(created manually in the discord ui or by another bot) are adopted into
+	tracking and get a forum post like any tracked event. Reminder pings
+	("is tomorrow!" / "starts soon!") were removed on purpose: event
+	reminders are implicit from the website, forum posts, meetup, and the
+	weekly digest."""
 	discord_events = await shared.guild.fetch_scheduled_events()
-	now = datetime.datetime.now(shared.central_time)
 	for de in discord_events:
 		query = events.MeetupEvent.scan(index_name="snowflake_id-index", filter_condition=events.MeetupEvent.snowflake_id == de.id)
 		# ResultIterator.next() raises StopIteration when nothing matches (e.g.
@@ -150,22 +155,11 @@ async def notify_events():
 			print(f"ERROR: ddb row for discord event {de.id} failed to deserialize:\n{get_stacktrace()}")
 			continue
 		if ddb_event is None:
-			# not tracked in ddb: adopt (and announce) scheduled events, skip the rest
+			# not tracked in ddb: adopt it so it shows up on the site
 			if de.status == discord.EventStatus.scheduled:
 				# from_discord_event hits the AI categorizer + dynamodb; keep it off the event loop
 				ddb_event = await asyncio.to_thread(events.MeetupEvent.from_discord_event, de)
 				await notify_new_event(ddb_event)
-			continue
-		
-		# handle categories
-		category = get_channel_for_ddb_event(ddb_event)
-		
-		# event is in-person and starts sometime between 24 and 25 hours from now
-		if not ddb_event.online and de.start_time > (now+datetime.timedelta(hours=24)) and de.start_time < (now+datetime.timedelta(hours=25)):
-			await shared.message_channel(category, f"{IN_PERSON_MENTION} {de.name} is tomorrow! (<t:{round(de.start_time.timestamp())}>)")
-		# event is online and starts sometime between 1 and 2 hours from now
-		elif ddb_event.online and de.start_time > (now+datetime.timedelta(hours=1)) and de.start_time < (now+datetime.timedelta(hours=2)):
-			await shared.message_channel(category, f"{ONLINE_MENTION} {de.name} starts soon! (<t:{round(de.start_time.timestamp())}:t>)")
 
 @client.event
 async def on_member_join(member: discord.Member):
@@ -256,10 +250,16 @@ async def on_ready():
 	# fill recurring ad hoc series' calendars through the 30-day horizon
 	# (pure date math; runs right after the meetup sync)
 	shared.scheduler.add_job(adhoc.materialize_future_occurrences, CronTrigger(hour=12, minute=45, timezone="America/Chicago"), max_instances=1)
-	# Schedule notify events to run every hour on the hour
-	shared.scheduler.add_job(notify_events, CronTrigger(minute=0), max_instances=1)
-	# weekly announcements digest, sundays 3pm central
-	shared.scheduler.add_job(forum.send_weekly_announcements, CronTrigger(day_of_week='sun', hour=15, minute=0, timezone="America/Chicago"), max_instances=1)
+	# adopt untracked discord scheduled events (created manually in the ui)
+	# into tracking; runs hourly on the hour. Reminder pings were removed —
+	# they live implicitly in the site/forum/meetup/weekly digest now.
+	shared.scheduler.add_job(adopt_scheduled_events, CronTrigger(minute=0), max_instances=1)
+	# weekly announcements digest, sundays 3pm central. misfire_grace_time +
+	# coalesce cover a restart landing within an hour of the slot (fire once,
+	# late); longer outages stay silent — the ddb send ledger in forum.py
+	# records the gap for /rally admin reannounce, nothing auto-sends
+	shared.scheduler.add_job(forum.send_weekly_announcements, CronTrigger(day_of_week='sun', hour=15, minute=0, timezone="America/Chicago"), max_instances=1,
+		misfire_grace_time=3600, coalesce=True)
 	# create/refresh forum posts for upcoming events (also repairs posts
 	# written before full_description existed)
 	try:
@@ -272,6 +272,13 @@ async def on_ready():
 		await adhoc.startup_sweep()
 	except Exception as e:
 		print(f"ad hoc event sweep failed:\n{get_stacktrace()}")
+	# visibility only (logs, never sends): flag a weekly digest slot with no
+	# send record, e.g. the bot was offline sunday 3pm; recovery is manual
+	# via /rally admin reannounce
+	try:
+		await forum.check_missed_digest()
+	except Exception as e:
+		print(f"digest ledger check failed:\n{get_stacktrace()}")
 	shared.scheduler.start()
 	print("Successfully scheduled jobs.")
 

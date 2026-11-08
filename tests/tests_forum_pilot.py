@@ -96,8 +96,10 @@ import forum
 import shared as shared_mod
 from shared import IN_PERSON_MENTION, ONLINE_MENTION
 
-# never touch real AWS from the test: stub the pynamo save
+# never touch real AWS from the test: stub the pynamo saves (the weekly
+# digest path also writes the AnnounceLedger send ledger since it landed)
 events.MeetupEvent.save = lambda self, *a, **kw: None
+forum.AnnounceLedger.save = lambda self, *a, **kw: None
 
 
 class FakeGuild:

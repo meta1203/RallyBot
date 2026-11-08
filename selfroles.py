@@ -235,6 +235,15 @@ selfrole_group = app_commands.Group(
 	default_permissions=discord.Permissions(manage_roles=True),
 )
 
+# admin utilities (e.g. /rally admin reannounce in forum.py); the
+# default_permissions hide the group from non-admins in the discord UI
+admin_group = app_commands.Group(
+	name="admin",
+	description="RallyBot admin utilities",
+	parent=rally_group,
+	default_permissions=discord.Permissions(administrator=True, manage_guild=True),
+)
+
 
 @rally_group.command(name="roles", description="Pick your optional roles (colors, pronouns, games, ...)")
 @app_commands.guild_only

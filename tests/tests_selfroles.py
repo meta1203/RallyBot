@@ -371,7 +371,8 @@ check("rally group is /rally", selfroles.rally_group.name == "rally")
 import report  # binds /rally warn into the shared group at import time
 walked = {c.name for c in selfroles.rally_group.walk_commands()}
 # walk_commands yields the nested group object itself alongside its subcommands
-check("rally contains full command tree", walked == {"roles", "selfrole", "add", "remove", "list", "warn"}, f"{walked}")
+# ('admin' is the admin-utilities subgroup from forum.py: /rally admin reannounce)
+check("rally contains full command tree", walked == {"roles", "selfrole", "add", "remove", "list", "warn", "admin"}, f"{walked}")
 check("selfrole subgroup parented under rally", selfroles.selfrole_group.parent is selfroles.rally_group)
 # Group.command returns the raw function; the Command object lives in the group
 warn_cmd = next(c for c in selfroles.rally_group.commands if getattr(c, "name", None) == "warn")

@@ -15,6 +15,16 @@ Each of msg 2/3 has a "What's happening this week" section (events starting in
 the upcoming week, monday through sunday) and a "Newly planned events" section
 (events first scheduled since the last weekly message; each event appears here
 at most once, enforced via the event's created_at timestamp).
+
+Every digest send (including empty weeks) is recorded in a ddb ledger
+(AnnounceLedger, partition id="announce_weekly", sort = the scheduled run
+slot's epoch ms). Nothing is ever auto-sent outside the scheduled job — the
+ledger exists so a missed run (bot offline / mid-send crash) is detectable
+and recoverable by hand via /rally admin reannounce, which rebuilds the
+digest with `now` = the original scheduled slot. A partial send (some
+messages sent, some failed) is recorded per message id, so a reannounce
+without force completes exactly the holes instead of duplicating what went
+out already. A log-only startup check (check_missed_digest) surfaces gaps.
 Events that start more than a month out are held back: no forum post is
 created for them and they are not alerted as newly planned in the digest
 until they start in less than 30 days (event_in_post_window). The daily
@@ -25,12 +35,18 @@ thread's snowflake creation time, so no extra ddb field is needed).
 """
 import asyncio
 import datetime as dt
+import json
 import traceback
+from typing import Literal
 
 import discord
+from discord import app_commands
 
 import events
+from aws import RallyBotModel
 from shared import shared, IN_PERSON_MENTION, ONLINE_MENTION
+from selfroles import admin_group
+from pynamodb.exceptions import DoesNotExist
 
 FORUM_CHANNEL_ID = 1543307748006174920  # #event-chat forum channel
 ANNOUNCEMENTS_CHANNEL_ID = 1244283919218770030  # #announcements
@@ -38,6 +54,68 @@ FORUM_POST_MAX_LEN = 2000  # discord's hard limit for forum post content
 FORUM_POST_WINDOW = dt.timedelta(days=30)  # events starting further out are held back
 
 FORUM_THREAD_NAME_MAX_LEN = 100  # discord's hard limit for thread names
+
+LEDGER_ID = "announce_weekly"  # ddb partition for the digest send ledger
+
+
+class AnnounceLedger(RallyBotModel):
+	"""One row per scheduled weekly digest run (id="announce_weekly",
+	sort = the scheduled sunday-3pm-CT slot's epoch ms). `data` is JSON:
+	{"sent_at": <iso>, "forced": <bool>, "message_ids": [<int|null>, ...]} —
+	message_ids is index-aligned with the digest's message list and carries
+	null for every message that was not successfully sent. Empty weeks are
+	recorded too (message_ids = []), so "no row" reliably means "never ran".
+	No GSI needed: the slot is computed from the schedule, plain GetItem."""
+
+	def __init__(self, **kwargs) -> None:
+		super().__init__(**kwargs)
+		self.id = LEDGER_ID
+
+
+def _digest_slot(now: dt.datetime) -> dt.datetime:
+	"""The scheduled sunday-3pm CT slot the currently executing (or recovered)
+	digest belongs to. The +5s nudge resolves a fire landing exactly on the
+	slot to this week instead of last week."""
+	return _last_weekly_run(now + dt.timedelta(seconds=5))
+
+
+async def get_digest_ledger(slot_ms: int) -> AnnounceLedger | None:
+	"""Ledger row for a digest slot; None when never recorded (a read error
+	is logged and reported as None too — callers must treat that as
+	"unknown, likely unsent", which is the safe direction for recovery)."""
+	try:
+		return await asyncio.to_thread(AnnounceLedger.get, LEDGER_ID, slot_ms)
+	except DoesNotExist:
+		return None
+	except Exception:
+		print(f"ERROR: failed reading announce ledger for slot {slot_ms}:\n{traceback.format_exc()}")
+		return None
+
+
+async def record_digest_send(slot_ms: int, message_ids: list, forced: bool = False) -> None:
+	"""Record a digest send (or an empty week) after the discord sends."""
+	row = AnnounceLedger(sort=slot_ms)
+	row.data = json.dumps({
+		"sent_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+		"forced": forced,
+		"message_ids": message_ids,
+	})
+	await asyncio.to_thread(row.save)
+
+
+async def _announcements_channel():
+	"""The #announcements channel, cache-first with a fetch fallback."""
+	channel = shared.guild.get_channel_or_thread(ANNOUNCEMENTS_CHANNEL_ID)
+	if not channel:
+		try:
+			channel = await shared.guild.fetch_channel(ANNOUNCEMENTS_CHANNEL_ID)
+		except Exception:
+			print(f"ERROR: announcements channel {ANNOUNCEMENTS_CHANNEL_ID} not found:\n{traceback.format_exc()}")
+			return None
+	if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+		print(f"ERROR: channel {ANNOUNCEMENTS_CHANNEL_ID} is not a text channel (got {type(channel).__name__})")
+		return None
+	return channel
 
 _forum_channel_cache: discord.ForumChannel | None = None
 
@@ -387,27 +465,164 @@ def _build_digest_messages(now: dt.datetime | None = None) -> list[str]:
 	return messages
 
 async def send_weekly_announcements() -> None:
-	"""Scheduled job: post the weekly digest to the announcements channel."""
+	"""Scheduled job: post the weekly digest to the announcements channel and
+	record the send in the ddb ledger. Never auto-catches up: a missed run
+	(bot offline / job error) stays unsent until /rally admin reannounce."""
+	now = dt.datetime.now(shared.central_time)
+	slot = _digest_slot(now)
 	# the pynamo scan inside is blocking network I/O; keep it off the event loop
-	messages = await asyncio.to_thread(_build_digest_messages)
+	messages = await asyncio.to_thread(_build_digest_messages, now)
 	if not messages:
+		print("weekly announcements: nothing to send this week")
+		if not shared.quiet:
+			# an empty week is still a handled week: record it so the gap
+			# check doesn't flag it and a reannounce doesn't retry it
+			await record_digest_send(int(slot.timestamp() * 1000), [], forced=False)
 		return
-	channel = shared.guild.get_channel_or_thread(ANNOUNCEMENTS_CHANNEL_ID)
+	channel = await _announcements_channel()
 	if not channel:
-		try:
-			channel = await shared.guild.fetch_channel(ANNOUNCEMENTS_CHANNEL_ID)
-		except Exception as e:
-			print(f"ERROR: announcements channel {ANNOUNCEMENTS_CHANNEL_ID} not found:\n{traceback.format_exc()}")
-			return
+		return
+	sent_ids: list = []
 	for msg in messages:
 		print(f"sending weekly announcement -> {msg.splitlines()[0]}")
 		if shared.quiet:
 			print("(quiet mode: skipping actual send)")
+			sent_ids.append(None)
 			continue
 		try:
-			await channel.send(msg)
-		except Exception as e:
+			sent = await channel.send(msg)
+			sent_ids.append(sent.id)
+		except Exception:
+			# the ledger keeps per-message ids, so a failure here is visible
+			# and exactly completable by /rally admin reannounce (no force)
 			print(f"ERROR: failed sending weekly announcement:\n{traceback.format_exc()}")
+			sent_ids.append(None)
+	if not shared.quiet:
+		await record_digest_send(int(slot.timestamp() * 1000), sent_ids, forced=False)
+
+
+async def check_missed_digest() -> None:
+	"""Startup visibility only (never sends): warn when the most recent
+	scheduled digest slot has no ledger record, i.e. the run never completed —
+	typically because the bot was offline sunday 3pm CT. Recovery is manual:
+	/rally admin reannounce."""
+	now = dt.datetime.now(shared.central_time)
+	slot = _digest_slot(now)
+	row = await get_digest_ledger(int(slot.timestamp() * 1000))
+	if row is None:
+		print(f"WARNING: no send record for the weekly digest slot {slot:%Y-%m-%d %H:%M %Z} — "
+			"if the bot was offline then, recover it with /rally admin reannounce")
+
+
+def _reannounce_admin(interaction: discord.Interaction) -> bool:
+	"""Admins and members with Manage Server may reannounce."""
+	member = interaction.user
+	if not isinstance(member, discord.Member):
+		return False
+	perms = member.guild_permissions
+	return perms.administrator or perms.manage_guild
+
+
+async def reannounce_digest(interaction: discord.Interaction, week: str, force: bool) -> None:
+	"""Manual recovery for a missed/failed weekly digest: rebuild the digest
+	for the chosen scheduled slot (with `now` = that slot, so the content and
+	the 'newly planned' cutoff match what should have gone out at the time)
+	and send only what the ledger shows never went out. force=True resends
+	every message. Ephemeral reply summarizes the outcome."""
+	await interaction.response.defer(ephemeral=True)
+	now = dt.datetime.now(shared.central_time)
+	slot = _digest_slot(now)
+	if week == "previous":
+		slot -= dt.timedelta(days=7)
+	slot_ms = int(slot.timestamp() * 1000)
+	slot_label = slot.strftime("%b %d %Y, %I:%M %p %Z")
+
+	ledger = await get_digest_ledger(slot_ms)
+	prior_ids: list = []
+	prior_sent_at = None
+	if ledger and ledger.data:
+		try:
+			parsed = json.loads(ledger.data)
+			prior_ids = parsed.get("message_ids") or []
+			prior_sent_at = parsed.get("sent_at")
+		except Exception:
+			print(f"WARNING: unreadable announce ledger row for slot {slot_ms}, treating as no record:\n{traceback.format_exc()}")
+			prior_ids = []
+
+	# rebuild for the original slot; blocking pynamo scan off the event loop
+	messages = await asyncio.to_thread(_build_digest_messages, slot)
+	if not messages:
+		note = ""
+		if any(mid is not None for mid in prior_ids):
+			note = f" (the earlier send recorded {sum(1 for m in prior_ids if m is not None)} message(s) that are still in the channel)"
+		if shared.quiet:
+			await interaction.followup.send(f"(quiet mode) Nothing to announce for {slot_label}{note}.", ephemeral=True)
+			return
+		await record_digest_send(slot_ms, [], forced=force)
+		await interaction.followup.send(f"Nothing to announce for {slot_label} — the digest had no content, recorded as handled{note}.", ephemeral=True)
+		return
+
+	if force:
+		unsent = list(range(len(messages)))
+	else:
+		# index-aligned with the digest message list: skip what the ledger
+		# shows as already sent, complete the holes (indexes past the
+		# recorded list count as unsent)
+		unsent = [i for i, mid in enumerate(prior_ids) if mid is None and i < len(messages)]
+		unsent += list(range(len(prior_ids), len(messages)))
+		if not unsent:
+			await interaction.followup.send(
+				f"The digest for {slot_label} was already sent (recorded {prior_sent_at}, "
+				f"{sum(1 for m in prior_ids if m is not None)} message(s)). Use force=True to resend it anyway.",
+				ephemeral=True)
+			return
+
+	if shared.quiet:
+		await interaction.followup.send(f"(quiet mode) Would send {len(unsent)} message(s) for {slot_label}.", ephemeral=True)
+		return
+	channel = await _announcements_channel()
+	if not channel:
+		await interaction.followup.send(f"ERROR: announcements channel {ANNOUNCEMENTS_CHANNEL_ID} not found; nothing sent.", ephemeral=True)
+		return
+	sent_ids: list = list(prior_ids[:len(messages)])
+	while len(sent_ids) < len(messages):
+		sent_ids.append(None)
+	sent_count = 0
+	for i in unsent:
+		msg = messages[i]
+		print(f"reannounce: sending digest message {i + 1}/{len(messages)} for slot {slot_label}")
+		try:
+			sent = await channel.send(msg)
+			sent_ids[i] = sent.id
+			sent_count += 1
+		except Exception:
+			print(f"ERROR: reannounce failed sending digest message {i + 1}/{len(messages)}:\n{traceback.format_exc()}")
+	await record_digest_send(slot_ms, sent_ids, forced=force)
+	await interaction.followup.send(
+		f"Sent {sent_count} of {len(messages)} digest message(s) for {slot_label}"
+		+ (" (forced resend)" if force else " (completed the missing ones)")
+		+ f" to <#{ANNOUNCEMENTS_CHANNEL_ID}>.", ephemeral=True)
+
+
+@admin_group.command(name="reannounce", description="Recover or resend a weekly announcements digest")
+@app_commands.guild_only
+@app_commands.check(_reannounce_admin)
+@app_commands.describe(
+	week="current = the most recent scheduled digest run (default), previous = the one before it",
+	force="Resend every message even if the ledger shows it already went out",
+)
+async def reannounce_command(interaction: discord.Interaction, week: Literal["current", "previous"] = "current", force: bool = False):
+	await reannounce_digest(interaction, week, force)
+
+
+@reannounce_command.error
+async def reannounce_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+	if isinstance(error, app_commands.CheckFailure):
+		message = "You need Administrator or Manage Server to use reannounce."
+		if interaction.response.is_done():
+			await interaction.followup.send(message, ephemeral=True)
+		else:
+			await interaction.response.send_message(message, ephemeral=True)
 
 if __name__ == "__main__":
 	# debug harness: prints what would be sent without touching discord

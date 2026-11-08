@@ -9,6 +9,7 @@ Discord bot for the **chicago-anime-hangouts** Meetup group that mirrors Meetup 
 - **Scrape-first, no Meetup API key.** Events come from embedded `script#__NEXT_DATA__` JSON on Meetup pages: the production fetch (`fetch_meetup_events` in `events.py`) reads the events list page's apollo state, cancellation rechecks read single-event pages, and `fetch_meetup_events_rss` keeps the legacy RSS → per-event-page path. This is intentionally fragile-but-accepted; it's a known trade-off, not something to "fix" casually.
 - **Dual-write consistency**: every mutation touches both sides (DDB row + Discord event) with per-side error handling — a Discord-side failure must not abort the DDB write and vice versa.
 - **Announcements are deduped and silencable**: `shared.message_channel` keeps a 5-message deque to prevent duplicate pings; `QUIET_RALLY` env var turns every send into a log-only dry run.
+- **Weekly digest sends are ledgered, never auto-retried**: every digest run (including empty weeks) records an `AnnounceLedger` row (`id="announce_weekly"`, sort = the scheduled Sunday-3pm-CT slot's epoch ms, per-message Discord ids). A missed run (bot offline / send crash) stays unsent — `/rally admin reannounce` (`forum.py`, `admin` subgroup defined in `selfroles.py`, gate Administrator/Manage Server) rebuilds the digest with `now` = the original slot; without `force` it completes only the ledger's holes, with `force` it resends everything. `forum.check_missed_digest` runs at startup, log-only. The Sunday APScheduler job carries `misfire_grace_time=3600, coalesce=True` for restarts landing within an hour of the slot.
 - **Keep blocking I/O off the event loop.** All `requests` calls (Meetup scrape, `llm.ai_categorize`) must run via `asyncio.to_thread` from async call sites — direct blocking calls stall discord.py heartbeats.
 
 ## Tech stack
@@ -23,7 +24,7 @@ Discord bot for the **chicago-anime-hangouts** Meetup group that mirrors Meetup 
 pip install -r requirements.txt   # or: uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
 python main.py                    # runs the bot; needs DISCORD_TOKEN + AWS creds
 python events.py                  # debug harness: rechecks all tracked events against Meetup (sleeps 5s per event)
-python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py && python tests/tests_adhoc.py && python tests/tests_selfroles.py && python tests/apollo_fetch_test.py   # offline test scripts (run from repo root; they bootstrap sys.path)
+python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py && python tests/tests_adhoc.py && python tests/tests_selfroles.py && python tests/tests_announce.py && python tests/apollo_fetch_test.py   # offline test scripts (run from repo root; they bootstrap sys.path)
 .venv/bin/python tests/live_meetup_test.py   # LIVE smoke test: real meetup.com fetch (list page + 2 event pages + rss); no AWS/Discord writes; exit 0 pass / 1 broken / 2 inconclusive
 docker build -t rallybot .        # non-root user; copies the 10 .py files explicitly — add new modules to the Dockerfile COPY line
 docker run -d -e DISCORD_TOKEN=... -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... -e OPENROUTER_API_KEY=... --name rallybot rallybot
@@ -44,7 +45,7 @@ Read via `os.getenv` only — no dotenv loading, no config file.
 ## Architecture
 
 ```
-main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, notify_events hourly, weekly announcements digest sundays 3pm CT), create/update/forum flow, onboarding event hooks, ad hoc event hooks
+main.py       entrypoint: client, intents (incl. members), cron jobs (update_events daily 12:30 CT, adopt_scheduled_events hourly (adopts untracked Discord events; reminder pings deliberately removed — reminders are implicit from site/forum/meetup/digest), weekly announcements digest sundays 3pm CT), create/update/forum flow, onboarding event hooks, ad hoc event hooks
 events.py     MeetupEvent model + list/RSS/page scrape → __NEXT_DATA__ JSON → upsert; cancellation checks
 llm.py        reusable OpenRouter client: chat() helper + event categorizer (system prompt, categories, retry→other fallback) + forum-post event extractor (ai_extract_event, JSON mode)
 forum.py      event posts in the #event-chat forum (create/update/delete + tags), weekly announcements digest builder/sender, startup post sync/backfill
