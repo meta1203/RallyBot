@@ -23,9 +23,9 @@ Discord bot for the **chicago-anime-hangouts** Meetup group that mirrors Meetup 
 pip install -r requirements.txt   # or: uv venv .venv && uv pip install -r requirements.txt --python .venv/bin/python
 python main.py                    # runs the bot; needs DISCORD_TOKEN + AWS creds
 python events.py                  # debug harness: rechecks all tracked events against Meetup (sleeps 5s per event)
-python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py && python tests/tests_adhoc.py && python tests/apollo_fetch_test.py   # offline test scripts (run from repo root; they bootstrap sys.path)
+python tests/tests_import.py && python tests/tests_forum_pilot.py && python tests/tests_intro_guard.py && python tests/tests_adhoc.py && python tests/tests_selfroles.py && python tests/apollo_fetch_test.py   # offline test scripts (run from repo root; they bootstrap sys.path)
 .venv/bin/python tests/live_meetup_test.py   # LIVE smoke test: real meetup.com fetch (list page + 2 event pages + rss); no AWS/Discord writes; exit 0 pass / 1 broken / 2 inconclusive
-docker build -t rallybot .        # non-root user; copies the 9 .py files explicitly — add new modules to the Dockerfile COPY line
+docker build -t rallybot .        # non-root user; copies the 10 .py files explicitly — add new modules to the Dockerfile COPY line
 docker run -d -e DISCORD_TOKEN=... -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... -e OPENROUTER_API_KEY=... --name rallybot rallybot
 ```
 
@@ -49,7 +49,8 @@ events.py     MeetupEvent model + list/RSS/page scrape → __NEXT_DATA__ JSON �
 llm.py        reusable OpenRouter client: chat() helper + event categorizer (system prompt, categories, retry→other fallback) + forum-post event extractor (ai_extract_event, JSON mode)
 forum.py      event posts in the #event-chat forum (create/update/delete + tags), weekly announcements digest builder/sender, startup post sync/backfill
 adhoc.py      ad hoc forum events: real-time tracking of user posts in #event-chat (ForumEvent rows, id="forum_event"), AI extraction → source="forum" MeetupEvent records for cah.moe, nonpublic tag gating, replaceable status replies, startup backfill sweep; recurring posts materialize one event row per occurrence (past rows kept as history, future filled through a 30-day horizon by the daily 12:45 CT fill job, sort = (start_ms << 16) | (thread_id & 0xFFFF), per-thread lookup via snowflake_id = thread id on the existing snowflake_id-index)
-report.py     Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rb warn slash command
+selfroles.py  self-assignable roles: /rally roles ephemeral picker (one multi-select per category, diff-applied on selection) + /rally selfrole admin whitelist (SelfRole rows, id="selfrole", sort=role snowflake); exclusive categories, >25-role truncation with mod alerts, dead-role healing
+report.py     Report model + "Report…" context menu, mod-channel action buttons (ignore/warn/timeout/ban), escalating timeouts, /rally warn slash command (under the shared /rally group)
 onboarding.py New-user flow: #intro welcome on join, persistent "agree to rules" button in #rules, intro role grant/removal, one-intro-post enforcement
 aws.py        RallyBotModel (PynamoDB base: table RallyBot, us-east-2, keys id+sort); raw boto3 get/delete helpers
 shared.py     Singleton: client, guild, channel-name cache, scheduler, message_channel (dedupe + quiet mode), role mention constants

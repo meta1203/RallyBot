@@ -5,6 +5,7 @@ import discord
 from discord import app_commands
 from aws import RallyBotModel
 from shared import shared
+from selfroles import rally_group
 from pynamodb.attributes import UnicodeAttribute, NumberAttribute
 from pynamodb.exceptions import UpdateError
 
@@ -531,19 +532,16 @@ report_command = app_commands.ContextMenu(
 	callback=report_message,
 )
 
-warn_group = app_commands.Group(
-	name="rb",
-	description="RallyBot moderator commands",
-	default_permissions=discord.Permissions(
-		administrator=True,
-		moderate_members=True,
-		ban_members=True,
-	),
-	guild_only=True,
+# a direct /rally subcommand (no extra nesting): /rally warn
+@app_commands.default_permissions(
+	administrator=True,
+	moderate_members=True,
+	ban_members=True,
 )
-
-
-@warn_group.command(name="warn", description="Issue a moderation warning to a user")
+@rally_group.command(
+	name="warn",
+	description="Issue a moderation warning to a user",
+)
 @app_commands.check(_is_moderator)
 async def rb_warn(interaction: discord.Interaction):
 	"""Open the warn modal (slash-command entry point)."""
@@ -557,12 +555,16 @@ async def rb_warn_error(interaction: discord.Interaction, error: app_commands.Ap
 		if not interaction.response.is_done():
 			await interaction.response.send_message("You don't have permission to warn users.", ephemeral=True)
 		return
-	print(f"ERROR: exception in /rb warn: {error}")
+	print(f"ERROR: exception in /rally warn: {error}")
 	if not interaction.response.is_done():
 		await interaction.response.send_message("Something went wrong while opening the warn dialog.", ephemeral=True)
 
 
 def setup(tree: app_commands.CommandTree, guild: discord.Guild | None = None):
-	"""Register the report context menu and warn commands on the given command tree."""
+	"""Register the report context menu on the given tree.
+
+	The /rally warn command is NOT added here: it is parented under the shared
+	/rally group (selfroles.rally_group) and reaches the tree via
+	selfroles.setup(), which main.py calls before tree.sync().
+	"""
 	tree.add_command(report_command, guild=guild)
-	tree.add_command(warn_group, guild=guild)

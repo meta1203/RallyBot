@@ -7,6 +7,7 @@ import events
 import forum
 import report
 import onboarding
+import selfroles
 
 from apscheduler.triggers.cron import CronTrigger
 import asyncio
@@ -231,6 +232,8 @@ async def on_ready():
 
 	# Register and sync the report context menu command (guild-scoped for instant availability)
 	report.setup(tree, shared.guild)
+	# self-assignable roles: /roles picker + /selfrole admin whitelist
+	selfroles.setup(tree, shared.guild)
 	await tree.sync(guild=shared.guild)
 
 	# set up the onboarding flow: persistent rules button + #intro permission lock
