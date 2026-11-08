@@ -4,10 +4,9 @@ The pre-PynamoDB era (before commit a83034e) stored MeetupEvent.datetime /
 endtime (and any other datetime attr) as raw DynamoDB maps containing a
 jsonpickle-serialized datetime ({"py/object": "datetime.datetime", ...}).
 PynamoDB's UTCDateTimeAttribute can't read those, which crashed hourly jobs
-with AttributeDeserializationError. aws.LegacyUTCDateTimeAttribute now reads
-them transparently; this script rewrites them in place to the canonical
-'%Y-%m-%dT%H:%M:%S.%f+0000' string form so the data matches the current
-format.
+with AttributeDeserializationError. The data has since been rewritten in
+place to the canonical '%Y-%m-%dT%H:%M:%S.%f+0000' string form so it
+matches the current format and plain UTCDateTimeAttribute reads work.
 
 Dry-run by default. Run with --apply using credentials that can write the
 RallyBot table:
