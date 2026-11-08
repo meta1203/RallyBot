@@ -3,6 +3,10 @@
 Feeds the committed Apollo sample through the real functions with PynamoDB
 stubbed out (no AWS calls, no production table touched), then asserts exactly
 which events fetch_meetup_events returns and which it skips.
+
+The fixture is a static snapshot, so the future/past filter is exercised
+against a frozen reference clock (FROZEN, an instant inside the fixture's
+span) instead of the decaying wall clock — see the frozen-clock block below.
 """
 import os
 import sys
@@ -32,6 +36,41 @@ import shared
 # PynamoDB builds a *per-class* DoesNotExist subclass; events.py catches
 # MeetupEvent.DoesNotExist, so the stub must raise exactly that exception.
 events.MeetupEvent.get = mock.Mock(side_effect=events.MeetupEvent.DoesNotExist)
+
+# ---- frozen reference clock ------------------------------------------------
+# The committed fixture is a static snapshot (events span Aug 2026 -> Nov
+# 2026); splitting it by the real wall clock decays as time passes until every
+# event in it is "past" and the future-anchored assertions degenerate. Anchor
+# the filter to FROZEN, a fixed instant inside the fixture's span (pick a new
+# one inside the span if the fixture is ever re-captured). The freeze is
+# applied ONLY to events.py's own `dt` module-global: _FrozenDtModule swaps in
+# a datetime subclass whose now()/utcnow() return FROZEN and delegates every
+# other member to the real stdlib module. The stdlib datetime class itself is
+# never patched, so llm.py, pynamo and anything else keep the real clock.
+FROZEN = datetime(2026, 9, 15, 12, 0, 0, tzinfo=shared.shared.central_time)
+
+
+class FrozenDatetime(datetime):
+	@classmethod
+	def now(cls, tz=None):
+		return FROZEN.astimezone(tz) if tz is not None else FROZEN.replace(tzinfo=None)
+
+	@classmethod
+	def utcnow(cls):
+		return FROZEN.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+import datetime as _dt_module
+
+
+class _FrozenDtModule:
+	"""Stand-in for events.py's `dt` global: frozen datetime, rest delegated."""
+
+	datetime = FrozenDatetime
+
+	def __getattr__(self, name):
+		return getattr(_dt_module, name)
+
 
 PASS = []
 FAIL = []
@@ -64,12 +103,15 @@ check("venue __ref inlined (name/address/city present)",
 		isinstance(ven, dict) and all(k in ven for k in ('name', 'address', 'city')), repr(ven))
 
 # ---- 2. fetch_meetup_events over the sample ----
-now = datetime.now(timezone.utc).astimezone(shared.shared.central_time)
+# (the expectation is derived from the same frozen instant fetch_meetup_events
+# sees, via the events.dt patch in the with statement below)
+now = FROZEN
 active_future_ids = sorted(int(e['id']) for e in sample_events
 		if e['status'] == 'ACTIVE'
 		and datetime.fromisoformat(e['dateTime']) >= now)
 
-with mock.patch.object(events, '_meetup_url_to_json', return_value=sample_events):
+with mock.patch.object(events, '_meetup_url_to_json', return_value=sample_events), \
+		mock.patch.object(events, 'dt', _FrozenDtModule()):
 	result = events.fetch_meetup_events()
 
 got_ids = sorted(e.sort for e in result)
