@@ -872,6 +872,137 @@ async def main():
 	shared_mod.shared.guild = saved_guild2
 	check("handler fetches fresh thread (not stale cache)", spy_seen == [["gaming", "nonpublic"]])
 
+	# ---- task 14: /rally admin rescan (forced one-post reanalysis) ----
+	class FakeFollowup:
+		def __init__(self, log):
+			self._log = log
+		async def send(self, content=None, **kw):
+			self._log.append(content)
+
+	class FakeResponse:
+		def __init__(self, log):
+			self._log = log
+			self.done = False
+		async def defer(self, **kw):
+			self.done = True
+		async def send_message(self, content=None, **kw):
+			self._log.append(content)
+			self.done = True
+		def is_done(self):
+			return self.done
+
+	class FakeInteraction:
+		def __init__(self, channel=None, user=None):
+			self.channel = channel
+			self.user = user
+			self.log = []
+			self.response = FakeResponse(self.log)
+			self.followup = FakeFollowup(self.log)
+
+	class FakeMember(discord.Member):
+		def __init__(self, admin):
+			self._admin = admin
+		@property
+		def guild_permissions(self):
+			return types.SimpleNamespace(administrator=self._admin, manage_guild=False, manage_roles=False)
+
+	check("rescan gate: admin allowed", adhoc._rescan_admin(FakeInteraction(user=FakeMember(True))) is True)
+	check("rescan gate: non-admin denied", adhoc._rescan_admin(FakeInteraction(user=FakeMember(False))) is False)
+	check("rescan gate: non-member denied", adhoc._rescan_admin(FakeInteraction(user=None)) is False)
+	check("rescan link parser: message link",
+		  adhoc._parse_target_thread_id(f"https://discord.com/channels/{saved_guild2.id}/910000000000000099/1234") == 910000000000000099)
+	check("rescan link parser: bare snowflake", adhoc._parse_target_thread_id("910000000000000099") == 910000000000000099)
+	check("rescan link parser: garbage", adhoc._parse_target_thread_id("hello") is None)
+
+	# force rescans an unchanged post (skips change detection, AI re-runs)
+	reset_scenario()
+	t = new_post(910000000000000060)
+	ai_responses.append(make_extraction())
+	await adhoc.process_thread(t)
+	title_1 = event_rows[t.id].title
+	ai_responses.append(make_extraction(title="Rescan Test v2"))
+	status = await adhoc.process_thread(t, force=True)
+	check("force rescans unchanged post", status == "event" and captured["ai_calls"] == 2)
+	check("force rescan updates the record", event_rows[t.id].title == "Rescan Test v2" and title_1 == "Board Game Night")
+
+	# past-event guard: edits leave a started one-off alone, force does not
+	reset_scenario()
+	past_start = (dt.datetime.now(shared_mod.shared.central_time) - dt.timedelta(days=2)).isoformat()
+	t = new_post(910000000000000061)
+	ai_responses.append(make_extraction(start=past_start, title="Already Happened"))
+	await adhoc.process_thread(t)
+	check("precondition: past event recorded", event_rows[t.id].title == "Already Happened")
+	t.starter_message.edited_at = dt.datetime.now(dt.timezone.utc)
+	status = await adhoc.process_thread(t)  # edit, no queued AI response
+	check("guard blocks reanalysis of started one-off",
+		  status == "past_event" and captured["ai_calls"] == 1 and event_rows[t.id].title == "Already Happened")
+	ai_responses.append(make_extraction(start=past_start, title="Admin Fixed Title"))
+	status = await adhoc.process_thread(t, force=True)
+	check("force bypasses the started-event guard",
+		  status == "event" and captured["ai_calls"] == 2 and event_rows[t.id].title == "Admin Fixed Title")
+
+	# the command itself: run inside the post (no target arg)
+	reset_scenario()
+	t = new_post(910000000000000062)
+	ai_responses.append(make_extraction(title="Command Rescan"))
+	inter = FakeInteraction(channel=t)
+	await adhoc.rescan_command.callback(inter, None)
+	check("command defers ephemeral", inter.response.done)
+	check("command rescans and reports updated record",
+		  "event record updated" in (inter.log[0] or "") and "Command Rescan" in (inter.log[0] or ""))
+	check("command updated the record", event_rows[t.id].title == "Command Rescan")
+
+	# command with a message-link target resolves the same thread
+	ai_responses.append(make_extraction(title="Command Rescan v2"))
+	inter = FakeInteraction()  # no channel: must use the link
+	await adhoc.rescan_command.callback(inter, f"https://discord.com/channels/{saved_guild2.id}/{t.id}/999")
+	check("command accepts a message link", "Command Rescan v2" in (inter.log[0] or ""))
+
+	# untracked post: rescan creates the record from scratch
+	reset_scenario()
+	t = new_post(910000000000000063)
+	ai_responses.append(make_extraction(title="Fresh From Rescan"))
+	inter = FakeInteraction(channel=t)
+	await adhoc.rescan_command.callback(inter, None)
+	check("rescan of untracked post creates the record",
+		  "event record updated" in (inter.log[0] or "") and event_rows[t.id].title == "Fresh From Rescan")
+
+	# error paths: bad link text, non-thread channel, missing post, non-forum id
+	inter = FakeInteraction()
+	await adhoc.rescan_command.callback(inter, "not a link at all")
+	check("garbage target explains the format", "couldn't read" in (inter.log[0] or ""))
+	text_channel = discord.Object(id=12345)
+	inter = FakeInteraction(channel=text_channel)
+	await adhoc.rescan_command.callback(inter, None)
+	check("non-thread channel gets guidance", "inside an #event-chat post" in (inter.log[0] or ""))
+	inter = FakeInteraction()
+	await adhoc.rescan_command.callback(inter, "910000000000000999")
+	check("unknown post id reports missing", "can't be fetched" in (inter.log[0] or ""))
+	non_forum = FakeThread(id=910000000000000064, parent_id=999999)  # not #event-chat
+	shared_mod.shared.guild.threads[non_forum.id] = non_forum
+	inter = FakeInteraction()
+	await adhoc.rescan_command.callback(inter, str(non_forum.id))
+	check("non-forum thread rejected", "not a post in #event-chat" in (inter.log[0] or ""))
+
+	# nonpublic post: rescan reports the tag state, record removed
+	reset_scenario()
+	t = new_post(910000000000000065, tags=(FakeTag("nonpublic", 99),))
+	ai_responses.append(make_extraction())  # queued but must NOT be consumed
+	inter = FakeInteraction(channel=t)
+	await adhoc.rescan_command.callback(inter, None)
+	check("rescan reports nonpublic state", "`nonpublic` tag" in (inter.log[0] or "") and captured["ai_calls"] == 0)
+	check("rescan of nonpublic post removes any record", t.id not in event_rows and forum_rows[t.id].state == "nonpublic")
+
+	# bot's own mirrored post: nothing to do
+	reset_scenario()
+	real_client = shared_mod.shared.client
+	shared_mod.shared.client = types.SimpleNamespace(user=types.SimpleNamespace(id=424242))
+	t = new_post(910000000000000066, owner=424242)
+	inter = FakeInteraction(channel=t)
+	await adhoc.rescan_command.callback(inter, None)
+	check("bot's own meetup post is not rescannable", "mirrored Meetup event" in (inter.log[0] or ""))
+	shared_mod.shared.client = real_client
+
 	print("ALL PASSED")
 
 asyncio.run(main())

@@ -17,6 +17,11 @@ the bot was offline):
 - `nonpublic` tag removed -> record recreated from the last extraction
 - post deleted  -> ForumEvent row + event record deleted
 
+Admins can force a full reanalysis of one post with /rally admin rescan
+(run inside the post, or pass a message link from it): it calls
+process_thread(force=True), which skips change detection AND the
+started-event reanalysis guard, then reports the outcome ephemerally.
+
 Status notices are a single replaceable reply per thread: posting a new one
 deletes the previous bot reply (reply_message_id is tracked on the row).
 """
@@ -24,13 +29,16 @@ import asyncio
 import datetime as dt
 import hashlib
 import json
+import re
 import traceback
 
 import discord
+from discord import app_commands
 
 import events
 import forum
 import llm
+from selfroles import admin_group
 from aws import RallyBotModel
 from shared import shared
 
@@ -654,13 +662,20 @@ def _mention(thread) -> str:
 	return f"<@{owner}>" if owner else ""
 
 
-async def process_thread(thread: discord.Thread, *, force: bool = False) -> None:
+async def process_thread(thread: discord.Thread, *, force: bool = False) -> str:
 	"""Full real-time pipeline for one #event-chat post. Idempotent: posts
-	whose title/body/tags (hash) and edited_at are unchanged do nothing."""
+	whose title/body/tags (hash) and edited_at are unchanged do nothing.
+
+	Returns a short status string describing the outcome ("event",
+	"event_recurring", "missing_info", "not_event", "nonpublic", "unchanged",
+	"past_event", "bot_post", "gone", "ai_failed", "error", ...). Real-time
+	callers ignore it; /rally admin rescan summarizes it. force=True (the
+	admin rescan) skips change detection AND the started-event reanalysis
+	guard — an explicit admin action may recompute even a past one-off."""
 	if getattr(thread, "parent_id", None) != forum.FORUM_CHANNEL_ID:
-		return
+		return "wrong_channel"
 	if shared.client and thread.owner_id and thread.owner_id == shared.client.user.id:
-		return  # the bot's own mirrored Meetup posts are already tracked
+		return "bot_post"  # the bot's own mirrored Meetup posts are already tracked
 	try:
 		row = await asyncio.to_thread(ForumEvent.get, "forum_event", int(thread.id))
 	except ForumEvent.DoesNotExist:
@@ -668,13 +683,13 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 		row.created_at = dt.datetime.now(shared.central_time)
 	except Exception:
 		print(f"ERROR: loading ForumEvent row for {thread.id}:\n{traceback.format_exc()}")
-		return
+		return "error"
 
 	# ---- nonpublic gate (runs on every trigger, before anything else) ----
 	was_nonpublic = False
 	if _has_nonpublic_tag(thread):
 		if row.nonpublic_seen:
-			return  # already alerted for this application of the tag
+			return "nonpublic_seen"  # already alerted for this application of the tag
 		row.state = "nonpublic"
 		await _delete_event_record(row)
 		await _delete_all_occurrences(int(thread.id))
@@ -690,7 +705,7 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 			await asyncio.to_thread(row.save)
 		except Exception:
 			print(f"ERROR: saving ForumEvent row {thread.id}:\n{traceback.format_exc()}")
-		return
+		return "nonpublic"
 	elif row.nonpublic_seen:
 		# the tag was just removed: fall through and recreate the record
 		was_nonpublic = True
@@ -700,10 +715,10 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 	try:
 		starter = await _fetch_starter(thread)
 	except discord.NotFound:
-		return  # post deleted while processing; the delete handler cleans up
+		return "gone"  # post deleted while processing; the delete handler cleans up
 	except Exception:
 		print(f"ERROR: fetching starter message for {thread.id}:\n{traceback.format_exc()}")
-		return
+		return "error"
 	content_hash = _starter_content_hash(thread, starter)
 	edited_at = _norm_dt(getattr(starter, "edited_at", None))
 	# was_nonpublic forces processing: the tag removal itself must run the
@@ -712,19 +727,20 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 	changed = force or was_nonpublic or content_hash != row.last_analyzed_hash or edited_at != _norm_dt(row.last_edited_at)
 	if not changed:
 		await asyncio.to_thread(row.save)  # persist any nonpublic flag reset
-		return
+		return "unchanged"
 
 	# ---- past-event guard: never reanalyze/recompute a STARTED event ----
 	# (one-off rows only — a recurring series' schedule legitimately changes
-	# via edits, and its past rows stay untouched as immutable history)
-	if row.event_sort and row.recurrence is None:
+	# via edits, and its past rows stay untouched as immutable history;
+	# force=True is an explicit admin rescan and bypasses the guard)
+	if row.event_sort and row.recurrence is None and not force:
 		existing = await _load_event(int(row.event_sort))
 		if existing and existing.start_time and existing.start_time <= dt.datetime.now(shared.central_time):
 			row.last_analyzed_hash = content_hash
 			row.last_edited_at = edited_at
 			row.last_analyzed_at = dt.datetime.now(shared.central_time)
 			await asyncio.to_thread(row.save)
-			return
+			return "past_event"
 
 	# ---- recompute path (new post, edit, or tag-removal recreation) ----
 	extraction = None
@@ -743,7 +759,7 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 			# transient AI failure: post nothing, keep the old hash so a
 			# later trigger or startup sweep retries
 			print(f"ad hoc event extraction for {thread.id} failed transiently; will retry")
-			return
+			return "ai_failed"
 
 	row.last_analyzed_hash = content_hash
 	row.last_edited_at = edited_at
@@ -762,7 +778,7 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 		row.last_extraction = None
 		row.missing_fields = None
 		await asyncio.to_thread(row.save)
-		return
+		return "not_event"
 
 	resolved, missing = _resolve_extraction(extraction, thread.name)
 	if resolved is None:
@@ -774,7 +790,7 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 		labels = ", ".join(MISSING_FIELD_LABELS.get(m, m) for m in missing)
 		await post_status_reply(thread, row, f"{_mention(thread)} I tried to add this event to cah.moe but couldn't because of missing information: **{labels}**. Please update the post with the missing info and I'll try again!")
 		await asyncio.to_thread(row.save)
-		return
+		return "missing_info"
 
 	# valid: upsert the event record(s)
 	rule = _parse_recurrence(extraction.get("recurrence"))
@@ -795,7 +811,7 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 		row.last_extraction = json.dumps(resolved)
 		await post_status_reply(thread, row, f"{_mention(thread)} saw your post and added your event to cah.moe — it's on the calendar as a **{_recurrence_description(rule)} at {_fmt_rule_time(rule)}** with the next month of dates listed. If that's not right, edit the post and I'll fix it! If you'd rather it NOT appear on the website, add the `nonpublic` tag to this post and I'll remove it.")
 		await asyncio.to_thread(row.save)
-		return
+		return "event_recurring"
 	# one-off: upsert the single record, preserving created_at on recompute
 	existing = await _load_event(int(thread.id))
 	created_at = existing.created_at if existing else dt.datetime.now(shared.central_time)
@@ -804,10 +820,141 @@ async def process_thread(thread: discord.Thread, *, force: bool = False) -> None
 		await asyncio.to_thread(ev.save)
 	except Exception:
 		print(f"ERROR: saving ad hoc event {thread.id}:\n{traceback.format_exc()}")
-		return
+		return "error"
 	row.event_sort = int(thread.id)
 	row.state = "event"
 	row.missing_fields = None
 	row.last_extraction = json.dumps(resolved)
 	await post_status_reply(thread, row, f"{_mention(thread)} saw your post and added your event to cah.moe so website visitors can see it! 📅 If you'd rather it NOT appear on the website, add the `nonpublic` tag to this post and I'll remove it.")
 	await asyncio.to_thread(row.save)
+	return "event"
+
+
+# ---- /rally admin rescan: force-rescan one forum post ----
+
+def _rescan_admin(interaction: discord.Interaction) -> bool:
+	"""Admins and members with Manage Server may rescan (mirrors reannounce)."""
+	member = interaction.user
+	if not isinstance(member, discord.Member):
+		return False
+	perms = member.guild_permissions
+	return perms.administrator or perms.manage_guild
+
+
+def _fmt_ct(value: dt.datetime) -> str:
+	return value.astimezone(shared.central_time).strftime("%a %b %-d, %I:%M %p %Z")
+
+
+def _parse_target_thread_id(target: str) -> int | None:
+	"""A message link (…/channels/<guild>/<thread>/<message>) or a bare
+	snowflake; the thread id is the link's channel component."""
+	m = re.search(r"discord(?:app)?\.com/channels/\d+/(\d+)", target)
+	if m:
+		return int(m.group(1))
+	if target.isdigit():
+		return int(target)
+	return None
+
+
+async def _rescan_reply(thread: discord.Thread, status: str) -> str:
+	"""Ephemeral summary of a forced rescan, enriched from the row/event state."""
+	prefix = "(quiet mode) " if shared.quiet else ""
+	link = thread.mention
+	if status == "bot_post":
+		return f"{prefix}{link} is a mirrored Meetup event, not a user post — nothing to rescan."
+	if status == "gone":
+		return f"{prefix}{link}'s first message is gone (deleted?) — nothing to rescan."
+	if status == "ai_failed":
+		return f"{prefix}Rescan of {link} hit a transient AI error; nothing changed — try again in a bit."
+	if status == "error":
+		return f"{prefix}Rescan of {link} failed — check the bot logs."
+	if status == "nonpublic":
+		return f"{prefix}{link} has the `nonpublic` tag — its event record is removed from cah.moe."
+	if status == "not_event":
+		return f"{prefix}Rescanned {link} — it no longer reads as an event, so its event record was removed."
+	if status == "missing_info":
+		labels = "information"
+		try:
+			row = await asyncio.to_thread(ForumEvent.get, "forum_event", int(thread.id))
+			keys = [f for f in (row.missing_fields or "").split(",") if f]
+			if keys:
+				labels = ", ".join(MISSING_FIELD_LABELS.get(k, k) for k in keys)
+		except Exception:
+			pass
+		return f"{prefix}Rescanned {link} — it's still missing {labels}, so there's no event record on cah.moe."
+	if status in ("event", "event_recurring"):
+		detail = ""
+		try:
+			row = await asyncio.to_thread(ForumEvent.get, "forum_event", int(thread.id))
+			if row.recurrence:
+				rule = json.loads(row.recurrence)
+				nxt = _next_occurrence(rule, dt.datetime.now(shared.central_time))
+				nxt_s = _fmt_ct(nxt) if nxt else "unknown"
+				detail = (f" **{_recurrence_description(rule)} at {_fmt_rule_time(rule)}**;"
+						  f" next occurrence {nxt_s}.")
+			elif row.event_sort:
+				ev = await _load_event(int(row.event_sort))
+				if ev:
+					detail = f" **{ev.title}** — {_fmt_ct(ev.start_time)}, {ev.location}."
+		except Exception:
+			print(f"ERROR: building rescan summary for thread {thread.id}:\n{traceback.format_exc()}")
+		return f"{prefix}Rescanned {link} — event record updated:{detail}"
+	return f"{prefix}Rescanned {link} (status: {status})."
+
+
+@admin_group.command(name="rescan", description="Force-rescan an #event-chat post and update its event record")
+@app_commands.guild_only
+@app_commands.check(_rescan_admin)
+@app_commands.describe(
+	target="Optional: a message link from the post (or its thread id). Omit it and run the command inside the post instead.",
+)
+async def rescan_command(interaction: discord.Interaction, target: str | None = None):
+	"""Admin override of the ad hoc pipeline: runs the full extraction for one
+	forum post with force=True — skips change detection AND the started-event
+	reanalysis guard, so even a past one-off record gets recomputed."""
+	await interaction.response.defer(ephemeral=True)
+	target = (target or "").strip()
+	if target:
+		thread_id = _parse_target_thread_id(target)
+		if thread_id is None:
+			await interaction.followup.send(
+				"I couldn't read that as a message link or thread id — paste a link like "
+				"`https://discord.com/channels/<server>/<post>/<message>`.", ephemeral=True)
+			return
+	else:
+		channel = interaction.channel
+		if not isinstance(channel, discord.Thread):
+			await interaction.followup.send(
+				"Run this inside an #event-chat post, or pass a message link from one.", ephemeral=True)
+			return
+		thread_id = int(channel.id)
+	try:
+		# fetch fresh over REST — a cached thread can carry stale tags/name
+		thread = await shared.guild.fetch_channel(thread_id)
+	except discord.NotFound:
+		await interaction.followup.send("That post can't be fetched — was it deleted?", ephemeral=True)
+		return
+	except Exception:
+		print(f"ERROR: /rally admin rescan could not fetch thread {thread_id}:\n{traceback.format_exc()}")
+		await interaction.followup.send("Something went wrong fetching that post — check the bot logs.", ephemeral=True)
+		return
+	if not isinstance(thread, discord.Thread) or thread.parent_id != forum.FORUM_CHANNEL_ID:
+		await interaction.followup.send("That's not a post in #event-chat.", ephemeral=True)
+		return
+	try:
+		status = await process_thread(thread, force=True)
+	except Exception:
+		print(f"ERROR: /rally admin rescan failed for thread {thread.id}:\n{traceback.format_exc()}")
+		status = "error"
+	await interaction.followup.send(await _rescan_reply(thread, status), ephemeral=True)
+
+
+@rescan_command.error
+async def rescan_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+	if isinstance(error, app_commands.CheckFailure):
+		if not interaction.response.is_done():
+			await interaction.response.send_message("You need Administrator or Manage Server to use rescan.", ephemeral=True)
+		return
+	print(f"ERROR: exception in /rally admin rescan: {error}")
+	if not interaction.response.is_done():
+		await interaction.response.send_message("Something went wrong during the rescan.", ephemeral=True)
